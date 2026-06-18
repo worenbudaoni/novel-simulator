@@ -15,7 +15,6 @@ com\novel\simulator\mapper\RoleMapper.class
 com\novel\simulator\entity\LlmCache.class
 com\novel\simulator\mapper\NodeEdgeMapper.class
 com\novel\simulator\common\UserContext.class
-com\novel\simulator\utils\Results.class
 com\novel\simulator\entity\NodeEdge.class
 com\novel\simulator\mapper\NovelRoleVisibilityMapper.class
 com\novel\simulator\config\MyBatisPlusConfig.class

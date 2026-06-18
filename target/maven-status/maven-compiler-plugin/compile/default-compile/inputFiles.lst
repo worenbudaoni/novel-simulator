@@ -42,3 +42,4 @@ D:\project\novel-simulator\src\main\java\com\novel\simulator\entity\Novel.java
 D:\project\novel-simulator\src\main\java\com\novel\simulator\mapper\RolePermissionMapper.java
 D:\project\novel-simulator\src\main\java\com\novel\simulator\dto\LoginRequest.java
 D:\project\novel-simulator\src\main\java\com\novel\simulator\NovelSimulatorApplication.java
+D:\project\novel-simulator\src\main\java\com\novel\simulator\common\GlobalExceptionHandler.java
