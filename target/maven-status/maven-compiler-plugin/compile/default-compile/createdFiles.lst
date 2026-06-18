@@ -1,1 +1,5 @@
 com\novel\simulator\NovelSimulatorApplication.class
+com\novel\simulator\config\MyBatisPlusConfig.class
+com\novel\simulator\config\SecurityConfig.class
+com\novel\simulator\config\RedisConfig.class
+com\novel\simulator\filter\AuthFilter.class
