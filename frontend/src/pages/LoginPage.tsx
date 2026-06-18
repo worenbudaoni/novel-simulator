@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../components/ui/card';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -25,46 +28,50 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-sm border p-8">
-        <h1 className="text-2xl font-bold text-center mb-6">登录</h1>
-        {error && (
-          <div className="bg-red-50 text-red-600 text-sm p-3 rounded mb-4">{error}</div>
-        )}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">用户名</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full bg-blue-600 text-white py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-          >
-            {submitting ? '登录中...' : '登录'}
-          </button>
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">登录</CardTitle>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            {error && (
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+                {error}
+              </div>
+            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">用户名</label>
+              <Input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="请输入用户名"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">密码</label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="请输入密码"
+                required
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-3">
+            <Button type="submit" disabled={submitting} className="w-full">
+              {submitting ? '登录中...' : '登录'}
+            </Button>
+            <p className="text-sm text-muted-foreground text-center">
+              还没有账号？
+              <Link to="/register" className="text-primary hover:underline ml-1">注册</Link>
+            </p>
+          </CardFooter>
         </form>
-        <p className="text-center text-sm text-gray-500 mt-4">
-          还没有账号？
-          <Link to="/register" className="text-blue-600 hover:underline ml-1">注册</Link>
-        </p>
-      </div>
+      </Card>
     </div>
   );
 }
