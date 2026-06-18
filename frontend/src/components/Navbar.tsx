@@ -25,10 +25,10 @@ export default function Navbar() {
   const initials = user?.nickname?.charAt(0)?.toUpperCase() || 'G';
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center px-4 lg:px-8 max-w-7xl mx-auto">
         <div className="flex items-center gap-6 mr-auto">
-          <Link to="/" className="flex items-center gap-2 font-semibold text-lg">
+          <Link to="/" className="flex items-center gap-2 font-semibold text-foreground text-lg">
             <BookOpen className="h-5 w-5 text-primary" />
             <span>Novel Simulator</span>
           </Link>
@@ -40,7 +40,7 @@ export default function Navbar() {
               {user.roles.includes('ADMIN') && (
                 <Link to="/admin">
                   <Button variant="ghost" size="sm">
-                    <Settings className="h-4 w-4 mr-1" />
+                    <Settings className="h-4 w-4 mr-1.5" />
                     管理后台
                   </Button>
                 </Link>
@@ -53,8 +53,8 @@ export default function Navbar() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger>
-                <Avatar className="h-8 w-8 cursor-pointer">
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                <Avatar className="h-8 w-8 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/40 transition-all">
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -63,33 +63,33 @@ export default function Navbar() {
                 <DropdownMenuLabel>
                   <div className="flex flex-col gap-1">
                     <p className="text-sm font-medium">{user.nickname}</p>
-                    <p className="text-xs text-muted-foreground">{user.username}</p>
+                    <p className="text-xs text-muted-foreground">@{user.username}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="px-2 py-1.5">
                   <div className="flex flex-wrap gap-1">
                     {user.roles.map((role) => (
-                      <Badge key={role} variant="secondary" className="text-xs">
+                      <Badge key={role} variant="secondary" className="text-xs font-medium">
                         {role}
                       </Badge>
                     ))}
                   </div>
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate('/player')}>
-                  <User className="h-4 w-4 mr-2" />
+                <DropdownMenuItem onClick={() => navigate('/player')} className="gap-2">
+                  <User className="h-4 w-4" />
                   作品列表
                 </DropdownMenuItem>
                 {user.roles.includes('ADMIN') && (
-                  <DropdownMenuItem onClick={() => navigate('/admin')}>
-                    <Settings className="h-4 w-4 mr-2" />
+                  <DropdownMenuItem onClick={() => navigate('/admin')} className="gap-2">
+                    <Settings className="h-4 w-4" />
                     管理后台
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
-                  <LogOut className="h-4 w-4 mr-2" />
+                <DropdownMenuItem onClick={handleLogout} className="gap-2 text-destructive focus:text-destructive">
+                  <LogOut className="h-4 w-4" />
                   退出登录
                 </DropdownMenuItem>
               </DropdownMenuContent>
