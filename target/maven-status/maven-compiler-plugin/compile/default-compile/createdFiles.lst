@@ -1,3 +1,5 @@
+com\novel\simulator\common\UserContext.class
+com\novel\simulator\common\Result.class
 com\novel\simulator\NovelSimulatorApplication.class
 com\novel\simulator\config\MyBatisPlusConfig.class
 com\novel\simulator\config\SecurityConfig.class
