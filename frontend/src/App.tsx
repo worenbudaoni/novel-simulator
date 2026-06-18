@@ -4,18 +4,37 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import NotFoundPage from './pages/NotFoundPage';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './components/ui/card';
+import { BookOpen } from 'lucide-react';
 
 const PlayerHome = () => (
-  <div className="p-8">
-    <h1 className="text-xl font-bold">作品列表</h1>
-    <p className="text-gray-500 mt-2">P2 实现</p>
+  <div className="flex items-center justify-center min-h-[60vh] px-4">
+    <Card className="w-full max-w-md text-center">
+      <CardHeader>
+        <div className="flex justify-center mb-2">
+          <BookOpen className="h-12 w-12 text-primary" />
+        </div>
+        <CardTitle className="text-xl">作品列表</CardTitle>
+        <CardDescription>选择一部作品开始你的冒险</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">此功能将在 P2 中实现</p>
+      </CardContent>
+    </Card>
   </div>
 );
 
 const AdminHome = () => (
-  <div className="p-8">
-    <h1 className="text-xl font-bold">管理后台</h1>
-    <p className="text-gray-500 mt-2">P2 实现</p>
+  <div className="flex items-center justify-center min-h-[60vh] px-4">
+    <Card className="w-full max-w-md text-center">
+      <CardHeader>
+        <CardTitle className="text-xl">管理后台</CardTitle>
+        <CardDescription>管理作品、节点、事件和用户</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">此功能将在 P2 中实现</p>
+      </CardContent>
+    </Card>
   </div>
 );
 
