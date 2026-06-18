@@ -1,3 +1,9 @@
+export interface ApiResult<T> {
+  code: number;
+  message: string;
+  data: T;
+}
+
 export interface AuthResponse {
   sessionId: string;
   userId: number;
@@ -16,10 +22,4 @@ export interface RegisterRequest {
   username: string;
   password: string;
   nickname?: string;
-}
-
-export interface ApiResult<T> {
-  code: number;
-  message: string;
-  data: T;
 }

@@ -15,6 +15,7 @@ com\novel\simulator\mapper\RoleMapper.class
 com\novel\simulator\entity\LlmCache.class
 com\novel\simulator\mapper\NodeEdgeMapper.class
 com\novel\simulator\common\UserContext.class
+com\novel\simulator\utils\Results.class
 com\novel\simulator\entity\NodeEdge.class
 com\novel\simulator\mapper\NovelRoleVisibilityMapper.class
 com\novel\simulator\config\MyBatisPlusConfig.class
@@ -33,6 +34,7 @@ com\novel\simulator\config\SecurityConfig.class
 com\novel\simulator\entity\User.class
 com\novel\simulator\filter\AuthFilter.class
 com\novel\simulator\entity\NodeOption.class
+com\novel\simulator\common\GlobalExceptionHandler.class
 com\novel\simulator\mapper\NodeMapper.class
 com\novel\simulator\controller\TestController.class
 com\novel\simulator\mapper\UserCharacterMapper.class

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import { Toaster } from './components/ui/sonner';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -49,6 +50,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Navbar />
+      <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<Navigate to="/player" replace />} />
         <Route path="/login" element={<LoginPage />} />

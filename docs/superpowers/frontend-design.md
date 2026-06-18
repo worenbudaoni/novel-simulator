@@ -239,7 +239,46 @@ gsap.fromTo(".auth-card",
 
 ---
 
-## 8. 反模式（禁止）
+## 8. API 响应格式
+
+### 8.1 统一格式
+
+所有后端接口统一返回以下结构：
+
+```typescript
+interface ApiResult<T> {
+  code: number;    // 200=成功, 400=参数错误, 401=未登录, 403=无权限, 500=服务器错误
+  message: string; // 成功为 "success"，失败为具体错误描述
+  data: T;         // 成功时返回数据，失败时为 null
+}
+```
+
+成功示例：
+```json
+{ "code": 200, "message": "success", "data": { "sessionId": "xxx", "userId": 1 } }
+```
+
+失败示例：
+```json
+{ "code": 400, "message": "用户名已存在", "data": null }
+```
+
+### 8.2 前端处理
+
+- 全局 axios 拦截器检测 `code !== 200` 时自动调用 `sonner toast.error()`
+- 401 时自动清除登录状态并跳转登录页
+- 403 时显示"没有权限"提示
+- 业务代码只需关注 `code === 200` 的成功路径
+- 后端异常由 `GlobalExceptionHandler` 统一捕获，无需在每个 Controller 写 try-catch
+
+### 8.3 后端依赖
+
+- Lombok：减少 getter/setter/constructor 样板代码
+- `@RestControllerAdvice`：全局异常处理，统一返回 `Result` 格式
+
+---
+
+## 9. 反模式（禁止）
 
 来自 Impeccable 和 Taste Skill 的硬性禁止：
 
