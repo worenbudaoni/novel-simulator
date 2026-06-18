@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from './components/ui/sonner';
@@ -49,9 +50,10 @@ const AdminHome = () => (
 export default function App() {
   return (
     <BrowserRouter>
-      <Navbar />
-      <Toaster position="top-right" />
-      <Routes>
+      <AuthProvider>
+        <Navbar />
+        <Toaster position="top-right" />
+        <Routes>
         <Route path="/" element={<Navigate to="/player" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -65,7 +67,8 @@ export default function App() {
           }
         />
         <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
