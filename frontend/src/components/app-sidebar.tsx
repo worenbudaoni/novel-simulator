@@ -1,5 +1,8 @@
-import { useAuth } from '@/hooks/useAuth';
 import { useLocation, Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { NavMain } from "src/components/nav-main"
+import { NavSecondary } from "src/components/nav-secondary"
+import { NavUser } from "src/components/nav-user"
 import {
   Sidebar,
   SidebarContent,
@@ -8,71 +11,37 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from 'src/components/ui/sidebar';
-import { NavMain } from 'src/components/nav-main';
-import { NavSecondary } from 'src/components/nav-secondary';
-import { NavUser } from 'src/components/nav-user';
+} from "src/components/ui/sidebar"
 import {
   BookOpen,
   Play,
   History,
-  Users,
-  Shield,
-  KeyRound,
   GitBranch,
-  Zap,
+  Shield,
   Gamepad2,
   CommandIcon,
-} from 'lucide-react';
-
-interface NavItem {
-  title: string;
-  url: string;
-  icon: React.ReactNode;
-}
+} from "lucide-react"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, hasRole } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
-
   const isActive = (url: string) => location.pathname.startsWith(url);
 
-  // Main navigation items - shown to all authenticated users
-  const userNavItems: NavItem[] = [
-    { title: '作品列表', url: '/player', icon: <BookOpen /> },
-    { title: '继续游戏', url: '/player/continue', icon: <Play /> },
-    { title: '游戏历史', url: '/player/history', icon: <History /> },
+  const mainNav = [
+    { title: "Works", url: "/player", icon: <BookOpen />, isActive: isActive('/player') && !isActive('/admin') },
+    { title: "Continue", url: "/player/continue", icon: <Play />, isActive: isActive('/player/continue') },
+    { title: "History", url: "/player/history", icon: <History />, isActive: isActive('/player/history') },
   ];
 
-  // Admin-only navigation items
-  const adminNavItems: NavItem[] = [
-    { title: '作品管理', url: '/admin/novels', icon: <BookOpen /> },
-    { title: '节点管理', url: '/admin/nodes', icon: <GitBranch /> },
-    { title: '事件管理', url: '/admin/events', icon: <Zap /> },
-    { title: '用户列表', url: '/admin/users', icon: <Users /> },
-    { title: '角色管理', url: '/admin/roles', icon: <Shield /> },
-    { title: '权限设置', url: '/admin/permissions', icon: <KeyRound /> },
+  const adminNav = [
+    { title: "Novels", url: "/admin/novels", icon: <BookOpen />, isActive: isActive('/admin/novels') },
+    { title: "Nodes", url: "/admin/nodes", icon: <GitBranch />, isActive: isActive('/admin/nodes') },
+    { title: "Roles", url: "/admin/roles", icon: <Shield />, isActive: isActive('/admin/roles') },
   ];
 
-  // Secondary nav - shown at the bottom of sidebar
-  const secondaryItems: NavItem[] = [];
-  if (hasRole('ADMIN')) {
-    secondaryItems.push({
-      title: '切换到玩家端',
-      url: '/player',
-      icon: <Gamepad2 />,
-    });
-  }
-
-  // Build the nav items based on role
-  const navItems = user
-    ? [
-        ...(hasRole('ADMIN')
-          ? [{ title: '管理后台', items: adminNavItems }]
-          : []),
-        { title: '作品', items: userNavItems },
-      ]
-    : [{ title: '浏览', items: [{ title: '公开作品', url: '/player', icon: <BookOpen /> }] }];
+  const secondaryNav = user?.roles?.includes('ADMIN')
+    ? [{ title: "Player Mode", url: "/player", icon: <Gamepad2 /> }]
+    : [];
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -81,9 +50,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               className="data-[slot=sidebar-menu-button]:p-1.5!"
-              render={
-                <Link to={user ? '/player' : '/login'} />
-              }
+              render={<Link to="/player" />}
             >
               <CommandIcon className="size-5!" />
               <span className="text-base font-semibold">Novel Simulator</span>
@@ -92,12 +59,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navItems} user={user} />
-        <NavSecondary items={secondaryItems} className="mt-auto" />
+        <NavMain items={mainNav} />
+        {user?.roles?.includes('ADMIN') && <NavMain title="Admin" items={adminNav} />}
+        <NavSecondary items={secondaryNav} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />
       </SidebarFooter>
     </Sidebar>
-  );
+  )
 }
