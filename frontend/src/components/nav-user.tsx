@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import {
   Avatar,
   AvatarFallback,
@@ -21,7 +20,6 @@ import { useAuth } from '@/hooks/useAuth';
 export function NavUser() {
   const { user, logout } = useAuth();
   const { isMobile } = useSidebar();
-  const navigate = useNavigate();
 
   if (!user) return null;
 
@@ -29,7 +27,6 @@ export function NavUser() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
   };
 
   return (
