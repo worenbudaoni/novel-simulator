@@ -39,7 +39,7 @@ export function VersionSwitcher({
               <GalleryVerticalEndIcon className="size-4" />
             </div>
             <div className="flex flex-col gap-0.5 leading-none">
-              <span className="font-medium">Documentation</span>
+              <span className="font-medium">Novel Simulator</span>
               <span className="">v{selectedVersion}</span>
             </div>
             <ChevronsUpDownIcon className="ml-auto" />
