@@ -26,19 +26,38 @@ export function LoginForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!username.trim()) {
+      setError('请输入用户名');
+      return;
+    }
+    if (username.trim().length < 3) {
+      setError('用户名至少 3 个字符');
+      return;
+    }
+    if (!password) {
+      setError('请输入密码');
+      return;
+    }
+    if (password.length < 6) {
+      setError('密码至少 6 个字符');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      await login({ username, password });
+      await login({ username: username.trim(), password });
       navigate('/player');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '登录失败');
+      const msg = (err as any)?.response?.data?.message || (err as Error)?.message || '登录失败';
+      setError(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit} {...props}>
+    <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit} noValidate {...props}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">登录</h1>

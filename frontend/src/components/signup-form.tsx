@@ -28,6 +28,26 @@ export function SignupForm({
     e.preventDefault();
     setError('');
 
+    if (!username.trim()) {
+      setError('请输入用户名');
+      return;
+    }
+    if (username.trim().length < 3) {
+      setError('用户名至少 3 个字符');
+      return;
+    }
+    if (!password) {
+      setError('请输入密码');
+      return;
+    }
+    if (password.length < 6) {
+      setError('密码至少 6 个字符');
+      return;
+    }
+    if (!confirmPassword) {
+      setError('请确认密码');
+      return;
+    }
     if (password !== confirmPassword) {
       setError('两次密码不一致');
       return;
@@ -38,14 +58,15 @@ export function SignupForm({
       await register({ username, password });
       navigate('/login');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '注册失败');
+      const msg = (err as any)?.response?.data?.message || (err as Error)?.message || '注册失败';
+      setError(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit} {...props}>
+    <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit} noValidate {...props}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
           <h1 className="text-2xl font-bold">注册</h1>
