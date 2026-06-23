@@ -29,3 +29,6 @@ replay_pid*
 *.iml
 *.ipr
 /novel-simulator.iml
+
+# Maven build output
+target/
