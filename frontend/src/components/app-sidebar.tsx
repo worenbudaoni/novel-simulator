@@ -168,7 +168,7 @@ export default function AppSidebar(
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger>
                   <SidebarMenuButton size="lg">
                     <Avatar className="h-6 w-6">
                       <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
