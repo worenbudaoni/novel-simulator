@@ -1,5 +1,4 @@
-import { useLocation, Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { Link } from 'react-router-dom';
 import { NavMain } from "src/components/nav-main"
 import { NavSecondary } from "src/components/nav-secondary"
 import { NavUser } from "src/components/nav-user"
@@ -12,37 +11,22 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "src/components/ui/sidebar"
-import {
-  BookOpen,
-  Play,
-  History,
-  GitBranch,
-  Shield,
-  Gamepad2,
-  CommandIcon,
-} from "lucide-react"
+import { BookOpen, Play, History, GitBranch, Shield, Gamepad2, CommandIcon } from "lucide-react"
 
+const data = {
+  navMain: [
+    { title: "Works", url: "/player", icon: <BookOpen /> },
+    { title: "Continue", url: "/player/continue", icon: <Play /> },
+    { title: "History", url: "/player/history", icon: <History /> },
+  ],
+  navAdmin: [
+    { title: "Novels", url: "/admin/novels", icon: <BookOpen /> },
+    { title: "Nodes", url: "/admin/nodes", icon: <GitBranch /> },
+    { title: "Roles", url: "/admin/roles", icon: <Shield /> },
+  ],
+  navSecondary: [],
+}
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuth();
-  const location = useLocation();
-  const isActive = (url: string) => location.pathname.startsWith(url);
-
-  const mainNav = [
-    { title: "Works", url: "/player", icon: <BookOpen />, isActive: isActive('/player') && !isActive('/admin') },
-    { title: "Continue", url: "/player/continue", icon: <Play />, isActive: isActive('/player/continue') },
-    { title: "History", url: "/player/history", icon: <History />, isActive: isActive('/player/history') },
-  ];
-
-  const adminNav = [
-    { title: "Novels", url: "/admin/novels", icon: <BookOpen />, isActive: isActive('/admin/novels') },
-    { title: "Nodes", url: "/admin/nodes", icon: <GitBranch />, isActive: isActive('/admin/nodes') },
-    { title: "Roles", url: "/admin/roles", icon: <Shield />, isActive: isActive('/admin/roles') },
-  ];
-
-  const secondaryNav = user?.roles?.includes('ADMIN')
-    ? [{ title: "Player Mode", url: "/player", icon: <Gamepad2 /> }]
-    : [];
-
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -59,9 +43,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={mainNav} />
-        {user?.roles?.includes('ADMIN') && <NavMain title="Admin" items={adminNav} />}
-        <NavSecondary items={secondaryNav} className="mt-auto" />
+        <NavMain items={data.navMain} />
+        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

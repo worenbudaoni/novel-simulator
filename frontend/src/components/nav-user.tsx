@@ -1,19 +1,22 @@
-import { Avatar, AvatarFallback } from 'src/components/ui/avatar';
+import { useNavigate } from 'react-router-dom';
+import {
+  Avatar,
+  AvatarFallback,
+} from "src/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from 'src/components/ui/dropdown-menu';
+} from "src/components/ui/dropdown-menu"
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from 'src/components/ui/sidebar';
-import { EllipsisVerticalIcon, LogOutIcon } from 'lucide-react';
+} from "src/components/ui/sidebar"
+import { EllipsisVerticalIcon, LogOutIcon } from "lucide-react"
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
 
 export function NavUser() {
   const { user, logout } = useAuth();
@@ -53,17 +56,17 @@ export function NavUser() {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="min-w-56"
-            side={isMobile ? 'bottom' : 'right'}
+            side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
           >
             <DropdownMenuItem onClick={handleLogout} className="gap-2 text-destructive">
               <LogOutIcon />
-              <span>退出登录</span>
+              <span>Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  );
+  )
 }
