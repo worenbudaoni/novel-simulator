@@ -42,7 +42,7 @@ export function NavUser() {
             }
           >
             <Avatar className="size-8 rounded-lg grayscale">
-              <AvatarFallback className="rounded-lg bg-primary/10 text-primary text-xs font-medium">
+              <AvatarFallback className="rounded-lg">
                 {initials}
               </AvatarFallback>
             </Avatar>
