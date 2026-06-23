@@ -33,10 +33,15 @@ function GuestPlayerPage() {
           </div>
         </div>
         <h1 className="text-2xl font-bold mb-2">Novel Simulator</h1>
-        <p className="text-muted-foreground mb-6">登录后开始你的故事之旅</p>
-        <Link to="/login">
-          <Button size="lg" className="w-full">登录</Button>
-        </Link>
+        <p className="text-muted-foreground mb-6">开始你的故事之旅</p>
+        <div className="flex flex-col gap-3">
+          <Link to="/login">
+            <Button size="lg" className="w-full">登录</Button>
+          </Link>
+          <Link to="/player/guest">
+            <Button variant="outline" size="lg" className="w-full">游客进入</Button>
+          </Link>
+        </div>
         <p className="text-sm text-muted-foreground mt-3">
           还没有账号？{' '}
           <Link to="/register" className="text-primary underline underline-offset-4">注册</Link>
@@ -82,6 +87,11 @@ export default function App() {
           <Route path="/login" element={<AuthLayout><LoginForm /></AuthLayout>} />
           <Route path="/register" element={<AuthLayout><SignupForm /></AuthLayout>} />
           <Route path="/player" element={<PlayerPage />} />
+          <Route path="/player/guest" element={
+            <DashboardLayout>
+              <SectionCards />
+            </DashboardLayout>
+          } />
           <Route path="/admin" element={
             <DashboardLayout>
               <div className="flex items-center justify-center h-full text-muted-foreground">管理后台 — 功能待实现</div>
