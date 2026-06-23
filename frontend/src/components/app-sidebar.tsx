@@ -11,7 +11,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "src/components/ui/sidebar"
-import { BookOpen, Play, History, GitBranch, Shield, Gamepad2, CommandIcon } from "lucide-react"
+import {
+  BookOpen,
+  Play,
+  History,
+  CommandIcon,
+} from "lucide-react"
 
 const data = {
   navMain: [
@@ -19,13 +24,9 @@ const data = {
     { title: "Continue", url: "/player/continue", icon: <Play /> },
     { title: "History", url: "/player/history", icon: <History /> },
   ],
-  navAdmin: [
-    { title: "Novels", url: "/admin/novels", icon: <BookOpen /> },
-    { title: "Nodes", url: "/admin/nodes", icon: <GitBranch /> },
-    { title: "Roles", url: "/admin/roles", icon: <Shield /> },
-  ],
   navSecondary: [],
 }
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>

@@ -3,11 +3,12 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SidebarProvider, SidebarInset } from 'src/components/ui/sidebar';
 import { AppSidebar } from 'src/components/app-sidebar';
 import { SiteHeader } from 'src/components/site-header';
+import { SectionCards } from 'src/components/section-cards';
 import { Toaster } from 'src/components/ui/sonner';
 import { LoginForm } from 'src/components/login-form';
 import { SignupForm } from 'src/components/signup-form';
 
-function SidebarLayout({ children }: { children: React.ReactNode }) {
+function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -36,14 +37,14 @@ export default function App() {
             </div>
           } />
           <Route path="/player" element={
-            <SidebarLayout>
-              <div className="flex items-center justify-center h-full text-muted-foreground">Player home — coming soon</div>
-            </SidebarLayout>
+            <DashboardLayout>
+              <SectionCards />
+            </DashboardLayout>
           } />
           <Route path="/admin" element={
-            <SidebarLayout>
+            <DashboardLayout>
               <div className="flex items-center justify-center h-full text-muted-foreground">Admin — coming soon</div>
-            </SidebarLayout>
+            </DashboardLayout>
           } />
           <Route path="/" element={<Navigate to="/player" replace />} />
           <Route path="*" element={<Navigate to="/player" replace />} />

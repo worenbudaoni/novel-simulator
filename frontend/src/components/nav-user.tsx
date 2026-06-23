@@ -42,9 +42,7 @@ export function NavUser() {
             }
           >
             <Avatar className="size-8 rounded-lg grayscale">
-              <AvatarFallback className="rounded-lg">
-                {initials}
-              </AvatarFallback>
+              <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{user.nickname}</span>
@@ -60,7 +58,7 @@ export function NavUser() {
             align="end"
             sideOffset={4}
           >
-            <DropdownMenuItem onClick={handleLogout} className="gap-2 text-destructive">
+            <DropdownMenuItem onClick={handleLogout} className="gap-2">
               <LogOutIcon />
               <span>Log out</span>
             </DropdownMenuItem>

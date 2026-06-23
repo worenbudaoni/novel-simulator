@@ -73,6 +73,7 @@
   --sidebar-accent-foreground: oklch(0.205 0.042 265.755);
   --sidebar-border: oklch(0.922 0.004 286.375);
   --sidebar-ring: oklch(0.708 0.015 286.375);
+  --header-height: 3.5rem;
 }
 
 body {
