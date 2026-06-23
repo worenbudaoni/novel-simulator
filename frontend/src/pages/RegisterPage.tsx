@@ -36,7 +36,6 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
           <CardTitle className="text-2xl">注册</CardTitle>
@@ -97,6 +96,5 @@ export default function RegisterPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
   );
 }

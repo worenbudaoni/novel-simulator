@@ -29,7 +29,6 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
           <CardTitle className="text-2xl">登录</CardTitle>
@@ -76,6 +75,5 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
-    </div>
   );
 }

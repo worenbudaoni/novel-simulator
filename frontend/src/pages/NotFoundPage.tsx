@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 
 export default function NotFoundPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm text-center">
         <CardHeader>
           <div className="text-6xl font-bold text-muted-foreground/30 mb-2">404</div>
@@ -19,6 +18,5 @@ export default function NotFoundPage() {
           </Link>
         </CardContent>
       </Card>
-    </div>
   );
 }
