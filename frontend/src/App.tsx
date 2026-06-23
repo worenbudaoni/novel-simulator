@@ -8,6 +8,7 @@ import { Button } from 'src/components/ui/button';
 import { Toaster } from 'src/components/ui/sonner';
 import { LoginForm } from 'src/components/login-form';
 import { SignupForm } from 'src/components/signup-form';
+import AdminNovelsPage from 'src/components/page-admin-novels';
 import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, CommandIcon } from 'lucide-react';
 
@@ -78,6 +79,23 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+function ProtectedAdmin({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user || !user.roles?.includes('ADMIN')) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+        <div className="text-center max-w-sm">
+          <h2 className="text-xl font-bold mb-2">需要管理员权限</h2>
+          <p className="text-muted-foreground mb-4">请使用管理员账号登录</p>
+          <Link to="/login"><Button>登录</Button></Link>
+        </div>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -93,9 +111,11 @@ export default function App() {
             </DashboardLayout>
           } />
           <Route path="/admin" element={
-            <DashboardLayout>
-              <div className="flex items-center justify-center h-full text-muted-foreground">管理后台 — 功能待实现</div>
-            </DashboardLayout>
+            <ProtectedAdmin>
+              <DashboardLayout>
+                <AdminNovelsPage />
+              </DashboardLayout>
+            </ProtectedAdmin>
           } />
           <Route path="/" element={<Navigate to="/player" replace />} />
           <Route path="*" element={<Navigate to="/player" replace />} />
