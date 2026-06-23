@@ -76,7 +76,7 @@ WHERE code IN (
 -- ---- 4. 默认管理员账号 ----
 -- 密码: admin123（BCrypt 加密）
 INSERT INTO user (username, password, nickname, is_enabled, created_at, updated_at) VALUES
-('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', '管理员', TRUE, NOW(), NOW());
+('admin', '$2a$10$mCFwBlKYAIuazd4YFJfpieDekEa2RMCcFzu65C3oit7L5wDTu7z4G', '管理员', TRUE, NOW(), NOW());
 
 -- 分配 ADMIN 角色
 INSERT INTO user_role (user_id, role_id)
