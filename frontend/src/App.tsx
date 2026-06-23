@@ -43,7 +43,7 @@ export default function App() {
           } />
           <Route path="/admin" element={
             <DashboardLayout>
-              <div className="flex items-center justify-center h-full text-muted-foreground">Admin — coming soon</div>
+              <div className="flex items-center justify-center h-full text-muted-foreground">管理后台 — 功能待实现</div>
             </DashboardLayout>
           } />
           <Route path="/" element={<Navigate to="/player" replace />} />

@@ -31,7 +31,7 @@ export function LoginForm({
       await login({ username, password });
       navigate('/player');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : '登录失败');
     } finally {
       setSubmitting(false);
     }
@@ -41,9 +41,9 @@ export function LoginForm({
     <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit} {...props}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Login to your account</h1>
+          <h1 className="text-2xl font-bold">登录</h1>
           <p className="text-sm text-balance text-muted-foreground">
-            Enter your username below to login to your account
+            输入用户名和密码登录
           </p>
         </div>
 
@@ -54,11 +54,11 @@ export function LoginForm({
         )}
 
         <Field>
-          <FieldLabel htmlFor="username">Username</FieldLabel>
+          <FieldLabel htmlFor="username">用户名</FieldLabel>
           <Input
             id="username"
             type="text"
-            placeholder="your username"
+            placeholder="请输入用户名"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
@@ -66,12 +66,12 @@ export function LoginForm({
         </Field>
         <Field>
           <div className="flex items-center">
-            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <FieldLabel htmlFor="password">密码</FieldLabel>
             <a
               href="#"
               className="ml-auto text-sm underline-offset-4 hover:underline"
             >
-              Forgot your password?
+              忘记密码？
             </a>
           </div>
           <Input
@@ -84,10 +84,10 @@ export function LoginForm({
         </Field>
         <Field>
           <Button type="submit" disabled={submitting}>
-            {submitting ? 'Logging in...' : 'Login'}
+            {submitting ? '登录中...' : '登录'}
           </Button>
         </Field>
-        <FieldSeparator>Or continue with</FieldSeparator>
+        <FieldSeparator>其他方式</FieldSeparator>
         <Field>
           <Button variant="outline" type="button">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -99,9 +99,9 @@ export function LoginForm({
             Login with GitHub
           </Button>
           <FieldDescription className="text-center">
-            Don&apos;t have an account?{' '}
+            还没有账号？{' '}
             <Link to="/register" className="underline underline-offset-4">
-              Sign up
+              注册
             </Link>
           </FieldDescription>
         </Field>

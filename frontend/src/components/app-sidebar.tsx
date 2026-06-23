@@ -24,14 +24,14 @@ import {
 } from "lucide-react"
 
 const navMain = [
-  { title: "Works", url: "/player", icon: <BookOpen /> },
-  { title: "Continue", url: "/player/continue", icon: <Play /> },
-  { title: "History", url: "/player/history", icon: <History /> },
+  { title: "作品列表", url: "/player", icon: <BookOpen /> },
+  { title: "继续游戏", url: "/player/continue", icon: <Play /> },
+  { title: "游戏历史", url: "/player/history", icon: <History /> },
 ]
 
 const documents = [
-  { name: "Favorites", url: "/player/favorites", icon: <Heart /> },
-  { name: "Recommendations", url: "/player/recommendations", icon: <Star /> },
+  { name: "我的收藏", url: "/player/favorites", icon: <Heart /> },
+  { name: "为你推荐", url: "/player/recommendations", icon: <Star /> },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -63,10 +63,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuItem>
               <div className="flex flex-col gap-1 px-2 py-1">
                 <Link to="/login">
-                  <Button variant="outline" size="sm" className="w-full justify-start">Log in</Button>
+                  <Button variant="outline" size="sm" className="w-full justify-start">登录</Button>
                 </Link>
                 <Link to="/register">
-                  <Button size="sm" className="w-full justify-start">Sign up</Button>
+                  <Button size="sm" className="w-full justify-start">注册</Button>
                 </Link>
               </div>
             </SidebarMenuItem>

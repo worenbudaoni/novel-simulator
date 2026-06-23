@@ -29,7 +29,7 @@ export function SignupForm({
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('两次密码不一致');
       return;
     }
 
@@ -38,7 +38,7 @@ export function SignupForm({
       await register({ username, password });
       navigate('/login');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(err instanceof Error ? err.message : '注册失败');
     } finally {
       setSubmitting(false);
     }
@@ -48,9 +48,9 @@ export function SignupForm({
     <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit} {...props}>
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Create your account</h1>
+          <h1 className="text-2xl font-bold">注册</h1>
           <p className="text-sm text-balance text-muted-foreground">
-            Fill in the form below to create your account
+            创建账号开始你的故事之旅
           </p>
         </div>
 
@@ -61,21 +61,21 @@ export function SignupForm({
         )}
 
         <Field>
-          <FieldLabel htmlFor="username">Username</FieldLabel>
+          <FieldLabel htmlFor="username">用户名</FieldLabel>
           <Input
             id="username"
             type="text"
-            placeholder="your username"
+            placeholder="你的用户名"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             minLength={3}
             required
             className="bg-background"
           />
-          <FieldDescription>3-50 characters, letters, numbers or underscores.</FieldDescription>
+          <FieldDescription>3-50 个字符，字母、数字或下划线</FieldDescription>
         </Field>
         <Field>
-          <FieldLabel htmlFor="password">Password</FieldLabel>
+          <FieldLabel htmlFor="password">密码</FieldLabel>
           <Input
             id="password"
             type="password"
@@ -85,10 +85,10 @@ export function SignupForm({
             required
             className="bg-background"
           />
-          <FieldDescription>Must be at least 6 characters long.</FieldDescription>
+          <FieldDescription>至少 6 个字符</FieldDescription>
         </Field>
         <Field>
-          <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
+          <FieldLabel htmlFor="confirm-password">确认密码</FieldLabel>
           <Input
             id="confirm-password"
             type="password"
@@ -98,14 +98,14 @@ export function SignupForm({
             required
             className="bg-background"
           />
-          <FieldDescription>Please confirm your password.</FieldDescription>
+          <FieldDescription>请再次输入密码</FieldDescription>
         </Field>
         <Field>
           <Button type="submit" disabled={submitting}>
-            {submitting ? 'Creating Account...' : 'Create Account'}
+            {submitting ? '注册中...' : '注册'}
           </Button>
         </Field>
-        <FieldSeparator>Or continue with</FieldSeparator>
+        <FieldSeparator>其他方式</FieldSeparator>
         <Field>
           <Button variant="outline" type="button">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -117,9 +117,9 @@ export function SignupForm({
             Sign up with GitHub
           </Button>
           <FieldDescription className="px-6 text-center">
-            Already have an account?{' '}
+            已有账号？{' '}
             <Link to="/login" className="underline underline-offset-4">
-              Sign in
+              登录
             </Link>
           </FieldDescription>
         </Field>

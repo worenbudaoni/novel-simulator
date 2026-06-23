@@ -30,7 +30,7 @@ export function NavDocuments({
   const { isMobile } = useSidebar()
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>Documents</SidebarGroupLabel>
+      <SidebarGroupLabel>书单</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <SidebarMenuItem key={item.name}>
@@ -59,18 +59,18 @@ export function NavDocuments({
                 <DropdownMenuItem>
                   <FolderIcon
                   />
-                  <span>Open</span>
+                  <span>打开</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <ShareIcon
                   />
-                  <span>Share</span>
+                  <span>分享</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive">
                   <Trash2Icon
                   />
-                  <span>Delete</span>
+                  <span>删除</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -79,7 +79,7 @@ export function NavDocuments({
         <SidebarMenuItem>
           <SidebarMenuButton className="text-sidebar-foreground/70">
             <MoreHorizontalIcon className="text-sidebar-foreground/70" />
-            <span>More</span>
+            <span>更多</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

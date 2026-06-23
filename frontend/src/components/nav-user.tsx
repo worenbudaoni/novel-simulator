@@ -60,7 +60,7 @@ export function NavUser() {
           >
             <DropdownMenuItem onClick={handleLogout} className="gap-2">
               <LogOutIcon />
-              <span>Log out</span>
+              <span>退出登录</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
