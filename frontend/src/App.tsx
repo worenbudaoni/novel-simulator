@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import Navbar from './components/Navbar';
+import AuthLayout from './components/AuthLayout';
+import SidebarLayout from './components/SidebarLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from './components/ui/sonner';
 import LoginPage from './pages/LoginPage';
@@ -10,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './com
 import { BookOpen, LayoutDashboard } from 'lucide-react';
 
 const PlayerHome = () => (
-  <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)] bg-background px-4">
+  <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] bg-background px-4">
     <Card className="w-full max-w-md text-center">
       <CardHeader>
         <div className="flex justify-center mb-3">
@@ -29,7 +30,7 @@ const PlayerHome = () => (
 );
 
 const AdminHome = () => (
-  <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)] bg-background px-4">
+  <div className="flex items-center justify-center min-h-[calc(100vh-8rem)] bg-background px-4">
     <Card className="w-full max-w-md text-center">
       <CardHeader>
         <div className="flex justify-center mb-3">
@@ -51,22 +52,28 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Navbar />
         <Toaster position="top-right" />
         <Routes>
-        <Route path="/" element={<Navigate to="/player" replace />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/player" element={<PlayerHome />} />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute permissions={['novel:read', 'user:read']}>
-              <AdminHome />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<NotFoundPage />} />
+          {/* 无侧边栏路由组 */}
+          <Route element={<AuthLayout />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+
+          {/* 有侧边栏路由组 */}
+          <Route element={<SidebarLayout />}>
+            <Route path="/" element={<Navigate to="/player" replace />} />
+            <Route path="/player" element={<PlayerHome />} />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute permissions={['novel:read', 'user:read']}>
+                  <AdminHome />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
         </Routes>
       </AuthProvider>
     </BrowserRouter>
