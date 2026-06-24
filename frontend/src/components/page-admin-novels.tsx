@@ -9,6 +9,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
   DialogFooter,
 } from 'src/components/ui/dialog';
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter,
+} from 'src/components/ui/sheet';
 import { toast } from 'sonner';
 import {
   PlusIcon, SearchIcon, Trash2Icon, UploadIcon, GitBranchIcon, ZapIcon,
@@ -252,15 +255,15 @@ export default function AdminNovelsPage() {
         </div>
       )}
 
-      {/* Create Dialog */}
-      <Dialog open={showCreate} onOpenChange={(open) => { if (!open) resetCreate(); }}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>新建作品</DialogTitle>
-            <DialogDescription>输入作品信息，选择导入方式</DialogDescription>
-          </DialogHeader>
+      {/* Create Sheet — slides in from right */}
+      <Sheet open={showCreate} onOpenChange={(open) => { if (!open) resetCreate(); }}>
+        <SheetContent side="right" className="w-full sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>新建作品</SheetTitle>
+            <SheetDescription>输入作品信息，选择导入方式</SheetDescription>
+          </SheetHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 flex-1 overflow-y-auto">
             <div className="space-y-2">
               <label className="text-sm font-medium">作品名称 *</label>
               <Input
@@ -368,11 +371,11 @@ export default function AdminNovelsPage() {
             )}
           </div>
 
-          <DialogFooter>
+          <SheetFooter>
             <Button variant="outline" onClick={resetCreate} disabled={actionLoading}>取消</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Confirm Dialog — preview before create */}
       <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open && !actionLoading) setConfirmOpen(false); }}>
