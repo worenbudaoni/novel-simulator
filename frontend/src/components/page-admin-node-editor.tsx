@@ -27,6 +27,8 @@ export default function AdminNodeEditorPage() {
   const { novelId } = useParams<{ novelId: string }>();
   const navigate = useNavigate();
   const [nodes, setNodes] = useState<NodeData[]>([]);
+  const [edges, setEdges] = useState<any[]>([]);
+  const [options, setOptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -37,6 +39,8 @@ export default function AdminNodeEditorPage() {
     api.get(`/admin/novel/${novelId}/nodes`).then(res => {
       if (res.data.code === 200) {
         setNodes(res.data.data.nodes || []);
+        setEdges(res.data.data.edges || []);
+        setOptions(res.data.data.options || []);
       }
     }).finally(() => setLoading(false));
   }, [novelId]);
@@ -83,11 +87,18 @@ export default function AdminNodeEditorPage() {
     try {
       const res = await api.put(`/admin/novel/${novelId}/nodes`, {
         nodes: nodes.map((n, i) => ({ ...n, sortOrder: i })),
-        edges: [],
-        options: [],
+        edges,
+        options,
       });
       if (res.data.code === 200) {
         toast.success('保存成功');
+        // Reload to get updated IDs
+        const reload = await api.get(`/admin/novel/${novelId}/nodes`);
+        if (reload.data.code === 200) {
+          setNodes(reload.data.data.nodes || []);
+          setEdges(reload.data.data.edges || []);
+          setOptions(reload.data.data.options || []);
+        }
       }
     } finally {
       setSaving(false);
@@ -110,7 +121,7 @@ export default function AdminNodeEditorPage() {
             <ArrowLeftIcon className="size-4" />
           </Button>
           <h2 className="text-lg font-semibold">节点编辑器</h2>
-          <Badge variant="outline">{nodes.length} 节点</Badge>
+          <Badge variant="outline">{nodes.length} 节点 / {edges.length} 连接 / {options.length} 选项</Badge>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={addNode}>
