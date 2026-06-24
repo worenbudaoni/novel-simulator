@@ -836,7 +836,7 @@ export default function AdminNovelsPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">标题 *</label>
+              <label className="text-sm font-medium">作品名称 *</label>
               <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} disabled={editSaving} />
             </div>
             <div className="space-y-1.5">
