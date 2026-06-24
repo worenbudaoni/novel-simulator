@@ -47,6 +47,7 @@ export default function AdminNovelsPage() {
   const [confirmType, setConfirmType] = useState<'llm' | 'txt'>('llm');
   const [previewResult, setPreviewResult] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const fetchNovels = useCallback(async () => {
@@ -377,32 +378,65 @@ export default function AdminNovelsPage() {
                     </div>
                   </div>
                 )}
-                <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                  <div className="bg-muted/30 rounded p-2">
-                    <div className="font-bold text-primary">{(previewResult.nodes as any[])?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground">节点</div>
-                  </div>
-                  <div className="bg-muted/30 rounded p-2">
-                    <div className="font-bold text-primary">{(previewResult.edges as any[])?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground">连接</div>
-                  </div>
-                  <div className="bg-muted/30 rounded p-2">
-                    <div className="font-bold text-primary">{(previewResult.events as any[])?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground">事件</div>
-                  </div>
-                </div>
-                {previewResult.nodes && (
-                  <div className="max-h-28 overflow-y-auto space-y-1">
-                    {(previewResult.nodes as any[]).slice(0, 6).map((n: any, i: number) => (
-                      <div key={i} className="flex items-center gap-2 text-xs bg-muted/20 rounded px-2 py-1">
-                        <span className="text-muted-foreground w-4 text-right">#{i + 1}</span>
-                        <span>{n.title}</span>
-                        {n.isStart && <Badge className="text-[9px] h-3.5 px-1">起点</Badge>}
-                        {n.isEnd && <Badge variant="secondary" className="text-[9px] h-3.5 px-1">结局</Badge>}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {[
+                  { key: 'nodes', label: '节点', data: previewResult.nodes as any[],
+                    render: (n: any) => (
+                      <span className="flex items-center gap-2">
+                        <span className="font-medium truncate">{n.title}</span>
+                        {n.isStart && <Badge className="text-[9px] h-3.5 px-1 shrink-0">起点</Badge>}
+                        {n.isEnd && <Badge variant="secondary" className="text-[9px] h-3.5 px-1 shrink-0">结局</Badge>}
+                      </span>
+                    ) },
+                  { key: 'edges', label: '连接', data: previewResult.edges as any[],
+                    render: (e: any) => (
+                      <span className="text-muted-foreground">
+                        {(() => {
+                          const nodes = previewResult.nodes as any[] || [];
+                          const src = nodes[e.sourceNodeIndex]?.title || `#${e.sourceNodeIndex}`;
+                          const tgt = nodes[e.targetNodeIndex]?.title || `#${e.targetNodeIndex}`;
+                          return `${src} → ${tgt}`;
+                        })()}
+                      </span>
+                    ) },
+                  { key: 'events', label: '事件', data: previewResult.events as any[],
+                    render: (ev: any) => (
+                      <span className="flex items-center gap-2">
+                        <span className="truncate">{ev.title}</span>
+                        <span className={`text-[10px] shrink-0 ${ev.eventType === 0 ? 'text-green-600' : ev.eventType === 1 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                          [{['正面','负面','中立'][ev.eventType] || '中立'}]
+                        </span>
+                      </span>
+                    ) },
+                ].map(section => {
+                  const count = section.data?.length || 0;
+                  const isOpen = expandedSection === section.key;
+                  return (
+                    <div key={section.key} className="border rounded-md overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedSection(isOpen ? null : section.key)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/30 transition-colors"
+                      >
+                        <span className="font-bold text-primary min-w-[1.5rem] text-center">{count}</span>
+                        <span className="text-muted-foreground">{section.label}</span>
+                        <span className="ml-auto text-xs text-muted-foreground">{isOpen ? '▲' : '▼'}</span>
+                      </button>
+                      {isOpen && count > 0 && (
+                        <div className="max-h-40 overflow-y-auto px-3 pb-2 space-y-1 border-t">
+                          {section.data.map((item: any, i: number) => (
+                            <div key={i} className="flex items-center gap-2 text-xs bg-muted/20 rounded px-2 py-1.5">
+                              <span className="text-muted-foreground w-5 text-right shrink-0 font-mono">#{i + 1}</span>
+                              {section.render(item)}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {isOpen && count === 0 && (
+                        <p className="px-3 pb-2 text-xs text-muted-foreground border-t pt-1">无数据</p>
+                      )}
+                    </div>
+                  );
+                })}
               </>
             )}
 
