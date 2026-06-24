@@ -302,7 +302,7 @@ export default function AdminRolesPage() {
               <SelectTrigger className="w-28">
                 <SelectValue placeholder="全部" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper">
                 <SelectItem value="">全部</SelectItem>
                 <SelectItem value="true">已选择</SelectItem>
                 <SelectItem value="false">未选择</SelectItem>
