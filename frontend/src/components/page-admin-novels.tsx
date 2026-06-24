@@ -1,11 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from 'src/components/ui/button';
 import { Input } from 'src/components/ui/input';
-import { Card, CardContent } from 'src/components/ui/card';
 import { Badge } from 'src/components/ui/badge';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from 'src/components/ui/select';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from 'src/components/ui/table';
@@ -17,6 +13,7 @@ import { toast } from 'sonner';
 import {
   PlusIcon, SearchIcon, Trash2Icon, UploadIcon, GitBranchIcon, ZapIcon,
   SparklesIcon, Loader2Icon, CheckCircleIcon, FileUpIcon, XCircleIcon,
+  FileTextIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/hooks/useApi';
@@ -41,15 +38,10 @@ export default function AdminNovelsPage() {
   const [createTitle, setCreateTitle] = useState('');
   const [createAuthor, setCreateAuthor] = useState('');
   const [createType, setCreateType] = useState('0');
-  const [creating, setCreating] = useState(false);
-
-  // LLM preview state
-  const [previewStep, setPreviewStep] = useState<'form' | 'llm' | 'upload' | 'preview'>('form');
-  const [previewResult, setPreviewResult] = useState<any>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   const fetchNovels = useCallback(async () => {
@@ -71,42 +63,38 @@ export default function AdminNovelsPage() {
     setCreateTitle('');
     setCreateAuthor('');
     setCreateType('0');
-    setPreviewStep('form');
-    setPreviewResult(null);
-    setPreviewLoading(false);
-    setPreviewError('');
+    setActionLoading(false);
+    setActionError('');
     setSelectedFile(null);
   };
 
-  const handlePreviewLlm = async () => {
+  const handleLlmCreate = async () => {
     if (!createTitle.trim()) { toast.error('请输入作品名称'); return; }
-    setPreviewLoading(true);
-    setPreviewError('');
-    setPreviewResult(null);
+    setActionLoading(true);
+    setActionError('');
     try {
-      const res = await api.post('/admin/novel/import/preview', {
+      const res = await api.post('/admin/novel/import/name', {
         name: createTitle.trim(),
         contentType: Number(createType),
       });
       if (res.data.code === 200) {
         const data = res.data.data;
-        if (!data.found) {
-          setPreviewError(data.message || '未找到作品信息');
-        } else {
-          setPreviewResult(data.result);
-          setPreviewStep('preview');
-        }
+        const nodeCount = (data.parseResult?.nodes as any[])?.length || 0;
+        toast.success(`「${data.novel.title}」创建成功，${nodeCount} 个节点`);
+        resetCreate();
+        fetchNovels();
       }
     } catch { /* handled */ }
-    setPreviewLoading(false);
+    setActionLoading(false);
   };
 
-  const handleUploadAndParse = async () => {
+  const handleTxtCreate = async () => {
+    if (!createTitle.trim()) { toast.error('请输入作品名称'); return; }
     if (!selectedFile) { toast.error('请选择TXT文件'); return; }
-    setPreviewLoading(true);
-    setPreviewError('');
-    // First create the novel, then upload
+    setActionLoading(true);
+    setActionError('');
     try {
+      // Step 1: create novel
       const createRes = await api.post('/admin/novel', {
         title: createTitle.trim(),
         author: createAuthor.trim() || null,
@@ -114,6 +102,7 @@ export default function AdminNovelsPage() {
       });
       if (createRes.data.code === 200) {
         const newId = createRes.data.data.id;
+        // Step 2: upload + parse
         const formData = new FormData();
         formData.append('file', selectedFile);
         formData.append('novelId', newId);
@@ -121,31 +110,13 @@ export default function AdminNovelsPage() {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
         if (uploadRes.data.code === 200) {
-          setPreviewResult(uploadRes.data.data.parseResult);
-          setPreviewStep('preview');
-          toast.success('解析成功');
+          toast.success(`「${createTitle.trim()}」创建成功，TXT 解析完成`);
+          resetCreate();
+          fetchNovels();
         }
       }
     } catch { /* handled */ }
-    setPreviewLoading(false);
-  };
-
-  const handleConfirmCreate = async () => {
-    if (!previewResult) return;
-    setCreating(true);
-    try {
-      // Create novel with full data
-      const res = await api.post('/admin/novel/import/name', {
-        name: createTitle.trim(),
-        contentType: Number(createType),
-      });
-      if (res.data.code === 200) {
-        toast.success('创建成功');
-        resetCreate();
-        fetchNovels();
-      }
-    } catch { /* handled */ }
-    setCreating(false);
+    setActionLoading(false);
   };
 
   const handleDelete = async (id: number) => {
@@ -162,53 +133,7 @@ export default function AdminNovelsPage() {
   const typeLabel = (t: number) => ['小说', '动漫', '漫画'][t] || '未知';
   const statusLabel = (s: number) => s === 1 ? '已发布' : '草稿';
   const parseLabel = (s: number) => ['未解析', '解析中', '已完成'][s] || '未知';
-
-  const renderParsePreview = (result: any) => {
-    if (!result) return null;
-    const nodeCount = (result.nodes as any[])?.length || 0;
-    const edgeCount = (result.edges as any[])?.length || 0;
-    const eventCount = (result.events as any[])?.length || 0;
-    return (
-      <div className="space-y-3">
-        {result.worldView && (
-          <div>
-            <h4 className="text-xs font-medium text-muted-foreground mb-1">世界观</h4>
-            <p className="text-xs bg-muted/50 rounded p-2 line-clamp-3">
-              {String(result.worldView).slice(0, 200)}
-            </p>
-          </div>
-        )}
-        <div className="grid grid-cols-3 gap-2 text-center text-sm">
-          <div className="bg-muted/30 rounded p-2">
-            <div className="font-bold text-primary">{nodeCount}</div>
-            <div className="text-xs text-muted-foreground">节点</div>
-          </div>
-          <div className="bg-muted/30 rounded p-2">
-            <div className="font-bold text-primary">{edgeCount}</div>
-            <div className="text-xs text-muted-foreground">连接</div>
-          </div>
-          <div className="bg-muted/30 rounded p-2">
-            <div className="font-bold text-primary">{eventCount}</div>
-            <div className="text-xs text-muted-foreground">事件</div>
-          </div>
-        </div>
-        {result.nodes && (
-          <div className="max-h-32 overflow-y-auto space-y-1">
-            {(result.nodes as any[]).slice(0, 8).map((n: any, i: number) => (
-              <div key={i} className="flex items-center gap-2 text-xs bg-muted/20 rounded px-2 py-1">
-                <span className="text-muted-foreground w-4 text-right">#{i + 1}</span>
-                <span>{n.title}</span>
-                {n.isStart && <Badge variant="default" className="text-[9px] h-3.5 px-1">起点</Badge>}
-                {n.isEnd && <Badge variant="secondary" className="text-[9px] h-3.5 px-1">结局</Badge>}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const isAnimeOrManga = createType === '1' || createType === '2';
+  const isNovel = createType === '0';
 
   return (
     <div>
@@ -289,167 +214,127 @@ export default function AdminNovelsPage() {
         </div>
       )}
 
-      {/* Create Dialog — multi-step with integrated LLM import */}
+      {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={(open) => { if (!open) resetCreate(); }}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>新建作品</DialogTitle>
-            <DialogDescription>
-              {previewStep === 'form' && '输入基本信息，选择导入方式'}
-              {previewStep === 'preview' && '预览 LLM 解析结果，确认创建'}
-            </DialogDescription>
+            <DialogDescription>输入作品信息，选择导入方式</DialogDescription>
           </DialogHeader>
 
-          {previewStep === 'form' && (
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">作品名称 *</label>
-                <Input value={createTitle} onChange={(e) => setCreateTitle(e.target.value)} placeholder="输入作品名称" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">作者</label>
-                <Input value={createAuthor} onChange={(e) => setCreateAuthor(e.target.value)} placeholder="原作者（可选）" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">类型</label>
-                <Select value={createType} onValueChange={setCreateType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择类型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">小说</SelectItem>
-                    <SelectItem value="1">动漫</SelectItem>
-                    <SelectItem value="2">漫画</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">作品名称 *</label>
+              <Input
+                value={createTitle}
+                onChange={(e) => setCreateTitle(e.target.value)}
+                placeholder="输入作品名称"
+                disabled={actionLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">作者</label>
+              <Input
+                value={createAuthor}
+                onChange={(e) => setCreateAuthor(e.target.value)}
+                placeholder="原作者（可选）"
+                disabled={actionLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">类型</label>
+              <select
+                value={createType}
+                onChange={(e) => { setCreateType(e.target.value); setSelectedFile(null); }}
+                disabled={actionLoading}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs disabled:opacity-50"
+              >
+                <option value="0">小说</option>
+                <option value="1">动漫</option>
+                <option value="2">漫画</option>
+              </select>
+            </div>
 
-              <div className="pt-3 border-t">
-                <p className="text-sm text-muted-foreground mb-3">
-                  {isAnimeOrManga
-                    ? '动漫/漫画将通过 AI 直接解析生成故事框架'
-                    : '小说可通过 AI 智能生成或上传 TXT 文件解析'}
-                </p>
+            <div className="pt-3 border-t space-y-3">
+              <p className="text-xs text-muted-foreground">
+                {isNovel ? '小说可选择 AI 生成或上传 TXT 文件两种方式：' : '动漫/漫画将通过 AI 直接生成故事框架。'}
+              </p>
 
-                <div className="grid gap-3">
-                  {/* LLM Generate Button — for all types */}
-                  <Button
-                    variant="default"
-                    className="w-full justify-start h-auto py-3 px-4"
-                    onClick={handlePreviewLlm}
-                    disabled={previewLoading || !createTitle.trim()}
-                  >
-                    {previewLoading ? (
-                      <Loader2Icon className="size-5 animate-spin mr-3 shrink-0" />
-                    ) : (
-                      <SparklesIcon className="size-5 mr-3 shrink-0" />
-                    )}
-                    <div className="text-left">
-                      <div className="text-sm font-medium">
-                        {previewLoading ? 'AI 解析中...' : 'AI 智能生成'}
-                      </div>
-                      <div className="text-xs opacity-70">
-                        {isAnimeOrManga ? 'AI 根据知识直接生成故事框架' : '输入作品名称，AI 生成故事框架'}
-                      </div>
-                    </div>
-                  </Button>
-
-                  {/* TXT Upload — only for 小说 */}
-                  {!isAnimeOrManga && (
-                    <div className="border rounded-lg p-3">
-                      <div className="flex items-center gap-3">
-                        <FileUpIcon className="size-5 text-muted-foreground shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">上传 TXT 文件</p>
-                          <p className="text-xs text-muted-foreground">上传小说 TXT，AI 自动解析</p>
-                        </div>
-                        <label className="cursor-pointer">
-                          <span className="text-sm text-primary hover:underline">
-                            {selectedFile ? '已选择' : '选择文件'}
-                          </span>
-                          <input
-                            type="file"
-                            accept=".txt"
-                            className="hidden"
-                            onChange={(e) => {
-                              setSelectedFile(e.target.files?.[0] || null);
-                              if (e.target.files?.[0]) {
-                                setPreviewStep('upload');
-                              }
-                            }}
-                          />
-                        </label>
-                      </div>
-                      {selectedFile && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          已选: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(0)} KB)
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {previewError && (
-                  <div className="flex items-start gap-2 mt-3 p-3 rounded-md bg-amber-50 border border-amber-200">
-                    <XCircleIcon className="size-4 text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-sm text-amber-700">{previewError}</p>
-                  </div>
+              {/* AI Generate — all types */}
+              <button
+                type="button"
+                onClick={handleLlmCreate}
+                disabled={actionLoading || !createTitle.trim()}
+                className="w-full flex items-center gap-3 rounded-lg border border-input bg-background px-4 py-3 text-left text-sm hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:pointer-events-none transition-colors"
+              >
+                {actionLoading ? (
+                  <Loader2Icon className="size-5 animate-spin shrink-0" />
+                ) : (
+                  <SparklesIcon className="size-5 shrink-0 text-primary" />
                 )}
-              </div>
-            </div>
-          )}
-
-          {previewStep === 'upload' && selectedFile && (
-            <div className="space-y-4 py-2">
-              <div className="flex items-center gap-2 p-3 rounded-md bg-blue-50 border border-blue-200">
-                <FileUpIcon className="size-4 text-blue-500" />
-                <div className="text-sm text-blue-700">
-                  <span className="font-medium">{selectedFile.name}</span>
-                  <span className="text-blue-500 ml-2">({(selectedFile.size / 1024).toFixed(0)} KB)</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium">AI 智能生成</div>
+                  <div className="text-xs text-muted-foreground">
+                    {isNovel ? '输入名称，AI 生成故事框架并创建' : 'AI 根据知识生成故事框架，查不到则提示未找到'}
+                  </div>
                 </div>
-              </div>
-              <p className="text-sm text-muted-foreground">将先创建作品，再上传文件并让 AI 解析内容。</p>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setPreviewStep('form')}>返回</Button>
-                <Button onClick={handleUploadAndParse} disabled={previewLoading}>
-                  {previewLoading ? (
-                    <><Loader2Icon className="size-4 animate-spin mr-1" /> 上传解析中...</>
+              </button>
+
+              {/* TXT Upload — 小说 only */}
+              {isNovel && (
+                <div
+                  onClick={() => !actionLoading && fileInputRef.current?.click()}
+                  className={`w-full flex items-center gap-3 rounded-lg border-2 border-dashed px-4 py-4 text-left text-sm transition-colors cursor-pointer
+                    ${selectedFile
+                      ? 'border-primary bg-primary/5'
+                      : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                    } disabled:opacity-50`}
+                >
+                  <FileUpIcon className="size-5 shrink-0 text-muted-foreground" />
+                  <div className="flex-1 min-w-0">
+                    {selectedFile ? (
+                      <div>
+                        <div className="font-medium text-primary">{selectedFile.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {(selectedFile.size / 1024).toFixed(0)} KB — 点击确认上传并解析
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="font-medium">上传 TXT 文件</div>
+                        <div className="text-xs text-muted-foreground">选择小说 TXT 文件，AI 自动解析创建</div>
+                      </div>
+                    )}
+                  </div>
+                  {selectedFile ? (
+                    <Button size="sm" onClick={(e) => { e.stopPropagation(); handleTxtCreate(); }} disabled={actionLoading}>
+                      {actionLoading ? <Loader2Icon className="size-4 animate-spin" /> : <CheckCircleIcon className="size-4" />}
+                    </Button>
                   ) : (
-                    <><UploadIcon className="size-4 mr-1" /> 上传并解析</>
+                    <FileTextIcon className="size-5 shrink-0 text-muted-foreground" />
                   )}
-                </Button>
-              </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".txt"
+                    className="hidden"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                  />
+                </div>
+              )}
             </div>
-          )}
 
-          {previewStep === 'preview' && previewResult && (
-            <div className="space-y-4 py-2">
-              <div className="flex items-center gap-2">
-                <CheckCircleIcon className="size-5 text-green-600" />
-                <span className="text-sm font-medium text-green-700">AI 解析完成</span>
+            {actionError && (
+              <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20">
+                <XCircleIcon className="size-4 text-destructive shrink-0 mt-0.5" />
+                <p className="text-sm text-destructive">{actionError}</p>
               </div>
-              {renderParsePreview(previewResult)}
+            )}
+          </div>
 
-              <div className="flex gap-2 pt-2">
-                <Button variant="outline" onClick={() => { resetCreate(); setShowCreate(true); }}>
-                  重新输入
-                </Button>
-                <Button onClick={handleConfirmCreate} disabled={creating} className="flex-1">
-                  {creating ? (
-                    <><Loader2Icon className="size-4 animate-spin mr-1" /> 创建中...</>
-                  ) : (
-                    '确认创建'
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {previewStep === 'form' && (
-            <DialogFooter>
-              <Button variant="outline" onClick={resetCreate}>取消</Button>
-            </DialogFooter>
-          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={resetCreate} disabled={actionLoading}>取消</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
