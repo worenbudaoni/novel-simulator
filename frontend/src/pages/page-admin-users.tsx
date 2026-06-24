@@ -100,22 +100,22 @@ export default function AdminUsersPage() {
             className="pl-9"
           />
         </div>
+        <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
+          <SelectTrigger className="w-20 shrink-0">
+            {statusFilter === 'true' ? '正常' : statusFilter === 'false' ? '禁用' : '全部'}
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">全部</SelectItem>
+            <SelectItem value="true">正常</SelectItem>
+            <SelectItem value="false">禁用</SelectItem>
+          </SelectContent>
+        </Select>
         <Button variant="outline" onClick={() => { setKeyword(searchInput); setPage(1); }}>
           <SearchIcon className="size-4 mr-1" /> 搜索
         </Button>
         <Button variant="ghost" onClick={() => { setSearchInput(''); setKeyword(''); setStatusFilter(''); setPage(1); }}>
           重置
         </Button>
-        <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-[100px] shrink-0">
-            {statusFilter === 'true' ? '正常' : statusFilter === 'false' ? '禁用' : '全部状态'}
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">全部状态</SelectItem>
-            <SelectItem value="true">正常</SelectItem>
-            <SelectItem value="false">禁用</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       <div className="rounded-lg border">
