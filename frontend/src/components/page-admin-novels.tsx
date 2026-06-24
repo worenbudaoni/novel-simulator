@@ -378,65 +378,83 @@ export default function AdminNovelsPage() {
                     </div>
                   </div>
                 )}
-                {[
-                  { key: 'nodes', label: '节点', data: previewResult.nodes as any[],
-                    render: (n: any) => (
-                      <span className="flex items-center gap-2">
+                {/* Stat cards — clickable, horizontal grid */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: 'nodes', label: '节点', data: previewResult.nodes as any[] },
+                    { key: 'edges', label: '连接', data: previewResult.edges as any[] },
+                    { key: 'events', label: '事件', data: previewResult.events as any[] },
+                  ].map(section => {
+                    const count = section.data?.length || 0;
+                    const isOpen = expandedSection === section.key;
+                    return (
+                      <div key={section.key} className="text-center">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedSection(isOpen ? null : section.key)}
+                          className={`w-full rounded-lg p-3 text-center transition-colors cursor-pointer hover:bg-accent ${
+                            isOpen ? 'bg-accent ring-1 ring-ring' : 'bg-muted/30'
+                          }`}
+                        >
+                          <div className="font-bold text-lg text-primary">{count}</div>
+                          <div className="text-xs text-muted-foreground">{section.label}</div>
+                          <div className="text-[10px] text-muted-foreground mt-0.5">{isOpen ? '▲ 收起' : '▼ 展开'}</div>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Expanded detail panels */}
+                {expandedSection === 'nodes' && previewResult.nodes && (
+                  <div className="max-h-40 overflow-y-auto space-y-1 border rounded-md p-2">
+                    {(previewResult.nodes as any[]).length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">无节点数据</p>
+                    ) : (previewResult.nodes as any[]).map((n: any, i: number) => (
+                      <div key={i} className="flex items-center gap-2 text-xs bg-muted/20 rounded px-2 py-1.5">
+                        <span className="text-muted-foreground w-5 text-right shrink-0 font-mono">#{i + 1}</span>
                         <span className="font-medium truncate">{n.title}</span>
                         {n.isStart && <Badge className="text-[9px] h-3.5 px-1 shrink-0">起点</Badge>}
                         {n.isEnd && <Badge variant="secondary" className="text-[9px] h-3.5 px-1 shrink-0">结局</Badge>}
-                      </span>
-                    ) },
-                  { key: 'edges', label: '连接', data: previewResult.edges as any[],
-                    render: (e: any) => (
-                      <span className="text-muted-foreground">
-                        {(() => {
-                          const nodes = previewResult.nodes as any[] || [];
-                          const src = nodes[e.sourceNodeIndex]?.title || `#${e.sourceNodeIndex}`;
-                          const tgt = nodes[e.targetNodeIndex]?.title || `#${e.targetNodeIndex}`;
-                          return `${src} → ${tgt}`;
-                        })()}
-                      </span>
-                    ) },
-                  { key: 'events', label: '事件', data: previewResult.events as any[],
-                    render: (ev: any) => (
-                      <span className="flex items-center gap-2">
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {expandedSection === 'edges' && previewResult.edges && (
+                  <div className="max-h-40 overflow-y-auto space-y-1 border rounded-md p-2">
+                    {(previewResult.edges as any[]).length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">无连接数据</p>
+                    ) : (previewResult.edges as any[]).map((e: any, i: number) => {
+                      const nodes = previewResult.nodes as any[] || [];
+                      const src = nodes[e.sourceNodeIndex]?.title || `#${e.sourceNodeIndex}`;
+                      const tgt = nodes[e.targetNodeIndex]?.title || `#${e.targetNodeIndex}`;
+                      return (
+                        <div key={i} className="flex items-center gap-2 text-xs bg-muted/20 rounded px-2 py-1.5">
+                          <span className="text-muted-foreground w-5 text-right shrink-0 font-mono">#{i + 1}</span>
+                          <span className="text-muted-foreground">{src} → {tgt}</span>
+                          {e.conditionDesc && <span className="text-[10px] text-muted-foreground ml-auto">({e.conditionDesc})</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {expandedSection === 'events' && previewResult.events && (
+                  <div className="max-h-40 overflow-y-auto space-y-1 border rounded-md p-2">
+                    {(previewResult.events as any[]).length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">无事件数据</p>
+                    ) : (previewResult.events as any[]).map((ev: any, i: number) => (
+                      <div key={i} className="flex items-center gap-2 text-xs bg-muted/20 rounded px-2 py-1.5">
+                        <span className="text-muted-foreground w-5 text-right shrink-0 font-mono">#{i + 1}</span>
                         <span className="truncate">{ev.title}</span>
-                        <span className={`text-[10px] shrink-0 ${ev.eventType === 0 ? 'text-green-600' : ev.eventType === 1 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                        <span className={`text-[10px] shrink-0 ${
+                          ev.eventType === 0 ? 'text-green-600' : ev.eventType === 1 ? 'text-red-600' : 'text-muted-foreground'
+                        }`}>
                           [{['正面','负面','中立'][ev.eventType] || '中立'}]
                         </span>
-                      </span>
-                    ) },
-                ].map(section => {
-                  const count = section.data?.length || 0;
-                  const isOpen = expandedSection === section.key;
-                  return (
-                    <div key={section.key} className="border rounded-md overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedSection(isOpen ? null : section.key)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted/30 transition-colors"
-                      >
-                        <span className="font-bold text-primary min-w-[1.5rem] text-center">{count}</span>
-                        <span className="text-muted-foreground">{section.label}</span>
-                        <span className="ml-auto text-xs text-muted-foreground">{isOpen ? '▲' : '▼'}</span>
-                      </button>
-                      {isOpen && count > 0 && (
-                        <div className="max-h-40 overflow-y-auto px-3 pb-2 space-y-1 border-t">
-                          {section.data.map((item: any, i: number) => (
-                            <div key={i} className="flex items-center gap-2 text-xs bg-muted/20 rounded px-2 py-1.5">
-                              <span className="text-muted-foreground w-5 text-right shrink-0 font-mono">#{i + 1}</span>
-                              {section.render(item)}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {isOpen && count === 0 && (
-                        <p className="px-3 pb-2 text-xs text-muted-foreground border-t pt-1">无数据</p>
-                      )}
-                    </div>
-                  );
-                })}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </>
             )}
 
