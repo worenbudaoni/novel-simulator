@@ -1,0 +1,225 @@
+package com.novel.simulator.controller;
+
+import com.novel.simulator.common.Result;
+import com.novel.simulator.entity.Node;
+import com.novel.simulator.entity.NodeEdge;
+import com.novel.simulator.entity.NodeOption;
+import com.novel.simulator.entity.Novel;
+import com.novel.simulator.entity.RandomEvent;
+import com.novel.simulator.mapper.NodeEdgeMapper;
+import com.novel.simulator.mapper.NodeMapper;
+import com.novel.simulator.mapper.NodeOptionMapper;
+import com.novel.simulator.mapper.RandomEventMapper;
+import com.novel.simulator.service.NovelService;
+import com.novel.simulator.service.ParseChain;
+import org.apache.commons.io.IOUtils;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/admin/novel")
+public class NovelImportController {
+
+    private final NovelService novelService;
+    private final ParseChain parseChain;
+    private final NodeMapper nodeMapper;
+    private final NodeEdgeMapper nodeEdgeMapper;
+    private final NodeOptionMapper nodeOptionMapper;
+    private final RandomEventMapper randomEventMapper;
+
+    public NovelImportController(NovelService novelService, ParseChain parseChain,
+                                  NodeMapper nodeMapper, NodeEdgeMapper nodeEdgeMapper,
+                                  NodeOptionMapper nodeOptionMapper, RandomEventMapper randomEventMapper) {
+        this.novelService = novelService;
+        this.parseChain = parseChain;
+        this.nodeMapper = nodeMapper;
+        this.nodeEdgeMapper = nodeEdgeMapper;
+        this.nodeOptionMapper = nodeOptionMapper;
+        this.randomEventMapper = randomEventMapper;
+    }
+
+    /**
+     * Import novel by name — LLM generates framework directly.
+     */
+    @PostMapping("/import/name")
+    @PreAuthorize("hasAuthority('novel:create')")
+    public Result<Map<String, Object>> importByName(@RequestBody Map<String, Object> request,
+                                                     Authentication authentication) {
+        String name = (String) request.get("name");
+        Integer contentType = request.get("contentType") != null
+            ? ((Number) request.get("contentType")).intValue() : 0;
+        if (name == null || name.trim().isEmpty()) {
+            return Result.error(400, "作品名称不能为空");
+        }
+
+        // 1. LLM generates framework
+        Map<String, Object> genResult = parseChain.generateFromName(name.trim(), contentType, null, "name_gen");
+        if (genResult.containsKey("error")) {
+            return Result.error(500, (String) genResult.get("error"));
+        }
+
+        // 2. Create novel record
+        Long userId = Long.valueOf(authentication.getPrincipal().toString());
+        Novel novel = new Novel();
+        novel.setTitle((String) genResult.getOrDefault("title", name.trim()));
+        novel.setAuthor((String) genResult.get("author"));
+        novel.setWorldView((String) genResult.get("worldView"));
+        novel.setContentType(contentType);
+        novel.setSourceType(1);
+        novel.setStatus(0);
+        novel.setParseStatus(0);
+        novel.setCreatedBy(userId);
+        novel.setCreatedAt(LocalDateTime.now());
+        novel.setUpdatedAt(LocalDateTime.now());
+        novelService.getBaseMapper().insert(novel);
+
+        // 3. Write parsed data to tables
+        writeParsedData(novel.getId(), genResult);
+
+        // 4. Update parse status
+        novel.setParseStatus(2);
+        novel.setParsedAt(LocalDateTime.now());
+        novelService.getBaseMapper().updateById(novel);
+
+        // 5. Save parse record with novelId now known
+        parseChain.generateFromName(name.trim(), contentType, novel.getId(), "name_gen");
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("novel", novel);
+        result.put("parseResult", genResult);
+        return Result.success(result);
+    }
+
+    /**
+     * Import novel by TXT upload — LLM parses file content.
+     */
+    @PostMapping("/import/upload")
+    @PreAuthorize("hasAuthority('novel:create')")
+    public Result<Map<String, Object>> importByUpload(@RequestParam("file") MultipartFile file,
+                                                       @RequestParam("novelId") Long novelId) {
+        Novel novel = novelService.getById(novelId);
+        if (novel == null) {
+            return Result.error(404, "作品不存在");
+        }
+
+        String content;
+        try (InputStream is = file.getInputStream()) {
+            content = IOUtils.toString(is, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return Result.error(400, "文件读取失败: " + e.getMessage());
+        }
+
+        novel.setRawContent(content.length() > 100000 ? content.substring(0, 100000) : content);
+        novel.setSourceType(0);
+        novel.setParseStatus(1);
+        novelService.getBaseMapper().updateById(novel);
+
+        Map<String, Object> parseResult;
+        try {
+            parseResult = parseChain.parse(novelId, content, "txt_parse");
+        } catch (Exception e) {
+            novel.setParseStatus(0);
+            novelService.getBaseMapper().updateById(novel);
+            return Result.error(500, "解析失败: " + e.getMessage());
+        }
+
+        writeParsedData(novelId, parseResult);
+
+        novel.setWorldView((String) parseResult.getOrDefault("worldView", novel.getWorldView()));
+        novel.setParseStatus(2);
+        novel.setParsedAt(LocalDateTime.now());
+        novelService.getBaseMapper().updateById(novel);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("novel", novel);
+        result.put("parseResult", parseResult);
+        return Result.success(result);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void writeParsedData(Long novelId, Map<String, Object> parseResult) {
+        List<Map<String, Object>> nodes = (List<Map<String, Object>>) parseResult.get("nodes");
+        if (nodes != null) {
+            for (int i = 0; i < nodes.size(); i++) {
+                Map<String, Object> n = nodes.get(i);
+                Node node = new Node();
+                node.setNovelId(novelId);
+                node.setTitle((String) n.getOrDefault("title", "未命名节点"));
+                node.setDescription((String) n.get("description"));
+                node.setIsStart(Boolean.TRUE.equals(n.get("isStart")));
+                node.setIsEnd(Boolean.TRUE.equals(n.get("isEnd")));
+                node.setNodeType(0);
+                node.setSortOrder(n.get("sortOrder") != null ? ((Number) n.get("sortOrder")).intValue() : i);
+                node.setCreatedAt(LocalDateTime.now());
+                nodeMapper.insert(node);
+                n.put("_newId", node.getId());
+            }
+        }
+
+        List<Map<String, Object>> edges = (List<Map<String, Object>>) parseResult.get("edges");
+        if (edges != null && nodes != null) {
+            for (Map<String, Object> e : edges) {
+                NodeEdge edge = new NodeEdge();
+                edge.setNovelId(novelId);
+                int srcIdx = e.get("sourceNodeIndex") != null ? ((Number) e.get("sourceNodeIndex")).intValue() : 0;
+                int tgtIdx = e.get("targetNodeIndex") != null ? ((Number) e.get("targetNodeIndex")).intValue() : 0;
+                if (srcIdx < nodes.size() && tgtIdx < nodes.size()) {
+                    edge.setSourceNodeId((Long) nodes.get(srcIdx).get("_newId"));
+                    edge.setTargetNodeId((Long) nodes.get(tgtIdx).get("_newId"));
+                }
+                edge.setConditionDesc((String) e.get("conditionDesc"));
+                edge.setEdgeType(e.get("edgeType") != null ? ((Number) e.get("edgeType")).intValue() : 0);
+                nodeEdgeMapper.insert(edge);
+            }
+        }
+
+        List<Map<String, Object>> options = (List<Map<String, Object>>) parseResult.get("options");
+        if (options != null && nodes != null) {
+            for (Map<String, Object> o : options) {
+                NodeOption option = new NodeOption();
+                int nodeIdx = o.get("nodeIndex") != null ? ((Number) o.get("nodeIndex")).intValue() : 0;
+                if (nodeIdx < nodes.size()) {
+                    option.setNodeId((Long) nodes.get(nodeIdx).get("_newId"));
+                }
+                option.setLabel((String) o.getOrDefault("label", "继续"));
+                int tgtIdx = o.get("targetNodeIndex") != null ? ((Number) o.get("targetNodeIndex")).intValue() : -1;
+                if (tgtIdx >= 0 && tgtIdx < nodes.size()) {
+                    option.setTargetNodeId((Long) nodes.get(tgtIdx).get("_newId"));
+                }
+                option.setTriggerEvent(Boolean.TRUE.equals(o.get("triggerEvent")));
+                option.setRiskHint((String) o.get("riskHint"));
+                option.setCreatedAt(LocalDateTime.now());
+                nodeOptionMapper.insert(option);
+            }
+        }
+
+        List<Map<String, Object>> events = (List<Map<String, Object>>) parseResult.get("events");
+        if (events != null) {
+            for (Map<String, Object> e : events) {
+                RandomEvent event = new RandomEvent();
+                event.setNovelId(novelId);
+                int nodeIdx = e.get("nodeIndex") != null ? ((Number) e.get("nodeIndex")).intValue() : -1;
+                if (nodeIdx >= 0 && nodeIdx < nodes.size()) {
+                    event.setNodeId((Long) nodes.get(nodeIdx).get("_newId"));
+                }
+                event.setTitle((String) e.getOrDefault("title", "随机事件"));
+                event.setContent((String) e.getOrDefault("content", ""));
+                event.setEventType(e.get("eventType") != null ? ((Number) e.get("eventType")).intValue() : 2);
+                event.setDeathProbability(e.get("deathProbability") != null ? ((Number) e.get("deathProbability")).intValue() : 0);
+                event.setWeight(e.get("weight") != null ? ((Number) e.get("weight")).intValue() : 10);
+                event.setIsLlmGen(true);
+                event.setCreatedAt(LocalDateTime.now());
+                randomEventMapper.insert(event);
+            }
+        }
+    }
+}
