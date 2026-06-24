@@ -12,7 +12,8 @@ import api from '@/hooks/useApi';
 import { Input } from 'src/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from 'src/components/ui/popover';
-import { SearchIcon, Loader2Icon, ShieldIcon, ChevronDownIcon } from 'lucide-react';
+import { Command, CommandGroup, CommandItem } from 'src/components/ui/command';
+import { SearchIcon, Loader2Icon, ShieldIcon, ChevronDownIcon, CheckIcon } from 'lucide-react';
 
 interface UserItem {
   id: number;
@@ -124,26 +125,27 @@ export default function AdminUsersPage() {
           <label className="text-xs text-muted-foreground font-medium">角色</label>
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex items-center justify-between w-36 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm text-left text-muted-foreground hover:bg-accent">
+              <button className="flex items-center justify-between w-44 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm text-left text-muted-foreground hover:bg-accent">
                 <span className="truncate">{roleFilter.length > 0 ? `已选 ${roleFilter.length} 个角色` : '全部角色'}</span>
                 <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-48 p-2 space-y-1">
-              {roles.filter(r => r.code !== 'ADMIN').map(r => {
-                const selected = roleFilter.includes(r.id);
-                return (
-                  <label key={r.id} className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-md cursor-pointer hover:bg-muted/50">
-                    <input
-                      type="checkbox"
-                      checked={selected}
-                      onChange={() => setRoleFilter(prev => selected ? prev.filter(id => id !== r.id) : [...prev, r.id])}
-                      className="size-4 rounded accent-primary"
-                    />
-                    {r.name}
-                  </label>
-                );
-              })}
+            <PopoverContent className="w-56 p-0" align="start">
+              <Command>
+                <CommandGroup>
+                  {roles.filter(r => r.code !== 'ADMIN').map(r => {
+                    const selected = roleFilter.includes(r.id);
+                    return (
+                      <CommandItem key={r.id} onSelect={() => setRoleFilter(prev => selected ? prev.filter(id => id !== r.id) : [...prev, r.id])}>
+                        <div className={`size-4 mr-2 rounded border flex items-center justify-center transition-colors ${selected ? 'bg-primary border-primary' : 'border-input'}`}>
+                          {selected && <CheckIcon className="size-3 text-primary-foreground" />}
+                        </div>
+                        {r.name}
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              </Command>
             </PopoverContent>
           </Popover>
         </div>
