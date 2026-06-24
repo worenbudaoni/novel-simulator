@@ -21,8 +21,6 @@ import {
   Heart,
   Star,
   LayoutDashboard,
-  GitBranch,
-  Zap,
   Users,
   Shield,
   FileCode,
@@ -69,8 +67,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {hasRole('ADMIN') && (
               <NavMain title="管理后台" items={[
                 { title: "作品管理", url: "/admin", icon: <LayoutDashboard />, isActive: pathname === '/admin' || pathname.startsWith('/admin/novel/') },
-                { title: "节点管理", url: "/admin", icon: <GitBranch />, isActive: pathname.includes('/nodes') },
-                { title: "事件管理", url: "/admin", icon: <Zap />, isActive: pathname.includes('/events') },
                 { title: "用户管理", url: "/admin", icon: <Users />, isActive: false },
                 { title: "角色管理", url: "/admin", icon: <Shield />, isActive: false },
                 { title: "Prompt 配置", url: "/admin", icon: <FileCode />, isActive: false },
