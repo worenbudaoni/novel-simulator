@@ -423,7 +423,7 @@ export default function AdminNovelsPage() {
                     <SelectTrigger>
                       <SelectValue placeholder="选择类型" />
                     </SelectTrigger>
-                    <SelectContent position="popper">
+                    <SelectContent className="z-[60]" sideOffset={4}>
                       <SelectItem value="0">小说</SelectItem>
                       <SelectItem value="1">动漫</SelectItem>
                       <SelectItem value="2">漫画</SelectItem>
@@ -849,7 +849,7 @@ export default function AdminNovelsPage() {
                 <SelectTrigger>
                   <SelectValue placeholder="选择类型" />
                 </SelectTrigger>
-                <SelectContent position="popper">
+                <SelectContent className="z-[60]" sideOffset={4}>
                   <SelectItem value="0">小说</SelectItem>
                   <SelectItem value="1">动漫</SelectItem>
                   <SelectItem value="2">漫画</SelectItem>
