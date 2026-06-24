@@ -1,5 +1,6 @@
 package com.novel.simulator.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.novel.simulator.common.Result;
@@ -30,8 +31,20 @@ public class UserController {
     @PreAuthorize("hasAuthority('user:read')")
     public Result<Map<String, Object>> list(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        IPage<User> p = userMapper.selectPage(new Page<>(page, size), null);
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String enabled) {
+        LambdaQueryWrapper<User> qw = new LambdaQueryWrapper<User>();
+        if (keyword != null && !keyword.isEmpty()) {
+            qw.like(User::getUsername, keyword);
+        }
+        if ("true".equals(enabled)) {
+            qw.eq(User::getEnabled, true);
+        } else if ("false".equals(enabled)) {
+            qw.eq(User::getEnabled, false);
+        }
+        qw.orderByDesc(User::getCreatedAt);
+        IPage<User> p = userMapper.selectPage(new Page<>(page, size), qw);
         List<Map<String, Object>> items = p.getRecords().stream().map(u -> {
             Map<String, Object> item = new java.util.HashMap<>();
             item.put("id", u.getId());

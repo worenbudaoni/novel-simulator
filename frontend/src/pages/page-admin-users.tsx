@@ -9,7 +9,9 @@ import {
 } from 'src/components/ui/dialog';
 import { toast } from 'sonner';
 import api from '@/hooks/useApi';
-import { Loader2Icon, ShieldIcon } from 'lucide-react';
+import { Input } from 'src/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/components/ui/select';
+import { SearchIcon, Loader2Icon, ShieldIcon } from 'lucide-react';
 
 interface UserItem {
   id: number;
@@ -24,6 +26,9 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [keyword, setKeyword] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [roles, setRoles] = useState<{id: number; code: string; name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState<UserItem | null>(null);
@@ -33,10 +38,13 @@ export default function AdminUsersPage() {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const uRes = await api.get('/admin/user/list', { params: { page, size: 10 } });
+      const params: any = { page, size: 10 };
+      if (keyword) params.keyword = keyword;
+      if (statusFilter) params.enabled = statusFilter;
+      const uRes = await api.get('/admin/user/list', { params });
       if (uRes.data.code === 200) { setUsers(uRes.data.data.items); setTotal(uRes.data.data.total); }
     } finally { setLoading(false); }
-  }, [page]);
+  }, [page, keyword, statusFilter]);
 
   useEffect(() => {
     fetchUsers();
@@ -77,7 +85,39 @@ export default function AdminUsersPage() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold mb-6">用户管理</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-semibold">用户管理</h2>
+      </div>
+
+      <div className="flex items-center gap-3 mb-6">
+        <div className="relative flex-1 max-w-sm">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            placeholder="搜索用户名..."
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { setKeyword(searchInput); setPage(1); } }}
+            className="pl-9"
+          />
+        </div>
+        <Button variant="outline" onClick={() => { setKeyword(searchInput); setPage(1); }}>
+          <SearchIcon className="size-4 mr-1" /> 搜索
+        </Button>
+        <Button variant="ghost" onClick={() => { setSearchInput(''); setKeyword(''); setStatusFilter(''); setPage(1); }}>
+          重置
+        </Button>
+        <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
+          <SelectTrigger className="w-[100px] shrink-0">
+            {statusFilter === 'true' ? '正常' : statusFilter === 'false' ? '禁用' : '全部状态'}
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">全部状态</SelectItem>
+            <SelectItem value="true">正常</SelectItem>
+            <SelectItem value="false">禁用</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
