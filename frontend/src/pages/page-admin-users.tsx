@@ -12,7 +12,7 @@ import api from '@/hooks/useApi';
 import { Input } from 'src/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from 'src/components/ui/popover';
-import { Command, CommandGroup, CommandItem } from 'src/components/ui/command';
+import { Command, CommandGroup, CommandItem, CommandInput } from 'src/components/ui/command';
 import { SearchIcon, Loader2Icon, ShieldIcon, ChevronDownIcon, CheckIcon } from 'lucide-react';
 
 interface UserItem {
@@ -132,6 +132,7 @@ export default function AdminUsersPage() {
             </PopoverTrigger>
             <PopoverContent className="w-56 p-0" align="start">
               <Command>
+                <CommandInput placeholder="搜索角色..." />
                 <CommandGroup>
                   {roles.filter(r => r.code !== 'ADMIN').map(r => {
                     const selected = roleFilter.includes(r.id);
