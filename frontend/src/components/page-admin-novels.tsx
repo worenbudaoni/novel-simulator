@@ -257,7 +257,7 @@ export default function AdminNovelsPage() {
 
       {/* Create Sheet — slides in from right */}
       <Sheet open={showCreate} onOpenChange={(open) => { if (!open) resetCreate(); }}>
-        <SheetContent side="right" className="w-full sm:max-w-lg">
+        <SheetContent side="right" className="w-full sm:max-w-2xl">
           <SheetHeader>
             <SheetTitle>新建作品</SheetTitle>
             <SheetDescription>输入作品信息，选择导入方式</SheetDescription>
