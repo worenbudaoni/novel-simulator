@@ -231,12 +231,13 @@ public class ParseChain {
     }
 
     private ChatLanguageModel buildModel() {
-        String apiKey = (llmApiKey != null && !llmApiKey.isEmpty()) ? llmApiKey : "sk-placeholder";
-        String baseUrl = (llmApiUrl != null && !llmApiUrl.isEmpty()) ? llmApiUrl : "https://api.openai.com/v1";
+        String key = (llmApiKey != null && !llmApiKey.isEmpty()) ? llmApiKey : "sk-placeholder";
+        String url = (llmApiUrl != null && !llmApiUrl.isEmpty()) ? llmApiUrl : "https://api.openai.com";
+        log.info("Building LLM model: baseUrl={}, model={}", url, llmModelName);
         return OpenAiChatModel.builder()
-            .apiKey(apiKey)
+            .apiKey(key)
             .modelName(llmModelName)
-            .baseUrl(baseUrl)
+            .baseUrl(url)
             .temperature(0.7)
             .maxTokens(4096)
             .build();
@@ -277,7 +278,7 @@ public class ParseChain {
             saveParseRecord(novelId, promptType, input, rawResponse, json, tokensUsed, status);
         } catch (Exception e) {
             log.warn("Failed to serialize result JSON", e);
-            saveParseRecord(novelId, promptType, input, rawResponse, null, tokensUsed, status);
+            saveParseRecord(novelId, promptType, input, rawResponse, (String) null, tokensUsed, status);
         }
     }
 
