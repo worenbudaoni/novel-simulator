@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from 'src/components/ui/button';
 import { Input } from 'src/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/components/ui/select';
 import { Badge } from 'src/components/ui/badge';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -297,15 +298,16 @@ export default function AdminRolesPage() {
               onKeyDown={e => { if (e.key === 'Enter') loadVisNovels(1, visSearch, visFilter); }}
               className="flex-1"
             />
-            <select
-              value={visFilter}
-              onChange={e => { setVisFilter(e.target.value); loadVisNovels(1, visSearch, e.target.value); }}
-              className="h-9 rounded-md border border-input bg-background px-2 py-1 text-sm shadow-xs"
-            >
-              <option value="">全部</option>
-              <option value="true">已选择</option>
-              <option value="false">未选择</option>
-            </select>
+            <Select value={visFilter} onValueChange={v => { setVisFilter(v); loadVisNovels(1, visSearch, v); }}>
+              <SelectTrigger className="w-28">
+                <SelectValue placeholder="全部" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">全部</SelectItem>
+                <SelectItem value="true">已选择</SelectItem>
+                <SelectItem value="false">未选择</SelectItem>
+              </SelectContent>
+            </Select>
             <Button variant="outline" size="sm" onClick={() => loadVisNovels(1, visSearch, visFilter)}>搜索</Button>
             <Button variant="ghost" size="sm" onClick={() => { setVisSearch(''); setVisFilter(''); loadVisNovels(1, '', ''); }}>重置</Button>
           </div>
