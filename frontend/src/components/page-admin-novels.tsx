@@ -156,7 +156,22 @@ export default function AdminNovelsPage() {
     if (!createTitle.trim()) { toast.error('请输入作品名称'); return; }
     setActionLoading(true);
     try {
-      // Step 1: create novel
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      const res = await api.post('/admin/novel/import/preview-upload', formData);
+      if (res.data.code === 200) {
+        setTxtPreviewResult(res.data.data.parseResult);
+      }
+    } catch { /* handled */ }
+    setActionLoading(false);
+  };
+
+  const handleConfirmTxt = async () => {
+    if (!selectedFile) return;
+    if (!createTitle.trim()) { toast.error('请输入作品名称'); return; }
+    setActionLoading(true);
+    try {
+      // Create novel
       const createRes = await api.post('/admin/novel', {
         title: createTitle.trim(),
         author: createAuthor.trim() || null,
@@ -164,34 +179,23 @@ export default function AdminNovelsPage() {
       });
       if (createRes.data.code === 200) {
         const newId = createRes.data.data.id;
-        setTxtParsedNovelId(newId);
-        // Step 2: upload + parse
+        // Upload + parse + save
         const formData = new FormData();
         formData.append('file', selectedFile);
         formData.append('novelId', newId);
         const uploadRes = await api.post('/admin/novel/import/upload', formData);
         if (uploadRes.data.code === 200) {
-          setTxtPreviewResult(uploadRes.data.data.parseResult);
+          const count = (uploadRes.data.data.parseResult?.nodes as any[])?.length || 0;
+          toast.success(`「${createTitle.trim()}」创建成功，${count} 个节点`);
+          resetCreate();
+          fetchNovels();
         }
       }
     } catch { /* handled */ }
     setActionLoading(false);
   };
 
-  const handleConfirmTxt = async () => {
-    if (!txtPreviewResult) return;
-    const count = (txtPreviewResult.nodes as any[])?.length || 0;
-    toast.success(`「${createTitle.trim()}」创建成功，${count} 个节点`);
-    resetCreate();
-    fetchNovels();
-  };
-
-  const handleCancelTxt = async () => {
-    if (txtParsedNovelId) {
-      try {
-        await api.delete(`/admin/novel/${txtParsedNovelId}`);
-      } catch { /* ignore */ }
-    }
+  const handleCancelTxt = () => {
     setConfirmOpen(false);
     resetCreate();
   };

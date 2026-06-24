@@ -233,6 +233,13 @@ public class ParseChain {
             + "小说内容：\n" + truncated;
     }
 
+    /**
+     * Call LLM with raw prompt, no DB side effects. Returns raw response text.
+     */
+    public String generateRaw(String prompt) {
+        return callLlm(prompt).rawResponse;
+    }
+
     private ChatLanguageModel buildModel() {
         String key = (llmApiKey != null && !llmApiKey.isEmpty()) ? llmApiKey : "sk-placeholder";
         String url = (llmApiUrl != null && !llmApiUrl.isEmpty()) ? llmApiUrl : "https://api.openai.com";
