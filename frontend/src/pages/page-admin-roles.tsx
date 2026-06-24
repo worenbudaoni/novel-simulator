@@ -121,19 +121,21 @@ export default function AdminRolesPage() {
     setVisRole(role);
     setVisPage(1);
     setVisSearch('');
-    const vRes = await api.get(`/admin/role/${role.id}/novels`);
-    if (vRes.data.code === 200) setVisNovelIds(vRes.data.data);
-    await loadVisNovels(1, '');
+    await loadVisNovels(1, '', role.id);
   };
 
-  const loadVisNovels = async (page: number, keyword: string) => {
+  const loadVisNovels = async (page: number, keyword: string, roleId?: number) => {
+    const rid = roleId || visRole?.id;
+    if (!rid) return;
     setVisLoading(true);
     try {
-      const res = await api.get('/admin/novel/list', { params: { page, size: 10, keyword } });
+      const res = await api.get(`/admin/role/${rid}/novels/selectable`, { params: { page, size: 10, keyword } });
       if (res.data.code === 200) {
-        setVisNovels(res.data.data.items || []);
-        setVisTotal(res.data.data.total || 0);
+        const data = res.data.data;
+        setVisNovels(data.items || []);
+        setVisTotal(data.total || 0);
         setVisPage(page);
+        setVisNovelIds((data.items || []).filter((n: any) => n.selected).map((n: any) => n.id));
       }
     } finally { setVisLoading(false); }
   };
