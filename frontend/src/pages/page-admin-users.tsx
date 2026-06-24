@@ -108,7 +108,7 @@ export default function AdminUsersPage() {
         <div className="space-y-1">
           <label className="text-xs text-muted-foreground font-medium">状态</label>
           <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
-            <SelectTrigger className="w-24">
+            <SelectTrigger className="w-24 h-9">
               {statusFilter === 'true' ? '正常' : statusFilter === 'false' ? '禁用' : '全部'}
             </SelectTrigger>
             <SelectContent>
@@ -121,8 +121,8 @@ export default function AdminUsersPage() {
         <div className="space-y-1">
           <label className="text-xs text-muted-foreground font-medium">角色</label>
           <Select value={roleFilter} onValueChange={v => { setRoleFilter(v); setPage(1); }}>
-            <SelectTrigger className="w-28">
-              {roleFilter ? roles.find(r => String(r.id) === roleFilter)?.name || roleFilter : '全部'}
+            <SelectTrigger className="w-28 h-9">
+  {roleFilter ? roles.find(r => String(r.id) === roleFilter)?.name || roleFilter : '全部'}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">全部</SelectItem>
