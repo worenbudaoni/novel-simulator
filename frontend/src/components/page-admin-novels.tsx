@@ -113,6 +113,7 @@ export default function AdminNovelsPage() {
   };
 
   const handleConfirmLlm = async () => {
+    if (!createTitle.trim()) { toast.error('请输入作品名称'); setActionLoading(false); return; }
     setActionLoading(true);
     try {
       const res = await api.post('/admin/novel/import/name', {
@@ -148,6 +149,7 @@ export default function AdminNovelsPage() {
 
   const handleConfirmTxt = async () => {
     if (!selectedFile) return;
+    if (!createTitle.trim()) { toast.error('请输入作品名称'); return; }
     setActionLoading(true);
     try {
       const createRes = await api.post('/admin/novel', {
@@ -545,7 +547,7 @@ export default function AdminNovelsPage() {
             </Button>
             <Button
               onClick={confirmType === 'llm' ? handleConfirmLlm : handleConfirmTxt}
-              disabled={actionLoading}
+              disabled={actionLoading || !createTitle.trim()}
             >
               {actionLoading ? (
                 <><Loader2Icon className="size-4 animate-spin mr-1" /> 创建中...</>
