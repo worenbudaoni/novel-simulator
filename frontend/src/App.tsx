@@ -9,6 +9,9 @@ import { Toaster } from 'src/components/ui/sonner';
 import { LoginForm } from 'src/components/login-form';
 import { SignupForm } from 'src/components/signup-form';
 import AdminNovelsPage from 'src/components/page-admin-novels';
+import AdminNovelImportPage from 'src/components/page-admin-novel-import';
+import AdminNodeEditorPage from 'src/components/page-admin-node-editor';
+import AdminEventPoolPage from 'src/components/page-admin-event-pool';
 import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, CommandIcon } from 'lucide-react';
 
@@ -114,6 +117,27 @@ export default function App() {
             <ProtectedAdmin>
               <DashboardLayout>
                 <AdminNovelsPage />
+              </DashboardLayout>
+            </ProtectedAdmin>
+          } />
+          <Route path="/admin/novel/:novelId/import" element={
+            <ProtectedAdmin>
+              <DashboardLayout>
+                <AdminNovelImportPage />
+              </DashboardLayout>
+            </ProtectedAdmin>
+          } />
+          <Route path="/admin/novel/:novelId/nodes" element={
+            <ProtectedAdmin>
+              <DashboardLayout>
+                <AdminNodeEditorPage />
+              </DashboardLayout>
+            </ProtectedAdmin>
+          } />
+          <Route path="/admin/novel/:novelId/events" element={
+            <ProtectedAdmin>
+              <DashboardLayout>
+                <AdminEventPoolPage />
               </DashboardLayout>
             </ProtectedAdmin>
           } />

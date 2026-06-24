@@ -9,7 +9,8 @@ import {
   DialogFooter,
 } from 'src/components/ui/dialog';
 import { toast } from 'sonner';
-import { PlusIcon, SearchIcon, PencilIcon, Trash2Icon } from 'lucide-react';
+import { PlusIcon, SearchIcon, PencilIcon, Trash2Icon, UploadIcon, GitBranchIcon, ZapIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '@/hooks/useApi';
 
 interface Novel {
@@ -33,6 +34,7 @@ export default function AdminNovelsPage() {
   const [createAuthor, setCreateAuthor] = useState('');
   const [createType, setCreateType] = useState(0);
   const [creating, setCreating] = useState(false);
+  const navigate = useNavigate();
 
   const fetchNovels = useCallback(async () => {
     setLoading(true);
@@ -60,10 +62,14 @@ export default function AdminNovelsPage() {
       if (res.data.code === 200) {
         toast.success('创建成功');
         setShowCreate(false);
+        const newId = res.data.data.id;
         setCreateTitle('');
         setCreateAuthor('');
         setCreateType(0);
         fetchNovels();
+        if (newId) {
+          navigate(`/admin/novel/${newId}/import`);
+        }
       }
     } catch { /* handled */ }
     setCreating(false);
@@ -133,7 +139,15 @@ export default function AdminNovelsPage() {
                 <TableCell className="text-sm text-muted-foreground">{n.createdAt?.slice(0, 10)}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon-sm"><PencilIcon className="size-4" /></Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => navigate(`/admin/novel/${n.id}/import`)} title="导入">
+                      <UploadIcon className="size-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => navigate(`/admin/novel/${n.id}/nodes`)} title="节点编辑">
+                      <GitBranchIcon className="size-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => navigate(`/admin/novel/${n.id}/events`)} title="事件管理">
+                      <ZapIcon className="size-4" />
+                    </Button>
                     <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(n.id)}>
                       <Trash2Icon className="size-4 text-destructive" />
                     </Button>
