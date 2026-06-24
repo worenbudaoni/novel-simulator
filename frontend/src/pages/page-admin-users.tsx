@@ -92,7 +92,7 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="space-y-2 mb-6">
-        <h3 className="text-sm font-medium text-muted-foreground">查询条件</h3>
+        <label className="text-sm font-medium text-muted-foreground">查询条件</label>
         <div className="flex items-center gap-3">
           <div className="relative flex-1 max-w-sm">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
