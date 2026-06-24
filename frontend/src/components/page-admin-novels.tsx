@@ -47,7 +47,7 @@ export default function AdminNovelsPage() {
   const [confirmType, setConfirmType] = useState<'llm' | 'txt'>('llm');
   const [previewResult, setPreviewResult] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [expandedSection, setExpandedSection] = useState<string>('nodes');
   const navigate = useNavigate();
 
   const fetchNovels = useCallback(async () => {
@@ -398,7 +398,6 @@ export default function AdminNovelsPage() {
                         >
                           <div className="font-bold text-lg text-primary">{count}</div>
                           <div className="text-xs text-muted-foreground">{section.label}</div>
-                          <div className="text-[10px] text-muted-foreground mt-0.5">{isOpen ? '▲ 收起' : '▼ 展开'}</div>
                         </button>
                       </div>
                     );
