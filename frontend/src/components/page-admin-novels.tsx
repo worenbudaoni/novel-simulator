@@ -61,7 +61,7 @@ export default function AdminNovelsPage() {
   const fetchNovels = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/admin/novel/list', { params: { page, size: 20, keyword } });
+      const res = await api.get('/admin/novel/list', { params: { page, size: 10, keyword } });
       if (res.data.code === 200) {
         setNovels(res.data.data.items);
         setTotal(res.data.data.total);
@@ -294,13 +294,13 @@ export default function AdminNovelsPage() {
 
       <div className="flex items-center justify-between mt-4 text-sm">
         <span className="text-muted-foreground">共 {total} 条</span>
-        {total > 20 && (
+        {total > 10 && (
           <div className="flex items-center gap-1">
             <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
               上一页
             </Button>
             {(() => {
-              const totalPages = Math.ceil(total / 20);
+              const totalPages = Math.ceil(total / 10);
               const pages: (number | string)[] = [];
               const start = Math.max(1, page - 2);
               const end = Math.min(totalPages, page + 2);
@@ -323,12 +323,12 @@ export default function AdminNovelsPage() {
                 )
               );
             })()}
-            <Button variant="outline" size="sm" disabled={page * 20 >= total} onClick={() => setPage(p => p + 1)}>
+            <Button variant="outline" size="sm" disabled={page * 10 >= total} onClick={() => setPage(p => p + 1)}>
               下一页
             </Button>
           </div>
         )}
-        {total <= 20 && total > 0 && (
+        {total <= 10 && total > 0 && (
           <span className="text-muted-foreground text-xs">第 1 页</span>
         )}
       </div>
