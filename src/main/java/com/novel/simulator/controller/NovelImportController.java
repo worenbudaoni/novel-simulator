@@ -230,14 +230,13 @@ public class NovelImportController {
         List<Map<String, Object>> edges = (List<Map<String, Object>>) parseResult.get("edges");
         if (edges != null && nodes != null) {
             for (Map<String, Object> e : edges) {
-                NodeEdge edge = new NodeEdge();
-                edge.setNovelId(novelId);
                 int srcIdx = e.get("sourceNodeIndex") != null ? ((Number) e.get("sourceNodeIndex")).intValue() : 0;
                 int tgtIdx = e.get("targetNodeIndex") != null ? ((Number) e.get("targetNodeIndex")).intValue() : 0;
-                if (srcIdx < nodes.size() && tgtIdx < nodes.size()) {
-                    edge.setSourceNodeId((Long) nodes.get(srcIdx).get("_newId"));
-                    edge.setTargetNodeId((Long) nodes.get(tgtIdx).get("_newId"));
-                }
+                if (srcIdx >= nodes.size() || tgtIdx >= nodes.size()) continue; // skip invalid edge
+                NodeEdge edge = new NodeEdge();
+                edge.setNovelId(novelId);
+                edge.setSourceNodeId((Long) nodes.get(srcIdx).get("_newId"));
+                edge.setTargetNodeId((Long) nodes.get(tgtIdx).get("_newId"));
                 edge.setConditionDesc((String) e.get("conditionDesc"));
                 edge.setEdgeType(e.get("edgeType") != null ? ((Number) e.get("edgeType")).intValue() : 0);
                 nodeEdgeMapper.insert(edge);
