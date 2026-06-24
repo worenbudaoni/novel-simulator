@@ -61,7 +61,7 @@ public class ParseChain {
         LlmResult llmResult = callLlm(prompt);
 
         if (llmResult.error != null) {
-            saveParseRecord(novelId, promptType, inputContent, llmResult.error, null, 0, 1);
+            saveParseRecord(novelId, promptType, inputContent, llmResult.error, (String) null, 0, 1);
             throw new RuntimeException("LLM 解析失败: " + llmResult.error);
         }
 
@@ -69,7 +69,7 @@ public class ParseChain {
         try {
             result = objectMapper.readValue(llmResult.json, Map.class);
         } catch (Exception e) {
-            saveParseRecord(novelId, promptType, inputContent, llmResult.rawResponse, null, llmResult.tokensUsed, 1);
+            saveParseRecord(novelId, promptType, inputContent, llmResult.rawResponse, (String) null, llmResult.tokensUsed, 1);
             throw new RuntimeException("LLM 返回格式错误");
         }
 
