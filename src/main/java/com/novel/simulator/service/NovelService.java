@@ -86,6 +86,10 @@ public class NovelService {
         return list.stream().map(NovelRoleVisibility::getRoleId).collect(Collectors.toList());
     }
 
+    public NovelMapper getBaseMapper() {
+        return novelMapper;
+    }
+
     @Transactional
     public void setVisibility(Long novelId, List<Long> roleIds) {
         getById(novelId);
