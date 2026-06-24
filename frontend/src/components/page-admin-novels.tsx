@@ -36,6 +36,7 @@ export default function AdminNovelsPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [keyword, setKeyword] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [createTitle, setCreateTitle] = useState('');
@@ -225,19 +226,30 @@ export default function AdminNovelsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold">作品管理</h2>
-        <Button onClick={() => { resetCreate(); setShowCreate(true); }}>
-          <PlusIcon className="size-4 mr-1" /> 新建作品
-        </Button>
       </div>
 
-      <div className="relative mb-4 max-w-sm">
-        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input
-          placeholder="搜索作品..."
-          value={keyword}
-          onChange={(e) => { setKeyword(e.target.value); setPage(1); }}
-          className="pl-9"
-        />
+      <div className="flex items-center gap-3 mb-6">
+        <div className="relative flex-1 max-w-sm">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            placeholder="搜索作品名称..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { setKeyword(searchInput); setPage(1); } }}
+            className="pl-9"
+          />
+        </div>
+        <Button variant="outline" onClick={() => { setKeyword(searchInput); setPage(1); }}>
+          <SearchIcon className="size-4 mr-1" /> 搜索
+        </Button>
+        <Button variant="ghost" onClick={() => { setSearchInput(''); setKeyword(''); setPage(1); }}>
+          重置
+        </Button>
+        <div className="ml-auto">
+          <Button onClick={() => { resetCreate(); setShowCreate(true); }}>
+            <PlusIcon className="size-4 mr-1" /> 新建作品
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-lg border">
