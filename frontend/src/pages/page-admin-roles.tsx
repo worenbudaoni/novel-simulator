@@ -10,7 +10,7 @@ import {
 } from 'src/components/ui/dialog';
 import { toast } from 'sonner';
 import api from '@/hooks/useApi';
-import { PlusIcon, Loader2Icon, PencilIcon, Trash2Icon, ShieldCheckIcon } from 'lucide-react';
+import { PlusIcon, Loader2Icon, PencilIcon, Trash2Icon, ShieldCheckIcon, BookOpenIcon } from 'lucide-react';
 
 interface RoleItem {
   id: number;
@@ -35,6 +35,11 @@ export default function AdminRolesPage() {
   const [permRole, setPermRole] = useState<RoleItem | null>(null);
   const [permIds, setPermIds] = useState<number[]>([]);
   const [permSaving, setPermSaving] = useState(false);
+  // Novel visibility
+  const [visRole, setVisRole] = useState<RoleItem | null>(null);
+  const [allNovels, setAllNovels] = useState<{id: number; title: string}[]>([]);
+  const [visNovelIds, setVisNovelIds] = useState<number[]>([]);
+  const [visSaving, setVisSaving] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -108,6 +113,25 @@ export default function AdminRolesPage() {
     } catch { /* handled */ }
   };
 
+  const openNovelVis = async (role: RoleItem) => {
+    setVisRole(role);
+    const [nRes, vRes] = await Promise.all([
+      api.get('/admin/novel/list', { params: { page: 1, size: 999 } }),
+      api.get(`/admin/role/${role.id}/novels`),
+    ]);
+    if (nRes.data.code === 200) setAllNovels(nRes.data.data.items || []);
+    if (vRes.data.code === 200) setVisNovelIds(vRes.data.data);
+  };
+
+  const saveNovelVis = async () => {
+    if (!visRole) return;
+    setVisSaving(true);
+    try {
+      const res = await api.put(`/admin/role/${visRole.id}/novels`, visNovelIds);
+      if (res.data.code === 200) { toast.success('可见作品已更新'); setVisRole(null); }
+    } finally { setVisSaving(false); }
+  };
+
   const groupedPerms = permissions.reduce((acc, p) => {
     if (!acc[p.resource]) acc[p.resource] = [];
     acc[p.resource].push(p);
@@ -147,6 +171,9 @@ export default function AdminRolesPage() {
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon-sm" onClick={() => openPerm(r)} title="权限配置">
                       <ShieldCheckIcon className="size-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon-sm" onClick={() => openNovelVis(r)} title="可见作品">
+                      <BookOpenIcon className="size-4" />
                     </Button>
                     {!r.system && (
                       <>
@@ -229,6 +256,33 @@ export default function AdminRolesPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPermRole(null)}>取消</Button>
             <Button onClick={savePerm} disabled={permSaving}>{permSaving ? '保存中...' : '保存'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Novel Visibility Dialog */}
+      <Dialog open={visRole !== null} onOpenChange={o => { if (!o) setVisRole(null); }}>
+        <DialogContent className="sm:max-w-sm max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>可见作品</DialogTitle>
+            <DialogDescription>选择角色「{visRole?.name}」可以看见哪些作品</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1 py-2">
+            {allNovels.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">暂无作品</p>
+            ) : allNovels.map(n => {
+              const selected = visNovelIds.includes(n.id);
+              return (
+                <label key={n.id} className="flex items-center gap-3 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-muted/30 transition-colors">
+                  <input type="checkbox" checked={selected} onChange={() => setVisNovelIds(prev => selected ? prev.filter(id => id !== n.id) : [...prev, n.id])} className="size-4 rounded" />
+                  <span className={selected ? 'font-medium' : 'text-muted-foreground'}>{n.title}</span>
+                </label>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVisRole(null)}>取消</Button>
+            <Button onClick={saveNovelVis} disabled={visSaving}>{visSaving ? '保存中...' : '保存'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

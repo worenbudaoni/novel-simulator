@@ -2,9 +2,11 @@ package com.novel.simulator.controller;
 
 import com.novel.simulator.common.Result;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.novel.simulator.entity.NovelRoleVisibility;
 import com.novel.simulator.entity.Permission;
 import com.novel.simulator.entity.Role;
 import com.novel.simulator.entity.RolePermission;
+import com.novel.simulator.mapper.NovelRoleVisibilityMapper;
 import com.novel.simulator.mapper.PermissionMapper;
 import com.novel.simulator.mapper.RoleMapper;
 import com.novel.simulator.mapper.RolePermissionMapper;
@@ -21,12 +23,15 @@ public class RoleController {
     private final RoleMapper roleMapper;
     private final PermissionMapper permissionMapper;
     private final RolePermissionMapper rolePermissionMapper;
+    private final NovelRoleVisibilityMapper novelRoleVisibilityMapper;
 
     public RoleController(RoleMapper roleMapper, PermissionMapper permissionMapper,
-                          RolePermissionMapper rolePermissionMapper) {
+                          RolePermissionMapper rolePermissionMapper,
+                          NovelRoleVisibilityMapper novelRoleVisibilityMapper) {
         this.roleMapper = roleMapper;
         this.permissionMapper = permissionMapper;
         this.rolePermissionMapper = rolePermissionMapper;
+        this.novelRoleVisibilityMapper = novelRoleVisibilityMapper;
     }
 
     @GetMapping("/list")
@@ -94,6 +99,31 @@ public class RoleController {
                 rp.setRoleId(id);
                 rp.setPermissionId(pid);
                 rolePermissionMapper.insert(rp);
+            }
+        }
+        return Result.success();
+    }
+
+    @GetMapping("/{id}/novels")
+    @PreAuthorize("hasAuthority('role:read')")
+    public Result<List<Long>> getVisibleNovelIds(@PathVariable Long id) {
+        List<Long> ids = novelRoleVisibilityMapper.selectList(
+            new LambdaQueryWrapper<NovelRoleVisibility>().eq(NovelRoleVisibility::getRoleId, id))
+            .stream().map(NovelRoleVisibility::getNovelId).collect(java.util.stream.Collectors.toList());
+        return Result.success(ids);
+    }
+
+    @PutMapping("/{id}/novels")
+    @PreAuthorize("hasAuthority('role:manage')")
+    public Result<Void> setVisibleNovels(@PathVariable Long id, @RequestBody List<Long> novelIds) {
+        novelRoleVisibilityMapper.delete(
+            new LambdaQueryWrapper<NovelRoleVisibility>().eq(NovelRoleVisibility::getRoleId, id));
+        if (novelIds != null) {
+            for (Long nid : novelIds) {
+                NovelRoleVisibility nrv = new NovelRoleVisibility();
+                nrv.setRoleId(id);
+                nrv.setNovelId(nid);
+                novelRoleVisibilityMapper.insert(nrv);
             }
         }
         return Result.success();
