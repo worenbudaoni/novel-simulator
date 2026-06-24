@@ -319,7 +319,7 @@ export default function AdminNovelsPage() {
                     value={createTitle}
                     onChange={(e) => setCreateTitle(e.target.value)}
                     placeholder="输入作品名称"
-                    disabled={actionLoading}
+                    disabled={actionLoading || previewLoading}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -327,7 +327,7 @@ export default function AdminNovelsPage() {
                   <select
                     value={createType}
                     onChange={(e) => { setCreateType(e.target.value); setSelectedFile(null); }}
-                    disabled={actionLoading}
+                    disabled={actionLoading || previewLoading}
                     className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs disabled:opacity-50"
                   >
                     <option value="0">小说</option>
@@ -342,7 +342,7 @@ export default function AdminNovelsPage() {
                   value={createAuthor}
                   onChange={(e) => setCreateAuthor(e.target.value)}
                   placeholder="原作者（可选）"
-                  disabled={actionLoading}
+                  disabled={actionLoading || previewLoading}
                 />
               </div>
 
@@ -357,7 +357,7 @@ export default function AdminNovelsPage() {
                   max={20}
                   value={nodeCount}
                   onChange={e => setNodeCount(Number(e.target.value))}
-                  disabled={actionLoading}
+                  disabled={actionLoading || previewLoading}
                   className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
@@ -378,7 +378,7 @@ export default function AdminNovelsPage() {
                   max={15}
                   value={eventCount}
                   onChange={e => setEventCount(Number(e.target.value))}
-                  disabled={actionLoading}
+                  disabled={actionLoading || previewLoading}
                   className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
@@ -414,7 +414,7 @@ export default function AdminNovelsPage() {
 
                 {isNovel && (
                   <div
-                    onClick={() => { if (!actionLoading) fileInputRef.current?.click(); }}
+                    onClick={() => { if (!actionLoading && !previewLoading) fileInputRef.current?.click(); }}
                     className="w-full flex items-center gap-3 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 px-4 py-4 text-left text-sm transition-colors cursor-pointer"
                   >
                     <FileUpIcon className="size-5 shrink-0 text-muted-foreground" />
@@ -438,7 +438,7 @@ export default function AdminNovelsPage() {
             </div>
 
             <SheetFooter className="px-6 pb-6 pt-2 shrink-0">
-              <Button variant="outline" onClick={resetCreate} disabled={actionLoading} className="w-full">取消</Button>
+              <Button variant="outline" onClick={resetCreate} disabled={actionLoading || previewLoading} className="w-full">取消</Button>
             </SheetFooter>
           </div>
         </SheetContent>
