@@ -24,9 +24,9 @@ spring:
         min-idle: 0
 
 llm:
-  api-url: ""
-  api-key: ""
-  model-name: gpt-3.5-turbo
+  api-url: https://api.deepseek.com
+  api-key:
+  model-name: deepseek-v4-flash
 
 mybatis-plus:
   configuration:

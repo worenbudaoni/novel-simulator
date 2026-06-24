@@ -20,22 +20,15 @@ import {
   History,
   Heart,
   Star,
+  LayoutDashboard,
+  GitBranch,
+  Zap,
+  Users,
   CommandIcon,
 } from "lucide-react"
 
-const navMain = [
-  { title: "作品列表", url: "/player", icon: <BookOpen /> },
-  { title: "继续游戏", url: "/player/continue", icon: <Play /> },
-  { title: "游戏历史", url: "/player/history", icon: <History /> },
-]
-
-const documents = [
-  { name: "我的收藏", url: "/player/favorites", icon: <Heart /> },
-  { name: "为你推荐", url: "/player/recommendations", icon: <Star /> },
-]
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -53,8 +46,31 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} />
-        <NavDocuments items={documents} />
+        {user ? (
+          <>
+            <NavMain items={[
+              { title: "作品列表", url: "/player", icon: <BookOpen /> },
+              { title: "继续游戏", url: "/player/continue", icon: <Play /> },
+              { title: "游戏历史", url: "/player/history", icon: <History /> },
+            ]} />
+            <NavDocuments items={[
+              { name: "我的收藏", url: "/player/favorites", icon: <Heart /> },
+              { name: "为你推荐", url: "/player/recommendations", icon: <Star /> },
+            ]} />
+            {hasRole('ADMIN') && (
+              <NavMain title="管理后台" items={[
+                { title: "作品管理", url: "/admin", icon: <LayoutDashboard /> },
+                { title: "节点管理", url: "/admin", icon: <GitBranch /> },
+                { title: "事件管理", url: "/admin", icon: <Zap /> },
+                { title: "用户管理", url: "/admin", icon: <Users /> },
+              ]} />
+            )}
+          </>
+        ) : (
+          <NavMain items={[
+            { title: "公开作品", url: "/player", icon: <BookOpen /> },
+          ]} />
+        )}
         <NavSecondary items={[]} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
