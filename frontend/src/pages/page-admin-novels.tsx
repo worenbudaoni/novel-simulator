@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from 'src/components/ui/button';
 import { Input } from 'src/components/ui/input';
 import { Badge } from 'src/components/ui/badge';
+import { Switch } from 'src/components/ui/switch';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from 'src/components/ui/table';
@@ -854,34 +855,12 @@ export default function AdminNovelsPage() {
                 <option value={2}>漫画</option>
               </select>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">状态</label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditStatus(1)}
-                  className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors cursor-pointer ${
-                    editStatus === 1
-                      ? 'bg-green-50 border-green-200 text-green-700'
-                      : 'bg-background border-input text-muted-foreground hover:bg-muted/30'
-                  }`}
-                >
-                  <span className="size-2 rounded-full bg-green-500" />
-                  生效
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditStatus(0)}
-                  className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors cursor-pointer ${
-                    editStatus === 0
-                      ? 'bg-muted/50 border-muted-foreground/20 text-muted-foreground'
-                      : 'bg-background border-input text-muted-foreground hover:bg-muted/30'
-                  }`}
-                >
-                  <span className="size-2 rounded-full bg-muted-foreground" />
-                  失效
-                </button>
+            <div className="flex items-center justify-between rounded-lg border px-4 py-3">
+              <div>
+                <label className="text-sm font-medium">状态</label>
+                <p className="text-xs text-muted-foreground">{editStatus === 1 ? '生效中，玩家可见' : '已失效，玩家不可见'}</p>
               </div>
+              <Switch checked={editStatus === 1} onCheckedChange={c => setEditStatus(c ? 1 : 0)} />
             </div>
           </div>
           <DialogFooter className="gap-2">
