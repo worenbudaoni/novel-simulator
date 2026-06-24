@@ -65,9 +65,9 @@ public class NovelImportController {
         if (nodeCount < 3) nodeCount = 3;
         if (nodeCount > 20) nodeCount = 20;
         int eventCount = request.get("eventCount") != null
-            ? ((Number) request.get("eventCount")).intValue() : 3;
-        if (eventCount < 0) eventCount = 0;
-        if (eventCount > 10) eventCount = 10;
+            ? ((Number) request.get("eventCount")).intValue() : 8;
+        if (eventCount < 5) eventCount = 5;
+        if (eventCount > 15) eventCount = 15;
 
         // Check duplicate name
         com.novel.simulator.entity.Novel existing = novelService.findByTitle(name.trim());
@@ -121,9 +121,9 @@ public class NovelImportController {
         if (nodeCount < 3) nodeCount = 3;
         if (nodeCount > 20) nodeCount = 20;
         int eventCount = request.get("eventCount") != null
-            ? ((Number) request.get("eventCount")).intValue() : 3;
-        if (eventCount < 0) eventCount = 0;
-        if (eventCount > 10) eventCount = 10;
+            ? ((Number) request.get("eventCount")).intValue() : 8;
+        if (eventCount < 5) eventCount = 5;
+        if (eventCount > 15) eventCount = 15;
 
         Map<String, Object> genResult = parseChain.generateFromName(name.trim(), contentType, null, "name_gen", nodeCount, eventCount);
         if (genResult.containsKey("error")) {

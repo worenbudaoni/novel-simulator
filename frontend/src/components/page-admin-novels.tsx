@@ -45,7 +45,7 @@ export default function AdminNovelsPage() {
   const [actionError, setActionError] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [nodeCount, setNodeCount] = useState(5);
-  const [eventCount, setEventCount] = useState(3);
+  const [eventCount, setEventCount] = useState(8);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Confirm dialog state
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -81,7 +81,7 @@ export default function AdminNovelsPage() {
     setConfirmOpen(false);
     setPreviewResult(null);
     setNodeCount(5);
-    setEventCount(3);
+    setEventCount(8);
   };
 
   const handlePreviewLlm = async () => {
@@ -338,17 +338,17 @@ export default function AdminNovelsPage() {
                 </div>
                 <input
                   type="range"
-                  min={0}
-                  max={10}
+                  min={5}
+                  max={15}
                   value={eventCount}
                   onChange={e => setEventCount(Number(e.target.value))}
                   disabled={actionLoading}
                   className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>不生成</span>
-                  <span>默认 3</span>
-                  <span>最多 10</span>
+                  <span>最少 5</span>
+                  <span>默认 {eventCount}</span>
+                  <span>最多 15</span>
                 </div>
               </div>
 
