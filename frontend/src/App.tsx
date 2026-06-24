@@ -8,10 +8,10 @@ import { Button } from 'src/components/ui/button';
 import { Toaster } from 'src/components/ui/sonner';
 import { LoginForm } from 'src/components/login-form';
 import { SignupForm } from 'src/components/signup-form';
-import AdminNovelsPage from 'src/components/page-admin-novels';
-import AdminNovelImportPage from 'src/components/page-admin-novel-import';
-import AdminNodeEditorPage from 'src/components/page-admin-node-editor';
-import AdminEventPoolPage from 'src/components/page-admin-event-pool';
+import AdminNovelsPage from 'src/pages/page-admin-novels';
+import AdminNovelImportPage from 'src/pages/page-admin-novel-import';
+import AdminNodeEditorPage from 'src/pages/page-admin-node-editor';
+import AdminEventPoolPage from 'src/pages/page-admin-event-pool';
 import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, CommandIcon } from 'lucide-react';
 
