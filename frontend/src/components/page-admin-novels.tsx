@@ -52,6 +52,8 @@ export default function AdminNovelsPage() {
   const [confirmType, setConfirmType] = useState<'llm' | 'txt'>('llm');
   const [previewResult, setPreviewResult] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [txtPreviewResult, setTxtPreviewResult] = useState<any>(null);
+  const [txtParsedNovelId, setTxtParsedNovelId] = useState<number | null>(null);
   const [expandedSection, setExpandedSection] = useState<string>('nodes');
   const [deleteTarget, setDeleteTarget] = useState<Novel | null>(null);
   const navigate = useNavigate();
@@ -80,6 +82,8 @@ export default function AdminNovelsPage() {
     setSelectedFile(null);
     setConfirmOpen(false);
     setPreviewResult(null);
+    setTxtPreviewResult(null);
+    setTxtParsedNovelId(null);
     setNodeCount(5);
     setEventCount(8);
   };
@@ -147,11 +151,12 @@ export default function AdminNovelsPage() {
     }
   };
 
-  const handleConfirmTxt = async () => {
+  const handlePreviewTxt = async () => {
     if (!selectedFile) return;
     if (!createTitle.trim()) { toast.error('请输入作品名称'); return; }
     setActionLoading(true);
     try {
+      // Step 1: create novel
       const createRes = await api.post('/admin/novel', {
         title: createTitle.trim(),
         author: createAuthor.trim() || null,
@@ -159,18 +164,36 @@ export default function AdminNovelsPage() {
       });
       if (createRes.data.code === 200) {
         const newId = createRes.data.data.id;
+        setTxtParsedNovelId(newId);
+        // Step 2: upload + parse
         const formData = new FormData();
         formData.append('file', selectedFile);
         formData.append('novelId', newId);
         const uploadRes = await api.post('/admin/novel/import/upload', formData);
         if (uploadRes.data.code === 200) {
-          toast.success(`「${createTitle.trim()}」创建成功，TXT 解析完成`);
-          resetCreate();
-          fetchNovels();
+          setTxtPreviewResult(uploadRes.data.data.parseResult);
         }
       }
     } catch { /* handled */ }
     setActionLoading(false);
+  };
+
+  const handleConfirmTxt = async () => {
+    if (!txtPreviewResult) return;
+    const count = (txtPreviewResult.nodes as any[])?.length || 0;
+    toast.success(`「${createTitle.trim()}」创建成功，${count} 个节点`);
+    resetCreate();
+    fetchNovels();
+  };
+
+  const handleCancelTxt = async () => {
+    if (txtParsedNovelId) {
+      try {
+        await api.delete(`/admin/novel/${txtParsedNovelId}`);
+      } catch { /* ignore */ }
+    }
+    setConfirmOpen(false);
+    resetCreate();
   };
 
   const handleDeleteConfirm = async () => {
@@ -517,7 +540,7 @@ export default function AdminNovelsPage() {
               </>
             )}
 
-            {confirmType === 'txt' && selectedFile && (
+            {confirmType === 'txt' && selectedFile && !txtPreviewResult && (
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">作品名称 *</label>
@@ -539,22 +562,69 @@ export default function AdminNovelsPage() {
                 </div>
               </div>
             )}
+
+            {confirmType === 'txt' && txtPreviewResult && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircleIcon className="size-4" />
+                  <span className="text-sm font-medium">解析完成</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-muted/30 rounded-lg p-3 text-center">
+                    <div className="font-bold text-lg text-primary">{(txtPreviewResult.nodes as any[])?.length || 0}</div>
+                    <div className="text-xs text-muted-foreground">节点</div>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-3 text-center">
+                    <div className="font-bold text-lg text-primary">{(txtPreviewResult.edges as any[])?.length || 0}</div>
+                    <div className="text-xs text-muted-foreground">连接</div>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-3 text-center">
+                    <div className="font-bold text-lg text-primary">{(txtPreviewResult.events as any[])?.length || 0}</div>
+                    <div className="text-xs text-muted-foreground">事件</div>
+                  </div>
+                </div>
+                {txtPreviewResult.worldView && (
+                  <div className="text-xs bg-muted/50 rounded p-2 max-h-24 overflow-y-auto text-muted-foreground">
+                    {String(txtPreviewResult.worldView).slice(0, 300)}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={actionLoading}>
-              取消
-            </Button>
-            <Button
-              onClick={confirmType === 'llm' ? handleConfirmLlm : handleConfirmTxt}
-              disabled={actionLoading || !createTitle.trim()}
-            >
-              {actionLoading ? (
-                <><Loader2Icon className="size-4 animate-spin mr-1" /> 创建中...</>
-              ) : (
-                <><CheckCircleIcon className="size-4 mr-1" /> 确认创建</>
-              )}
-            </Button>
+            {confirmType === 'llm' && (
+              <>
+                <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={actionLoading}>取消</Button>
+                <Button onClick={handleConfirmLlm} disabled={actionLoading || !createTitle.trim()}>
+                  {actionLoading ? (
+                    <><Loader2Icon className="size-4 animate-spin mr-1" /> 创建中...</>
+                  ) : (
+                    <><CheckCircleIcon className="size-4 mr-1" /> 确认创建</>
+                  )}
+                </Button>
+              </>
+            )}
+            {confirmType === 'txt' && !txtPreviewResult && (
+              <>
+                <Button variant="outline" onClick={() => { setConfirmOpen(false); resetCreate(); }} disabled={actionLoading}>取消</Button>
+                <Button onClick={handlePreviewTxt} disabled={actionLoading || !createTitle.trim() || !selectedFile}>
+                  {actionLoading ? (
+                    <><Loader2Icon className="size-4 animate-spin mr-1" /> 解析中...</>
+                  ) : (
+                    <><SparklesIcon className="size-4 mr-1" /> 解析预览</>
+                  )}
+                </Button>
+              </>
+            )}
+            {confirmType === 'txt' && txtPreviewResult && (
+              <>
+                <Button variant="outline" onClick={handleCancelTxt} disabled={actionLoading}>取消删除</Button>
+                <Button onClick={handleConfirmTxt} disabled={actionLoading}>
+                  <CheckCircleIcon className="size-4 mr-1" /> 确认保存
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
