@@ -17,6 +17,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Result<Void> handleException(Exception e) {
-        return Result.error(500, "服务器内部错误");
+        e.printStackTrace();
+        return Result.error(500, "服务器内部错误: " + e.getClass().getSimpleName() + " - " + e.getMessage());
     }
 }
