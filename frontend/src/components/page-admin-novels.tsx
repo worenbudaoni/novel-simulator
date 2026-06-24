@@ -569,23 +569,85 @@ export default function AdminNovelsPage() {
                   <CheckCircleIcon className="size-4" />
                   <span className="text-sm font-medium">解析完成</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-muted/30 rounded-lg p-3 text-center">
-                    <div className="font-bold text-lg text-primary">{(txtPreviewResult.nodes as any[])?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground">节点</div>
-                  </div>
-                  <div className="bg-muted/30 rounded-lg p-3 text-center">
-                    <div className="font-bold text-lg text-primary">{(txtPreviewResult.edges as any[])?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground">连接</div>
-                  </div>
-                  <div className="bg-muted/30 rounded-lg p-3 text-center">
-                    <div className="font-bold text-lg text-primary">{(txtPreviewResult.events as any[])?.length || 0}</div>
-                    <div className="text-xs text-muted-foreground">事件</div>
-                  </div>
-                </div>
+
                 {txtPreviewResult.worldView && (
-                  <div className="text-xs bg-muted/50 rounded p-2 max-h-24 overflow-y-auto text-muted-foreground">
-                    {String(txtPreviewResult.worldView).slice(0, 300)}
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground mb-1">世界观</h4>
+                    <div className="text-xs bg-muted/50 rounded p-2 max-h-28 overflow-y-auto whitespace-pre-wrap">
+                      {String(txtPreviewResult.worldView)}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: 'nodes', label: '节点', data: (txtPreviewResult.nodes || []) as any[] },
+                    { key: 'edges', label: '连接', data: (txtPreviewResult.edges || []) as any[] },
+                    { key: 'events', label: '事件', data: (txtPreviewResult.events || []) as any[] },
+                  ].map(section => {
+                    const count = section.data.length;
+                    const isOpen = expandedSection === section.key;
+                    return (
+                      <div key={section.key} className="text-center">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedSection(isOpen ? null : section.key)}
+                          className={`w-full rounded-lg p-3 text-center transition-colors cursor-pointer hover:bg-accent ${
+                            isOpen ? 'bg-accent ring-1 ring-ring' : 'bg-muted/30'
+                          }`}
+                        >
+                          <div className="font-bold text-lg text-primary">{count}</div>
+                          <div className="text-xs text-muted-foreground">{section.label}</div>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {expandedSection === 'nodes' && (
+                  <div className="max-h-40 overflow-y-auto space-y-1 border rounded-md p-2">
+                    {(txtPreviewResult.nodes as any[]).length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">无节点数据</p>
+                    ) : (txtPreviewResult.nodes as any[]).map((n: any, i: number) => (
+                      <div key={i} className="flex items-center gap-2 text-xs bg-muted/20 rounded px-2 py-1.5">
+                        <span className="text-muted-foreground w-5 text-right shrink-0 font-mono">#{i + 1}</span>
+                        <span className="font-medium truncate">{n.title}</span>
+                        {n.isStart && <Badge className="text-[9px] h-3.5 px-1 shrink-0">起点</Badge>}
+                        {n.isEnd && <Badge variant="secondary" className="text-[9px] h-3.5 px-1 shrink-0">结局</Badge>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {expandedSection === 'edges' && (
+                  <div className="max-h-40 overflow-y-auto space-y-1 border rounded-md p-2">
+                    {(txtPreviewResult.edges as any[]).length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">无连接数据</p>
+                    ) : (txtPreviewResult.edges as any[]).map((e: any, i: number) => {
+                      const nodes = txtPreviewResult.nodes as any[] || [];
+                      const src = nodes[e.sourceNodeIndex]?.title || `#${e.sourceNodeIndex}`;
+                      const tgt = nodes[e.targetNodeIndex]?.title || `#${e.targetNodeIndex}`;
+                      return (
+                        <div key={i} className="flex items-center gap-2 text-xs bg-muted/20 rounded px-2 py-1.5">
+                          <span className="text-muted-foreground w-5 text-right shrink-0 font-mono">#{i + 1}</span>
+                          <span className="text-muted-foreground">{src} → {tgt}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {expandedSection === 'events' && (
+                  <div className="max-h-40 overflow-y-auto space-y-1 border rounded-md p-2">
+                    {(txtPreviewResult.events as any[]).length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">无事件数据</p>
+                    ) : (txtPreviewResult.events as any[]).map((ev: any, i: number) => (
+                      <div key={i} className="flex items-center gap-2 text-xs bg-muted/20 rounded px-2 py-1.5">
+                        <span className="text-muted-foreground w-5 text-right shrink-0 font-mono">#{i + 1}</span>
+                        <span className="truncate">{ev.title}</span>
+                        <span className={`text-[10px] shrink-0 ${ev.eventType === 0 ? 'text-green-600' : ev.eventType === 1 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                          [{['正面','负面','中立'][ev.eventType] || '中立'}]
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
