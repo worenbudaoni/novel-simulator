@@ -126,16 +126,34 @@ export default function AdminUsersPage() {
             ))}
           </TableBody>
         </Table>
-        {total > 10 && (
-          <div className="flex items-center justify-between mt-4 text-sm">
-            <span className="text-muted-foreground">共 {total} 条</span>
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>上一页</Button>
-              <span className="px-2 text-muted-foreground">{page} / {Math.ceil(total / 10)}</span>
-              <Button variant="outline" size="sm" disabled={page * 10 >= total} onClick={() => setPage(p => p + 1)}>下一页</Button>
-            </div>
+      </div>
+
+      <div className="flex items-center justify-between mt-4 text-sm">
+        <span className="text-muted-foreground">共 {total} 条</span>
+        {total > 10 ? (
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>上一页</Button>
+            {(() => {
+              const totalPages = Math.ceil(total / 10);
+              const pages: (number | string)[] = [];
+              const start = Math.max(1, page - 2);
+              const end = Math.min(totalPages, page + 2);
+              if (start > 1) { pages.push(1); if (start > 2) pages.push('...'); }
+              for (let i = start; i <= end; i++) pages.push(i);
+              if (end < totalPages) { if (end < totalPages - 1) pages.push('...'); pages.push(totalPages); }
+              return pages.map((p, i) =>
+                typeof p === 'string' ? (
+                  <span key={`e${i}`} className="px-1 text-muted-foreground">{p}</span>
+                ) : (
+                  <Button key={p} variant={p === page ? 'default' : 'outline'} size="sm" className="min-w-[32px]" onClick={() => setPage(p)}>{p}</Button>
+                )
+              );
+            })()}
+            <Button variant="outline" size="sm" disabled={page * 10 >= total} onClick={() => setPage(p => p + 1)}>下一页</Button>
           </div>
-        )}
+        ) : total > 0 ? (
+          <span className="text-muted-foreground text-xs">第 1 页</span>
+        ) : null}
       </div>
 
       <Dialog open={editUser !== null} onOpenChange={o => { if (!o) setEditUser(null); }}>
