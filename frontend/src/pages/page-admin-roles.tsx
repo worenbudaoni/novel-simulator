@@ -300,7 +300,7 @@ export default function AdminRolesPage() {
             />
             <Select value={visFilter} onValueChange={v => { setVisFilter(v); loadVisNovels(1, visSearch, v); }}>
               <SelectTrigger className="w-28">
-                <SelectValue placeholder="全部" />
+                {visFilter === 'true' ? '已选择' : visFilter === 'false' ? '未选择' : '全部'}
               </SelectTrigger>
               <SelectContent position="popper">
                 <SelectItem value="">全部</SelectItem>

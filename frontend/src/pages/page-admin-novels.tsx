@@ -421,9 +421,9 @@ export default function AdminNovelsPage() {
                   <label className="text-sm font-medium">类型</label>
                   <Select value={createType} onValueChange={v => { setCreateType(v); setSelectedFile(null); }} disabled={actionLoading || previewLoading}>
                     <SelectTrigger>
-                      <SelectValue placeholder="选择类型" />
+                      {['小说', '动漫', '漫画'][Number(createType)] || '选择类型'}
                     </SelectTrigger>
-                    <SelectContent className="z-[60]" sideOffset={4}>
+                    <SelectContent>
                       <SelectItem value="0">小说</SelectItem>
                       <SelectItem value="1">动漫</SelectItem>
                       <SelectItem value="2">漫画</SelectItem>
@@ -847,7 +847,7 @@ export default function AdminNovelsPage() {
               <label className="text-sm font-medium">类型</label>
               <Select value={String(editType)} onValueChange={v => setEditType(Number(v))} disabled={editSaving}>
                 <SelectTrigger>
-                  <SelectValue placeholder="选择类型" />
+                  {['小说', '动漫', '漫画'][editType] || '选择类型'}
                 </SelectTrigger>
                 <SelectContent className="z-[60]" sideOffset={4}>
                   <SelectItem value="0">小说</SelectItem>
