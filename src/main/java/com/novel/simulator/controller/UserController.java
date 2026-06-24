@@ -1,5 +1,7 @@
 package com.novel.simulator.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.novel.simulator.common.Result;
 import com.novel.simulator.entity.User;
 import com.novel.simulator.entity.UserRole;
@@ -26,14 +28,16 @@ public class UserController {
 
     @GetMapping("/list")
     @PreAuthorize("hasAuthority('user:read')")
-    public Result<List<Map<String, Object>>> list() {
-        List<User> users = userMapper.selectList(null);
-        List<Map<String, Object>> result = users.stream().map(u -> {
+    public Result<Map<String, Object>> list(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        IPage<User> p = userMapper.selectPage(new Page<>(page, size), null);
+        List<Map<String, Object>> items = p.getRecords().stream().map(u -> {
             Map<String, Object> item = new java.util.HashMap<>();
             item.put("id", u.getId());
             item.put("username", u.getUsername());
             item.put("nickname", u.getNickname());
-            item.put("isEnabled", u.getEnabled());
+            item.put("enabled", u.getEnabled());
             item.put("createdAt", u.getCreatedAt());
             List<Long> roleIds = userRoleMapper.selectList(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<UserRole>()
@@ -42,6 +46,11 @@ public class UserController {
             item.put("roleIds", roleIds);
             return item;
         }).collect(Collectors.toList());
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("items", items);
+        result.put("total", p.getTotal());
+        result.put("page", p.getCurrent());
+        result.put("size", p.getSize());
         return Result.success(result);
     }
 

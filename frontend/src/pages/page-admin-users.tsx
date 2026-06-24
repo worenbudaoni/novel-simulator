@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from 'src/components/ui/button';
 import { Badge } from 'src/components/ui/badge';
 import {
@@ -22,22 +22,26 @@ interface UserItem {
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [roles, setRoles] = useState<{id: number; code: string; name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState<UserItem | null>(null);
   const [editRoleIds, setEditRoleIds] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
-    Promise.all([
-      api.get('/admin/user/list'),
-      api.get('/admin/role/list'),
-    ]).then(([uRes, rRes]) => {
-      if (uRes.data.code === 200) setUsers(uRes.data.data);
-      if (rRes.data.code === 200) setRoles(rRes.data.data);
-    }).finally(() => setLoading(false));
-  }, []);
+    try {
+      const uRes = await api.get('/admin/user/list', { params: { page, size: 10 } });
+      if (uRes.data.code === 200) { setUsers(uRes.data.data.items); setTotal(uRes.data.data.total); }
+    } finally { setLoading(false); }
+  }, [page]);
+
+  useEffect(() => {
+    fetchUsers();
+    api.get('/admin/role/list').then(r => { if (r.data.code === 200) setRoles(r.data.data); });
+  }, [fetchUsers]);
 
   const openRoles = (user: UserItem) => {
     setEditUser(user);
@@ -52,19 +56,19 @@ export default function AdminUsersPage() {
       if (res.data.code === 200) {
         toast.success('角色已更新');
         setEditUser(null);
-        const uRes = await api.get('/admin/user/list');
-        if (uRes.data.code === 200) setUsers(uRes.data.data);
+        fetchUsers();
       }
     } finally { setSaving(false); }
   };
 
   const toggleStatus = async (user: UserItem) => {
-    const res = await api.put(`/admin/user/${user.id}/status`, { enabled: !user.enabled });
-    if (res.data.code === 200) {
-      toast.success(user.enabled ? '已禁用' : '已启用');
-      const uRes = await api.get('/admin/user/list');
-      if (uRes.data.code === 200) setUsers(uRes.data.data);
-    }
+    try {
+      const res = await api.put(`/admin/user/${user.id}/status`, { enabled: !user.enabled });
+      if (res.data.code === 200) {
+        toast.success(user.enabled ? '已禁用' : '已启用');
+        fetchUsers();
+      }
+    } catch { /* handled */ }
   };
 
   if (loading) {
@@ -122,6 +126,16 @@ export default function AdminUsersPage() {
             ))}
           </TableBody>
         </Table>
+        {total > 10 && (
+          <div className="flex items-center justify-between mt-4 text-sm">
+            <span className="text-muted-foreground">共 {total} 条</span>
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>上一页</Button>
+              <span className="px-2 text-muted-foreground">{page} / {Math.ceil(total / 10)}</span>
+              <Button variant="outline" size="sm" disabled={page * 10 >= total} onClick={() => setPage(p => p + 1)}>下一页</Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={editUser !== null} onOpenChange={o => { if (!o) setEditUser(null); }}>
