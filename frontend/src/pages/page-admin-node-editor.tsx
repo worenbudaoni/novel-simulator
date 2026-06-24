@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ReactFlow, addEdge, useNodesState, useEdgesState, Controls, Background,
-  MiniMap, MarkerType, type Connection, type Node, type Edge, type NodeProps,
-  type NodeTypes,
+  Handle, Position, MarkerType,
+  type Connection, type Node, type Edge, type NodeProps, type NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from 'src/components/ui/button';
@@ -39,17 +39,19 @@ interface NovelEdge {
 // --- Custom Node Component ---
 function GraphNode({ data, selected }: NodeProps) {
   return (
-    <div className={`px-4 py-3 rounded-xl border-2 shadow-md bg-white min-w-[140px] transition-shadow ${
+    <div className={`px-4 py-3 rounded-xl border-2 shadow-md bg-white min-w-[140px] transition-shadow relative ${
       selected ? 'border-primary shadow-lg ring-2 ring-primary/20' :
       data.isStart ? 'border-emerald-400' :
       data.isEnd ? 'border-amber-400' :
       'border-border'
     }`}>
+      <Handle type="target" position={Position.Top} className="!bg-primary !border-2 !border-white !size-3" />
       <div className="text-sm font-medium truncate max-w-[180px]">{data.label}</div>
       <div className="flex gap-1 mt-1.5">
         {data.isStart && <Badge variant="default" className="text-[9px] h-4 px-1">起点</Badge>}
         {data.isEnd && <Badge variant="secondary" className="text-[9px] h-4 px-1">结局</Badge>}
       </div>
+      <Handle type="source" position={Position.Bottom} className="!bg-primary !border-2 !border-white !size-3" />
     </div>
   );
 }
