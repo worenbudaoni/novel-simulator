@@ -137,6 +137,8 @@ export default function AdminNodeEditorPage() {
         const nodes: NovelNode[] = res.data.data.nodes || [];
         const edges: NovelEdge[] = res.data.data.edges || [];
         const opts = res.data.data.options || [];
+        console.log('Nodes:', nodes);
+        console.log('Edges:', edges);
         setDbEdges(edges);
         setDbOptions(opts);
         // Store original node data map
