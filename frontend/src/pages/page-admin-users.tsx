@@ -11,9 +11,7 @@ import { toast } from 'sonner';
 import api from '@/hooks/useApi';
 import { Input } from 'src/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from 'src/components/ui/popover';
-import { Command, CommandGroup, CommandItem, CommandInput } from 'src/components/ui/command';
-import { SearchIcon, Loader2Icon, ShieldIcon, ChevronDownIcon, CheckIcon } from 'lucide-react';
+import { SearchIcon, Loader2Icon, ShieldIcon } from 'lucide-react';
 
 interface UserItem {
   id: number;
@@ -121,34 +119,55 @@ export default function AdminUsersPage() {
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <label className="text-xs text-muted-foreground font-medium">角色</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="flex items-center justify-between w-44 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm text-left text-muted-foreground hover:bg-accent">
-                <span className="truncate">{roleFilter.length > 0 ? `已选 ${roleFilter.length} 个角色` : '全部角色'}</span>
-                <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-0" align="start">
-              <Command>
-                <CommandInput placeholder="搜索角色..." />
-                <CommandGroup>
-                  {roles.filter(r => r.code !== 'ADMIN').map(r => {
-                    const selected = roleFilter.includes(r.id);
-                    return (
-                      <CommandItem key={r.id} onSelect={() => setRoleFilter(prev => selected ? prev.filter(id => id !== r.id) : [...prev, r.id])}>
-                        <div className={`size-4 mr-2 rounded border flex items-center justify-center transition-colors ${selected ? 'bg-primary border-primary' : 'border-input'}`}>
-                          {selected && <CheckIcon className="size-3 text-primary-foreground" />}
-                        </div>
-                        {r.name}
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
+        <div className="relative">
+          <label className="text-xs text-muted-foreground font-medium block mb-1">角色</label>
+          <div className="flex flex-wrap gap-1.5 min-h-9 w-72 rounded-md border border-input bg-background px-2 py-1.5 text-sm cursor-pointer" onClick={e => {
+            const menu = e.currentTarget.nextElementSibling;
+            if (menu) menu.classList.toggle('hidden');
+          }}>
+            {roleFilter.length === 0 ? (
+              <span className="text-muted-foreground px-1 py-0.5">全部角色</span>
+            ) : roleFilter.map(rid => {
+              const role = roles.find(r => r.id === rid);
+              return role ? (
+                <span key={rid} className="inline-flex items-center gap-1 rounded-md bg-primary/10 text-primary text-xs px-2 py-0.5">
+                  {role.name}
+                  <button type="button" onClick={e => { e.stopPropagation(); setRoleFilter(prev => prev.filter(id => id !== rid)); }} className="hover:text-primary/70">×</button>
+                </span>
+              ) : null;
+            })}
+          </div>
+          <div className="hidden absolute top-full left-0 right-0 z-10 mt-1 rounded-md border bg-popover shadow-md p-1">
+            <input
+              type="text"
+              placeholder="搜索角色..."
+              className="w-full rounded-md border-0 bg-transparent px-2 py-1.5 text-sm outline-none focus:ring-0"
+              onInput={e => {
+                const val = (e.target as HTMLInputElement).value.toLowerCase();
+                const items = (e.target as HTMLInputElement).nextElementSibling;
+                if (items) items.querySelectorAll('[data-role-id]').forEach(el => {
+                  const text = el.textContent?.toLowerCase() || '';
+                  el.classList.toggle('hidden', !text.includes(val));
+                });
+              }}
+            />
+            <div className="max-h-48 overflow-y-auto space-y-0.5 mt-1">
+              {roles.filter(r => r.code !== 'ADMIN').map(r => {
+                const selected = roleFilter.includes(r.id);
+                return (
+                  <div key={r.id} data-role-id
+                    className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md cursor-pointer ${selected ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'}`}
+                    onClick={() => setRoleFilter(prev => selected ? prev.filter(id => id !== r.id) : [...prev, r.id])}
+                  >
+                    <div className={`size-4 rounded border flex items-center justify-center ${selected ? 'bg-primary border-primary' : 'border-input'}`}>
+                      {selected && <span className="text-primary-foreground text-xs">✓</span>}
+                    </div>
+                    {r.name}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
         <div className="flex items-end gap-2">
           <Button variant="outline" onClick={() => { setKeyword(searchInput); setStatusFilter(tempStatus); setPage(1); }}>
