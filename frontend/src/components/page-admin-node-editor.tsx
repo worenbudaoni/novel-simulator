@@ -34,7 +34,7 @@ export default function AdminNodeEditorPage() {
   useEffect(() => {
     if (!novelId) return;
     setLoading(true);
-    api.get(`/api/admin/novel/${novelId}/nodes`).then(res => {
+    api.get(`/admin/novel/${novelId}/nodes`).then(res => {
       if (res.data.code === 200) {
         setNodes(res.data.data.nodes || []);
       }
@@ -81,7 +81,7 @@ export default function AdminNodeEditorPage() {
     if (!novelId) return;
     setSaving(true);
     try {
-      const res = await api.put(`/api/admin/novel/${novelId}/nodes`, {
+      const res = await api.put(`/admin/novel/${novelId}/nodes`, {
         nodes: nodes.map((n, i) => ({ ...n, sortOrder: i })),
         edges: [],
         options: [],

@@ -39,7 +39,7 @@ export default function AdminNovelsPage() {
   const fetchNovels = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/api/admin/novel/list', { params: { page, size: 20, keyword } });
+      const res = await api.get('/admin/novel/list', { params: { page, size: 20, keyword } });
       if (res.data.code === 200) {
         setNovels(res.data.data.items);
         setTotal(res.data.data.total);
@@ -54,7 +54,7 @@ export default function AdminNovelsPage() {
     if (!createTitle.trim()) { toast.error('请输入作品名称'); return; }
     setCreating(true);
     try {
-      const res = await api.post('/api/admin/novel', {
+      const res = await api.post('/admin/novel', {
         title: createTitle.trim(),
         author: createAuthor.trim() || null,
         contentType: createType,
@@ -78,7 +78,7 @@ export default function AdminNovelsPage() {
   const handleDelete = async (id: number) => {
     if (!confirm('确定删除该作品？')) return;
     try {
-      const res = await api.delete(`/api/admin/novel/${id}`);
+      const res = await api.delete(`/admin/novel/${id}`);
       if (res.data.code === 200) {
         toast.success('已删除');
         fetchNovels();

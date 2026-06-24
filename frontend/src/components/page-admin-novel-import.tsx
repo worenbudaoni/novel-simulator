@@ -40,7 +40,7 @@ export default function AdminNovelImportPage() {
   useEffect(() => {
     if (novelId) {
       setLoading(true);
-      api.get(`/api/admin/novel/${novelId}`).then(res => {
+      api.get(`/admin/novel/${novelId}`).then(res => {
         if (res.data.code === 200) {
           setNovel(res.data.data.novel);
         }
@@ -53,7 +53,7 @@ export default function AdminNovelImportPage() {
     setGenerating(true);
     setGenerateResult(null);
     try {
-      const res = await api.post('/api/admin/novel/import/name', {
+      const res = await api.post('/admin/novel/import/name', {
         name: name.trim(),
         contentType: Number(contentType),
       });
@@ -82,7 +82,7 @@ export default function AdminNovelImportPage() {
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('novelId', novelId);
-      const res = await api.post('/api/admin/novel/import/upload', formData, {
+      const res = await api.post('/admin/novel/import/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (res.data.code === 200) {

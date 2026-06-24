@@ -42,7 +42,7 @@ export default function AdminEventPoolPage() {
   useEffect(() => {
     if (!novelId) return;
     setLoading(true);
-    api.get(`/api/admin/novel/${novelId}/events`).then(res => {
+    api.get(`/admin/novel/${novelId}/events`).then(res => {
       if (res.data.code === 200) {
         setEvents(res.data.data || []);
       }
@@ -84,7 +84,7 @@ export default function AdminEventPoolPage() {
     if (!novelId) return;
     setSaving(true);
     try {
-      const res = await api.put(`/api/admin/novel/${novelId}/events`, { events });
+      const res = await api.put(`/admin/novel/${novelId}/events`, { events });
       if (res.data.code === 200) {
         toast.success('保存成功');
       }
