@@ -12,6 +12,8 @@ import AdminNovelsPage from 'src/pages/page-admin-novels';
 import AdminNovelImportPage from 'src/pages/page-admin-novel-import';
 import AdminNodeEditorPage from 'src/pages/page-admin-node-editor';
 import AdminEventPoolPage from 'src/pages/page-admin-event-pool';
+import AdminUsersPage from 'src/pages/page-admin-users';
+import AdminRolesPage from 'src/pages/page-admin-roles';
 import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, CommandIcon } from 'lucide-react';
 
@@ -138,6 +140,20 @@ export default function App() {
             <ProtectedAdmin>
               <DashboardLayout>
                 <AdminEventPoolPage />
+              </DashboardLayout>
+            </ProtectedAdmin>
+          } />
+          <Route path="/admin/users" element={
+            <ProtectedAdmin>
+              <DashboardLayout>
+                <AdminUsersPage />
+              </DashboardLayout>
+            </ProtectedAdmin>
+          } />
+          <Route path="/admin/roles" element={
+            <ProtectedAdmin>
+              <DashboardLayout>
+                <AdminRolesPage />
               </DashboardLayout>
             </ProtectedAdmin>
           } />

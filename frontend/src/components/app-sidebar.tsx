@@ -67,8 +67,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {hasRole('ADMIN') && (
               <NavMain title="管理后台" items={[
                 { title: "作品管理", url: "/admin", icon: <LayoutDashboard />, isActive: pathname === '/admin' || pathname.startsWith('/admin/novel/') },
-                { title: "用户管理", url: "/admin", icon: <Users />, isActive: false },
-                { title: "角色管理", url: "/admin", icon: <Shield />, isActive: false },
+                { title: "用户管理", url: "/admin/users", icon: <Users />, isActive: pathname === '/admin/users' },
+                { title: "角色管理", url: "/admin/roles", icon: <Shield />, isActive: pathname === '/admin/roles' },
                 { title: "Prompt 配置", url: "/admin", icon: <FileCode />, isActive: false },
               ]} />
             )}
