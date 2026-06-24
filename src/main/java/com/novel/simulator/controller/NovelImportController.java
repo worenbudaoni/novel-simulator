@@ -170,13 +170,20 @@ public class NovelImportController {
      */
     @PostMapping("/import/preview-upload")
     @PreAuthorize("hasAuthority('novel:create')")
-    public Result<Map<String, Object>> previewTxtUpload(@RequestParam("file") MultipartFile file) {
+    public Result<Map<String, Object>> previewTxtUpload(@RequestParam("file") MultipartFile file,
+                                                         @RequestParam(value = "nodeCount", defaultValue = "5") int nodeCount,
+                                                         @RequestParam(value = "eventCount", defaultValue = "8") int eventCount) {
         String content;
         try (InputStream is = file.getInputStream()) {
             content = IOUtils.toString(is, StandardCharsets.UTF_8);
         } catch (Exception e) {
             return Result.error(400, "文件读取失败: " + e.getMessage());
         }
+
+        if (nodeCount < 3) nodeCount = 3;
+        if (nodeCount > 20) nodeCount = 20;
+        if (eventCount < 5) eventCount = 5;
+        if (eventCount > 15) eventCount = 15;
 
         // LLM parse without saving — build prompt and call directly
         String prompt = "你是一个小说解析专家。请分析以下小说内容，提取结构化信息。\n\n"
@@ -187,7 +194,8 @@ public class NovelImportController {
             + "4. options: 节点选项数组，每个选项有 nodeIndex(int), label, targetNodeIndex(int), triggerEvent(boolean), riskHint\n"
             + "5. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
             + "6. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n\n"
-            + "请确保解析出5-15个核心节点。\n\n"
+            + "请确保生成" + nodeCount + "个核心节点"
+            + (eventCount > 0 ? "和" + eventCount + "个随机事件" : "") + "。\n\n"
             + "小说内容：\n" + (content.length() > 30000 ? content.substring(0, 30000) + "\n... [截断]" : content);
 
         try {
@@ -218,7 +226,9 @@ public class NovelImportController {
     @PostMapping("/import/upload")
     @PreAuthorize("hasAuthority('novel:create')")
     public Result<Map<String, Object>> importByUpload(@RequestParam("file") MultipartFile file,
-                                                       @RequestParam("novelId") Long novelId) {
+                                                       @RequestParam("novelId") Long novelId,
+                                                       @RequestParam(value = "nodeCount", defaultValue = "5") int nodeCount,
+                                                       @RequestParam(value = "eventCount", defaultValue = "8") int eventCount) {
         Novel novel = novelService.getById(novelId);
         if (novel == null) {
             return Result.error(404, "作品不存在");

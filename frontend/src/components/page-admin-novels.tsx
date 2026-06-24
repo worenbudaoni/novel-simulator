@@ -158,6 +158,8 @@ export default function AdminNovelsPage() {
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
+      formData.append('nodeCount', String(nodeCount));
+      formData.append('eventCount', String(eventCount));
       const res = await api.post('/admin/novel/import/preview-upload', formData);
       if (res.data.code === 200) {
         setTxtPreviewResult(res.data.data.parseResult);
@@ -183,6 +185,8 @@ export default function AdminNovelsPage() {
         const formData = new FormData();
         formData.append('file', selectedFile);
         formData.append('novelId', newId);
+        formData.append('nodeCount', String(nodeCount));
+        formData.append('eventCount', String(eventCount));
         const uploadRes = await api.post('/admin/novel/import/upload', formData);
         if (uploadRes.data.code === 200) {
           const count = (uploadRes.data.data.parseResult?.nodes as any[])?.length || 0;
@@ -561,6 +565,39 @@ export default function AdminNovelsPage() {
                     <div className="text-sm font-medium">{selectedFile.name}</div>
                     <div className="text-xs text-muted-foreground">
                       {(selectedFile.size / 1024).toFixed(0)} KB
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-3 space-y-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">生成节点数</label>
+                      <span className="text-sm font-mono text-primary font-bold tabular-nums">{nodeCount}</span>
+                    </div>
+                    <input
+                      type="range" min={3} max={20} value={nodeCount}
+                      onChange={e => setNodeCount(Number(e.target.value))}
+                      disabled={actionLoading}
+                      className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>最少 3</span><span>默认 5</span><span>最多 20</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">生成事件数</label>
+                      <span className="text-sm font-mono text-primary font-bold tabular-nums">{eventCount}</span>
+                    </div>
+                    <input
+                      type="range" min={5} max={15} value={eventCount}
+                      onChange={e => setEventCount(Number(e.target.value))}
+                      disabled={actionLoading}
+                      className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>最少 5</span><span>默认 8</span><span>最多 15</span>
                     </div>
                   </div>
                 </div>
