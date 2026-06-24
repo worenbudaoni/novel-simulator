@@ -66,6 +66,8 @@ export default function AdminNovelsPage() {
   const [editType, setEditType] = useState(0);
   const [editStatus, setEditStatus] = useState(0);
   const [editSaving, setEditSaving] = useState(false);
+  const [roles, setRoles] = useState<{id: number; code: string; name: string}[]>([]);
+  const [editVisibilityRoleIds, setEditVisibilityRoleIds] = useState<number[]>([]);
   const navigate = useNavigate();
 
   const fetchNovels = useCallback(async () => {
@@ -238,6 +240,7 @@ export default function AdminNovelsPage() {
         status: editStatus,
       });
       if (res.data.code === 200) {
+        await api.put(`/admin/novel/${editTarget.id}/visibility`, { roleIds: editVisibilityRoleIds });
         toast.success('已更新');
         setEditTarget(null);
         fetchNovels();
@@ -330,7 +333,10 @@ export default function AdminNovelsPage() {
                 <TableCell className="text-sm text-muted-foreground">{n.createdAt?.slice(0, 10)}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon-sm" onClick={() => { setEditTarget(n); setEditTitle(n.title); setEditAuthor(n.author || ''); setEditType(n.contentType); setEditStatus(n.status); }} title="编辑">
+                    <Button variant="ghost" size="icon-sm" onClick={() => { setEditTarget(n); setEditTitle(n.title); setEditAuthor(n.author || ''); setEditType(n.contentType); setEditStatus(n.status);
+                        api.get(`/admin/novel/${n.id}`).then(r => { if (r.data.code === 200) setEditVisibilityRoleIds(r.data.data.visibilityRoleIds || []); });
+                        if (roles.length === 0) api.get('/admin/role/list').then(r => { if (r.data.code === 200) setRoles(r.data.data); });
+                      }} title="编辑">
                       <PencilIcon className="size-4" />
                     </Button>
                     {n.parseStatus !== 2 && (
@@ -861,6 +867,31 @@ export default function AdminNovelsPage() {
                 <p className="text-xs text-muted-foreground">{editStatus === 1 ? '生效中，玩家可见' : '已失效，玩家不可见'}</p>
               </div>
               <Switch checked={editStatus === 1} onCheckedChange={c => setEditStatus(c ? 1 : 0)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">可见角色</label>
+              <p className="text-xs text-muted-foreground">选择哪些角色的用户可以看见此作品</p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {roles.filter(r => r.code !== 'ADMIN').map(r => {
+                  const selected = editVisibilityRoleIds.includes(r.id);
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setEditVisibilityRoleIds(prev =>
+                        selected ? prev.filter(id => id !== r.id) : [...prev, r.id]
+                      )}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors cursor-pointer ${
+                        selected
+                          ? 'bg-primary/10 border-primary/30 text-primary'
+                          : 'bg-background border-input text-muted-foreground hover:bg-muted/30'
+                      }`}
+                    >
+                      {selected ? '✓' : ''} {r.name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-2">
