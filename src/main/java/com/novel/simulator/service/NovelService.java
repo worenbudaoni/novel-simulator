@@ -35,6 +35,11 @@ public class NovelService {
         return novelMapper.selectPage(new Page<>(page, size), qw);
     }
 
+    public Novel findByTitle(String title) {
+        return novelMapper.selectOne(
+            new LambdaQueryWrapper<Novel>().eq(Novel::getTitle, title));
+    }
+
     public Novel getById(Long id) {
         Novel novel = novelMapper.selectById(id);
         if (novel == null) {

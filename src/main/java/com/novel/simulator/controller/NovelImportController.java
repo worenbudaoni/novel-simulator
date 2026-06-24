@@ -65,6 +65,12 @@ public class NovelImportController {
         if (nodeCount < 3) nodeCount = 3;
         if (nodeCount > 20) nodeCount = 20;
 
+        // Check duplicate name
+        com.novel.simulator.entity.Novel existing = novelService.findByTitle(name.trim());
+        if (existing != null) {
+            return Result.error(400, "作品「" + name.trim() + "」已存在");
+        }
+
         Map<String, Object> genResult = parseChain.previewGenerate(name.trim(), contentType, nodeCount);
 
         if (genResult.containsKey("exists") && Boolean.FALSE.equals(genResult.get("exists"))) {
@@ -97,6 +103,12 @@ public class NovelImportController {
             ? ((Number) request.get("contentType")).intValue() : 0;
         if (name == null || name.trim().isEmpty()) {
             return Result.error(400, "作品名称不能为空");
+        }
+
+        // Check duplicate name
+        com.novel.simulator.entity.Novel existing = novelService.findByTitle(name.trim());
+        if (existing != null) {
+            return Result.error(400, "作品「" + name.trim() + "」已存在");
         }
 
         // 1. LLM generates framework
