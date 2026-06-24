@@ -257,48 +257,53 @@ export default function AdminNovelsPage() {
 
       {/* Create Sheet — slides in from right */}
       <Sheet open={showCreate} onOpenChange={(open) => { if (!open) resetCreate(); }}>
-        <SheetContent side="right" className="w-full sm:max-w-3xl">
-          <SheetHeader>
-            <SheetTitle>新建作品</SheetTitle>
-            <SheetDescription>输入作品信息，选择导入方式</SheetDescription>
-          </SheetHeader>
+        <SheetContent side="right" className="w-full sm:max-w-xl p-0">
+          <div className="flex flex-col h-full">
+            <SheetHeader className="px-6 pt-6 pb-0 shrink-0">
+              <SheetTitle>新建作品</SheetTitle>
+              <SheetDescription>输入作品信息，选择导入方式</SheetDescription>
+            </SheetHeader>
 
-          <div className="space-y-4 py-2 flex-1 overflow-y-auto">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">作品名称 *</label>
-              <Input
-                value={createTitle}
-                onChange={(e) => setCreateTitle(e.target.value)}
-                placeholder="输入作品名称"
-                disabled={actionLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">作者</label>
-              <Input
-                value={createAuthor}
-                onChange={(e) => setCreateAuthor(e.target.value)}
-                placeholder="原作者（可选）"
-                disabled={actionLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">类型</label>
-              <select
-                value={createType}
-                onChange={(e) => { setCreateType(e.target.value); setSelectedFile(null); }}
-                disabled={actionLoading}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs disabled:opacity-50"
-              >
-                <option value="0">小说</option>
-                <option value="1">动漫</option>
-                <option value="2">漫画</option>
-              </select>
-            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">作品名称 *</label>
+                  <Input
+                    value={createTitle}
+                    onChange={(e) => setCreateTitle(e.target.value)}
+                    placeholder="输入作品名称"
+                    disabled={actionLoading}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">类型</label>
+                  <select
+                    value={createType}
+                    onChange={(e) => { setCreateType(e.target.value); setSelectedFile(null); }}
+                    disabled={actionLoading}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs disabled:opacity-50"
+                  >
+                    <option value="0">小说</option>
+                    <option value="1">动漫</option>
+                    <option value="2">漫画</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">作者</label>
+                <Input
+                  value={createAuthor}
+                  onChange={(e) => setCreateAuthor(e.target.value)}
+                  placeholder="原作者（可选）"
+                  disabled={actionLoading}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">生成节点数</label>
-              <div className="flex items-center gap-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">生成节点数</label>
+                  <span className="text-sm font-mono text-primary font-bold tabular-nums">{nodeCount}</span>
+                </div>
                 <input
                   type="range"
                   min={3}
@@ -306,74 +311,68 @@ export default function AdminNovelsPage() {
                   value={nodeCount}
                   onChange={e => setNodeCount(Number(e.target.value))}
                   disabled={actionLoading}
-                  className="flex-1 h-2 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
+                  className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
                 />
-                <span className="text-sm font-mono w-8 text-center text-primary font-bold">{nodeCount}</span>
-              </div>
-              <p className="text-xs text-muted-foreground">AI 将生成 {nodeCount} 个核心节点，范围 3-20 个</p>
-            </div>
-
-            <div className="pt-3 border-t space-y-3">
-              <p className="text-xs text-muted-foreground">
-                {isNovel ? '小说可选择 AI 生成或上传 TXT 文件两种方式：' : '动漫/漫画将通过 AI 直接生成故事框架。'}
-              </p>
-
-              {/* AI Generate — all types */}
-              <button
-                type="button"
-                onClick={handlePreviewLlm}
-                disabled={previewLoading || !createTitle.trim()}
-                className="w-full flex items-center gap-3 rounded-lg border border-input bg-background px-4 py-3 text-left text-sm hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:pointer-events-none transition-colors"
-              >
-                {previewLoading ? (
-                  <Loader2Icon className="size-5 animate-spin shrink-0" />
-                ) : (
-                  <SparklesIcon className="size-5 shrink-0 text-primary" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium">
-                    {previewLoading ? 'AI 查询中...' : 'AI 智能生成'}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {isNovel ? '输入名称，AI 生成故事框架' : 'AI 根据知识生成故事框架，查不到则提示未找到'}
-                  </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>最少 3</span>
+                  <span>默认 5</span>
+                  <span>最多 20</span>
                 </div>
-              </button>
+              </div>
 
-              {/* TXT Upload — 小说 only */}
-              {isNovel && (
-                <div
-                  onClick={() => { if (!actionLoading) fileInputRef.current?.click(); }}
-                  className="w-full flex items-center gap-3 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 px-4 py-4 text-left text-sm transition-colors cursor-pointer"
+              <div className="space-y-2 pt-2 border-t">
+                <p className="text-xs text-muted-foreground">
+                  {isNovel ? '选择导入方式：' : '动漫/漫画将通过 AI 直接生成故事框架。'}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handlePreviewLlm}
+                  disabled={previewLoading || !createTitle.trim()}
+                  className="w-full flex items-center gap-3 rounded-lg border border-input bg-background px-4 py-3 text-left text-sm hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:pointer-events-none transition-colors"
                 >
-                  <FileUpIcon className="size-5 shrink-0 text-muted-foreground" />
+                  {previewLoading ? (
+                    <Loader2Icon className="size-5 animate-spin shrink-0" />
+                  ) : (
+                    <SparklesIcon className="size-5 shrink-0 text-primary" />
+                  )}
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium">上传 TXT 文件</div>
-                    <div className="text-xs text-muted-foreground">选择小说 TXT 文件，确认后 AI 自动解析创建</div>
+                    <div className="font-medium">{previewLoading ? 'AI 查询中...' : 'AI 智能生成'}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {isNovel ? '输入名称，AI 生成故事框架' : 'AI 根据知识生成故事框架，查不到则提示未找到'}
+                    </div>
                   </div>
-                  <FileTextIcon className="size-5 shrink-0 text-muted-foreground" />
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".txt"
-                    className="hidden"
-                    onChange={(e) => handleSelectFile(e.target.files?.[0] || null)}
-                  />
+                </button>
+
+                {isNovel && (
+                  <div
+                    onClick={() => { if (!actionLoading) fileInputRef.current?.click(); }}
+                    className="w-full flex items-center gap-3 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 px-4 py-4 text-left text-sm transition-colors cursor-pointer"
+                  >
+                    <FileUpIcon className="size-5 shrink-0 text-muted-foreground" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium">上传 TXT 文件</div>
+                      <div className="text-xs text-muted-foreground">选择小说 TXT 文件，确认后 AI 自动解析创建</div>
+                    </div>
+                    <FileTextIcon className="size-5 shrink-0 text-muted-foreground" />
+                    <input ref={fileInputRef} type="file" accept=".txt" className="hidden"
+                      onChange={(e) => handleSelectFile(e.target.files?.[0] || null)} />
+                  </div>
+                )}
+              </div>
+
+              {actionError && (
+                <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20">
+                  <XCircleIcon className="size-4 text-destructive shrink-0 mt-0.5" />
+                  <p className="text-sm text-destructive">{actionError}</p>
                 </div>
               )}
             </div>
 
-            {actionError && (
-              <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/20">
-                <XCircleIcon className="size-4 text-destructive shrink-0 mt-0.5" />
-                <p className="text-sm text-destructive">{actionError}</p>
-              </div>
-            )}
+            <SheetFooter className="px-6 pb-6 pt-2 shrink-0">
+              <Button variant="outline" onClick={resetCreate} disabled={actionLoading} className="w-full">取消</Button>
+            </SheetFooter>
           </div>
-
-          <SheetFooter>
-            <Button variant="outline" onClick={resetCreate} disabled={actionLoading}>取消</Button>
-          </SheetFooter>
         </SheetContent>
       </Sheet>
 
