@@ -285,6 +285,7 @@ export default function AdminNovelsPage() {
               <TableHead>标题</TableHead>
               <TableHead>作者</TableHead>
               <TableHead>类型</TableHead>
+              <TableHead className="text-center w-20">状态</TableHead>
               <TableHead className="text-center">节点</TableHead>
               <TableHead className="text-center">事件</TableHead>
               <TableHead>解析</TableHead>
@@ -294,15 +295,32 @@ export default function AdminNovelsPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">加载中...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">加载中...</TableCell></TableRow>
             ) : novels.length === 0 ? (
-              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">暂无作品</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">暂无作品</TableCell></TableRow>
             ) : novels.map((n) => (
               <TableRow key={n.id}>
                 <TableCell className="text-muted-foreground">{n.id}</TableCell>
                 <TableCell className="font-medium">{n.title}</TableCell>
                 <TableCell>{n.author || '-'}</TableCell>
                 <TableCell>{typeLabel(n.contentType)}</TableCell>
+                <TableCell className="text-center">
+                  <button
+                    onClick={async () => {
+                      const res = await api.put(`/admin/novel/${n.id}`, { status: n.status === 1 ? 0 : 1 });
+                      if (res.data.code === 200) fetchNovels();
+                    }}
+                    className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full border transition-colors cursor-pointer ${
+                      n.status === 1
+                        ? 'bg-green-50 border-green-200 text-green-700 hover:bg-green-100'
+                        : 'bg-muted/30 border-muted-foreground/20 text-muted-foreground hover:bg-muted/50'
+                    }`}
+                    title={n.status === 1 ? '点击设为失效' : '点击设为生效'}
+                  >
+                    <span className={`size-1.5 rounded-full ${n.status === 1 ? 'bg-green-500' : 'bg-muted-foreground'}`} />
+                    {n.status === 1 ? '生效' : '失效'}
+                  </button>
+                </TableCell>
                 <TableCell className="text-center text-sm font-mono">{n.nodeCount ?? '-'}</TableCell>
                 <TableCell className="text-center text-sm font-mono">{n.eventCount ?? '-'}</TableCell>
                 <TableCell>{parseLabel(n.parseStatus)}</TableCell>
