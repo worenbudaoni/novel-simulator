@@ -135,6 +135,11 @@ export default function AdminNovelsPage() {
   const handleSelectFile = (file: File | null) => {
     setSelectedFile(file);
     if (file) {
+      // Default title from filename if empty
+      if (!createTitle.trim()) {
+        const name = file.name.replace(/\.[^.]+$/, '');
+        setCreateTitle(name);
+      }
       setPreviewResult(null);
       setConfirmType('txt');
       setConfirmOpen(true);
@@ -511,12 +516,23 @@ export default function AdminNovelsPage() {
             )}
 
             {confirmType === 'txt' && selectedFile && (
-              <div className="flex items-center gap-3 p-3 rounded-md bg-muted/30">
-                <FileTextIcon className="size-8 shrink-0 text-muted-foreground" />
-                <div>
-                  <div className="text-sm font-medium">{selectedFile.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {(selectedFile.size / 1024).toFixed(0)} KB
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">作品名称 *</label>
+                  <Input
+                    value={createTitle}
+                    onChange={e => setCreateTitle(e.target.value)}
+                    placeholder="输入作品名称"
+                    disabled={actionLoading}
+                  />
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-md bg-muted/30">
+                  <FileTextIcon className="size-8 shrink-0 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm font-medium">{selectedFile.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {(selectedFile.size / 1024).toFixed(0)} KB
+                    </div>
                   </div>
                 </div>
               </div>
