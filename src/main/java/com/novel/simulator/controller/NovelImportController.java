@@ -101,7 +101,9 @@ public class NovelImportController {
         }
 
         // 2. Create novel record
-        Long userId = Long.valueOf(authentication.getPrincipal().toString());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> user = (Map<String, Object>) authentication.getPrincipal();
+        Long userId = Long.valueOf(user.get("userId").toString());
         Novel novel = new Novel();
         novel.setTitle((String) genResult.getOrDefault("title", name.trim()));
         novel.setAuthor((String) genResult.get("author"));
