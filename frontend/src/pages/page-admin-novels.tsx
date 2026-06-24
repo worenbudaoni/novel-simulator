@@ -28,6 +28,8 @@ interface Novel {
   contentType: number;
   status: number;
   parseStatus: number;
+  nodeCount: number;
+  eventCount: number;
   createdAt: string;
 }
 
@@ -283,6 +285,8 @@ export default function AdminNovelsPage() {
               <TableHead>标题</TableHead>
               <TableHead>作者</TableHead>
               <TableHead>类型</TableHead>
+              <TableHead className="text-center">节点</TableHead>
+              <TableHead className="text-center">事件</TableHead>
               <TableHead>解析</TableHead>
               <TableHead>创建时间</TableHead>
               <TableHead className="w-24">操作</TableHead>
@@ -290,15 +294,17 @@ export default function AdminNovelsPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">加载中...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">加载中...</TableCell></TableRow>
             ) : novels.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">暂无作品</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">暂无作品</TableCell></TableRow>
             ) : novels.map((n) => (
               <TableRow key={n.id}>
                 <TableCell className="text-muted-foreground">{n.id}</TableCell>
                 <TableCell className="font-medium">{n.title}</TableCell>
                 <TableCell>{n.author || '-'}</TableCell>
                 <TableCell>{typeLabel(n.contentType)}</TableCell>
+                <TableCell className="text-center text-sm font-mono">{n.nodeCount ?? '-'}</TableCell>
+                <TableCell className="text-center text-sm font-mono">{n.eventCount ?? '-'}</TableCell>
                 <TableCell>{parseLabel(n.parseStatus)}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{n.createdAt?.slice(0, 10)}</TableCell>
                 <TableCell>
