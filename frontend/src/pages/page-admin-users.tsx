@@ -11,7 +11,8 @@ import { toast } from 'sonner';
 import api from '@/hooks/useApi';
 import { Input } from 'src/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/components/ui/select';
-import { SearchIcon, Loader2Icon, ShieldIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from 'src/components/ui/popover';
+import { SearchIcon, Loader2Icon, ShieldIcon, ChevronDownIcon } from 'lucide-react';
 
 interface UserItem {
   id: number;
@@ -121,23 +122,30 @@ export default function AdminUsersPage() {
         </div>
         <div>
           <label className="text-xs text-muted-foreground font-medium">角色</label>
-          <div className="flex gap-1.5 pt-0.5">
-            {roles.filter(r => r.code !== 'ADMIN').map(r => {
-              const selected = roleFilter.includes(r.id);
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setRoleFilter(prev => selected ? prev.filter(id => id !== r.id) : [...prev, r.id])}
-                  className={`px-2.5 py-1.5 text-xs rounded-md border transition-colors cursor-pointer ${
-                    selected ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-background border-input text-muted-foreground hover:bg-muted/30'
-                  }`}
-                >
-                  {r.name}
-                </button>
-              );
-            })}
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="flex items-center justify-between w-36 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm text-left text-muted-foreground hover:bg-accent">
+                <span className="truncate">{roleFilter.length > 0 ? `已选 ${roleFilter.length} 个角色` : '全部角色'}</span>
+                <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-2 space-y-1">
+              {roles.filter(r => r.code !== 'ADMIN').map(r => {
+                const selected = roleFilter.includes(r.id);
+                return (
+                  <label key={r.id} className="flex items-center gap-2 px-2 py-1.5 text-sm rounded-md cursor-pointer hover:bg-muted/50">
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => setRoleFilter(prev => selected ? prev.filter(id => id !== r.id) : [...prev, r.id])}
+                      className="size-4 rounded accent-primary"
+                    />
+                    {r.name}
+                  </label>
+                );
+              })}
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="flex items-end gap-2">
           <Button variant="outline" onClick={() => { setKeyword(searchInput); setStatusFilter(tempStatus); setPage(1); }}>
