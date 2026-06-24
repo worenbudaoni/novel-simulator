@@ -42,6 +42,11 @@ export default function AdminNovelsPage() {
   const [actionError, setActionError] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Confirm dialog state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmType, setConfirmType] = useState<'llm' | 'txt'>('llm');
+  const [previewResult, setPreviewResult] = useState<any>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const navigate = useNavigate();
 
   const fetchNovels = useCallback(async () => {
@@ -66,12 +71,35 @@ export default function AdminNovelsPage() {
     setActionLoading(false);
     setActionError('');
     setSelectedFile(null);
+    setConfirmOpen(false);
+    setPreviewResult(null);
   };
 
-  const handleLlmCreate = async () => {
+  const handlePreviewLlm = async () => {
     if (!createTitle.trim()) { toast.error('请输入作品名称'); return; }
-    setActionLoading(true);
+    setPreviewLoading(true);
     setActionError('');
+    try {
+      const res = await api.post('/admin/novel/import/preview', {
+        name: createTitle.trim(),
+        contentType: Number(createType),
+      });
+      if (res.data.code === 200) {
+        const data = res.data.data;
+        if (!data.found) {
+          setActionError(data.message || '未找到作品信息');
+          return;
+        }
+        setPreviewResult(data.result);
+        setConfirmType('llm');
+        setConfirmOpen(true);
+      }
+    } catch { /* handled */ }
+    setPreviewLoading(false);
+  };
+
+  const handleConfirmLlm = async () => {
+    setActionLoading(true);
     try {
       const res = await api.post('/admin/novel/import/name', {
         name: createTitle.trim(),
@@ -88,13 +116,19 @@ export default function AdminNovelsPage() {
     setActionLoading(false);
   };
 
-  const handleTxtCreate = async () => {
-    if (!createTitle.trim()) { toast.error('请输入作品名称'); return; }
-    if (!selectedFile) { toast.error('请选择TXT文件'); return; }
+  const handleSelectFile = (file: File | null) => {
+    setSelectedFile(file);
+    if (file) {
+      setPreviewResult(null);
+      setConfirmType('txt');
+      setConfirmOpen(true);
+    }
+  };
+
+  const handleConfirmTxt = async () => {
+    if (!selectedFile) return;
     setActionLoading(true);
-    setActionError('');
     try {
-      // Step 1: create novel
       const createRes = await api.post('/admin/novel', {
         title: createTitle.trim(),
         author: createAuthor.trim() || null,
@@ -102,7 +136,6 @@ export default function AdminNovelsPage() {
       });
       if (createRes.data.code === 200) {
         const newId = createRes.data.data.id;
-        // Step 2: upload + parse
         const formData = new FormData();
         formData.append('file', selectedFile);
         formData.append('novelId', newId);
@@ -263,19 +296,21 @@ export default function AdminNovelsPage() {
               {/* AI Generate — all types */}
               <button
                 type="button"
-                onClick={handleLlmCreate}
-                disabled={actionLoading || !createTitle.trim()}
+                onClick={handlePreviewLlm}
+                disabled={previewLoading || !createTitle.trim()}
                 className="w-full flex items-center gap-3 rounded-lg border border-input bg-background px-4 py-3 text-left text-sm hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:pointer-events-none transition-colors"
               >
-                {actionLoading ? (
+                {previewLoading ? (
                   <Loader2Icon className="size-5 animate-spin shrink-0" />
                 ) : (
                   <SparklesIcon className="size-5 shrink-0 text-primary" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium">AI 智能生成</div>
+                  <div className="font-medium">
+                    {previewLoading ? 'AI 查询中...' : 'AI 智能生成'}
+                  </div>
                   <div className="text-xs text-muted-foreground">
-                    {isNovel ? '输入名称，AI 生成故事框架并创建' : 'AI 根据知识生成故事框架，查不到则提示未找到'}
+                    {isNovel ? '输入名称，AI 生成故事框架' : 'AI 根据知识生成故事框架，查不到则提示未找到'}
                   </div>
                 </div>
               </button>
@@ -283,42 +318,21 @@ export default function AdminNovelsPage() {
               {/* TXT Upload — 小说 only */}
               {isNovel && (
                 <div
-                  onClick={() => !actionLoading && fileInputRef.current?.click()}
-                  className={`w-full flex items-center gap-3 rounded-lg border-2 border-dashed px-4 py-4 text-left text-sm transition-colors cursor-pointer
-                    ${selectedFile
-                      ? 'border-primary bg-primary/5'
-                      : 'border-muted-foreground/25 hover:border-muted-foreground/50'
-                    } disabled:opacity-50`}
+                  onClick={() => { if (!actionLoading) fileInputRef.current?.click(); }}
+                  className="w-full flex items-center gap-3 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 px-4 py-4 text-left text-sm transition-colors cursor-pointer"
                 >
                   <FileUpIcon className="size-5 shrink-0 text-muted-foreground" />
                   <div className="flex-1 min-w-0">
-                    {selectedFile ? (
-                      <div>
-                        <div className="font-medium text-primary">{selectedFile.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {(selectedFile.size / 1024).toFixed(0)} KB — 点击确认上传并解析
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <div className="font-medium">上传 TXT 文件</div>
-                        <div className="text-xs text-muted-foreground">选择小说 TXT 文件，AI 自动解析创建</div>
-                      </div>
-                    )}
+                    <div className="font-medium">上传 TXT 文件</div>
+                    <div className="text-xs text-muted-foreground">选择小说 TXT 文件，确认后 AI 自动解析创建</div>
                   </div>
-                  {selectedFile ? (
-                    <Button size="sm" onClick={(e) => { e.stopPropagation(); handleTxtCreate(); }} disabled={actionLoading}>
-                      {actionLoading ? <Loader2Icon className="size-4 animate-spin" /> : <CheckCircleIcon className="size-4" />}
-                    </Button>
-                  ) : (
-                    <FileTextIcon className="size-5 shrink-0 text-muted-foreground" />
-                  )}
+                  <FileTextIcon className="size-5 shrink-0 text-muted-foreground" />
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept=".txt"
                     className="hidden"
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    onChange={(e) => handleSelectFile(e.target.files?.[0] || null)}
                   />
                 </div>
               )}
@@ -334,6 +348,91 @@ export default function AdminNovelsPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={resetCreate} disabled={actionLoading}>取消</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Dialog — preview before create */}
+      <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open && !actionLoading) setConfirmOpen(false); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {confirmType === 'llm' ? 'AI 解析预览' : '上传确认'}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmType === 'llm'
+                ? '确认以下 AI 解析结果，点击确认创建作品'
+                : `确认上传「${selectedFile?.name}」并让 AI 解析创建`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {confirmType === 'llm' && previewResult && (
+              <>
+                {previewResult.worldView && (
+                  <div>
+                    <h4 className="text-xs font-medium text-muted-foreground mb-1">世界观</h4>
+                    <p className="text-xs bg-muted/50 rounded p-2 line-clamp-3">
+                      {String(previewResult.worldView).slice(0, 200)}
+                    </p>
+                  </div>
+                )}
+                <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                  <div className="bg-muted/30 rounded p-2">
+                    <div className="font-bold text-primary">{(previewResult.nodes as any[])?.length || 0}</div>
+                    <div className="text-xs text-muted-foreground">节点</div>
+                  </div>
+                  <div className="bg-muted/30 rounded p-2">
+                    <div className="font-bold text-primary">{(previewResult.edges as any[])?.length || 0}</div>
+                    <div className="text-xs text-muted-foreground">连接</div>
+                  </div>
+                  <div className="bg-muted/30 rounded p-2">
+                    <div className="font-bold text-primary">{(previewResult.events as any[])?.length || 0}</div>
+                    <div className="text-xs text-muted-foreground">事件</div>
+                  </div>
+                </div>
+                {previewResult.nodes && (
+                  <div className="max-h-28 overflow-y-auto space-y-1">
+                    {(previewResult.nodes as any[]).slice(0, 6).map((n: any, i: number) => (
+                      <div key={i} className="flex items-center gap-2 text-xs bg-muted/20 rounded px-2 py-1">
+                        <span className="text-muted-foreground w-4 text-right">#{i + 1}</span>
+                        <span>{n.title}</span>
+                        {n.isStart && <Badge className="text-[9px] h-3.5 px-1">起点</Badge>}
+                        {n.isEnd && <Badge variant="secondary" className="text-[9px] h-3.5 px-1">结局</Badge>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {confirmType === 'txt' && selectedFile && (
+              <div className="flex items-center gap-3 p-3 rounded-md bg-muted/30">
+                <FileTextIcon className="size-8 shrink-0 text-muted-foreground" />
+                <div>
+                  <div className="text-sm font-medium">{selectedFile.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {(selectedFile.size / 1024).toFixed(0)} KB
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={actionLoading}>
+              取消
+            </Button>
+            <Button
+              onClick={confirmType === 'llm' ? handleConfirmLlm : handleConfirmTxt}
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <><Loader2Icon className="size-4 animate-spin mr-1" /> 创建中...</>
+              ) : (
+                <><CheckCircleIcon className="size-4 mr-1" /> 确认创建</>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
