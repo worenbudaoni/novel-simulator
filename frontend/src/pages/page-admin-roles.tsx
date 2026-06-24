@@ -37,9 +37,13 @@ export default function AdminRolesPage() {
   const [permSaving, setPermSaving] = useState(false);
   // Novel visibility
   const [visRole, setVisRole] = useState<RoleItem | null>(null);
-  const [allNovels, setAllNovels] = useState<{id: number; title: string}[]>([]);
   const [visNovelIds, setVisNovelIds] = useState<number[]>([]);
   const [visSaving, setVisSaving] = useState(false);
+  const [visNovels, setVisNovels] = useState<{id: number; title: string}[]>([]);
+  const [visTotal, setVisTotal] = useState(0);
+  const [visPage, setVisPage] = useState(1);
+  const [visSearch, setVisSearch] = useState('');
+  const [visLoading, setVisLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -115,12 +119,23 @@ export default function AdminRolesPage() {
 
   const openNovelVis = async (role: RoleItem) => {
     setVisRole(role);
-    const [nRes, vRes] = await Promise.all([
-      api.get('/admin/novel/list', { params: { page: 1, size: 999 } }),
-      api.get(`/admin/role/${role.id}/novels`),
-    ]);
-    if (nRes.data.code === 200) setAllNovels(nRes.data.data.items || []);
+    setVisPage(1);
+    setVisSearch('');
+    const vRes = await api.get(`/admin/role/${role.id}/novels`);
     if (vRes.data.code === 200) setVisNovelIds(vRes.data.data);
+    await loadVisNovels(1, '');
+  };
+
+  const loadVisNovels = async (page: number, keyword: string) => {
+    setVisLoading(true);
+    try {
+      const res = await api.get('/admin/novel/list', { params: { page, size: 10, keyword } });
+      if (res.data.code === 200) {
+        setVisNovels(res.data.data.items || []);
+        setVisTotal(res.data.data.total || 0);
+        setVisPage(page);
+      }
+    } finally { setVisLoading(false); }
   };
 
   const saveNovelVis = async () => {
@@ -262,25 +277,56 @@ export default function AdminRolesPage() {
 
       {/* Novel Visibility Dialog */}
       <Dialog open={visRole !== null} onOpenChange={o => { if (!o) setVisRole(null); }}>
-        <DialogContent className="sm:max-w-sm max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>可见作品</DialogTitle>
             <DialogDescription>选择角色「{visRole?.name}」可以看见哪些作品</DialogDescription>
           </DialogHeader>
-          <div className="space-y-1 py-2">
-            {allNovels.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">暂无作品</p>
-            ) : allNovels.map(n => {
+
+          <div className="flex items-center gap-2 py-3">
+            <Input
+              placeholder="搜索作品名称..."
+              value={visSearch}
+              onChange={e => setVisSearch(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') loadVisNovels(1, visSearch); }}
+              className="flex-1"
+            />
+            <Button variant="outline" size="sm" onClick={() => loadVisNovels(1, visSearch)}>搜索</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setVisSearch(''); loadVisNovels(1, ''); }}>重置</Button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-1 min-h-0 border rounded-md p-2">
+            {visLoading ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground text-sm"><Loader2Icon className="size-4 animate-spin mr-2" />加载中...</div>
+            ) : visNovels.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">暂无作品</p>
+            ) : visNovels.map(n => {
               const selected = visNovelIds.includes(n.id);
               return (
-                <label key={n.id} className="flex items-center gap-3 rounded-md border px-3 py-2 text-sm cursor-pointer hover:bg-muted/30 transition-colors">
-                  <input type="checkbox" checked={selected} onChange={() => setVisNovelIds(prev => selected ? prev.filter(id => id !== n.id) : [...prev, n.id])} className="size-4 rounded" />
-                  <span className={selected ? 'font-medium' : 'text-muted-foreground'}>{n.title}</span>
+                <label key={n.id} className={`flex items-center gap-3 rounded-md border px-3 py-2 text-sm cursor-pointer transition-colors ${selected ? 'bg-primary/5 border-primary/20' : 'hover:bg-muted/30'}`}>
+                  <input type="checkbox" checked={selected} onChange={() => setVisNovelIds(prev => selected ? prev.filter(id => id !== n.id) : [...prev, n.id])} className="size-4 rounded accent-primary" />
+                  <span className={selected ? 'font-medium' : ''}>{n.title}</span>
+                  {selected && <span className="ml-auto text-xs text-primary">已选</span>}
                 </label>
               );
             })}
           </div>
-          <DialogFooter>
+
+          {visTotal > 10 && (
+            <div className="flex items-center justify-between pt-3 text-sm">
+              <span className="text-muted-foreground">共 {visTotal} 条，已选 {visNovelIds.length} 部</span>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" disabled={visPage <= 1} onClick={() => loadVisNovels(visPage - 1, visSearch)}>上一页</Button>
+                <span className="px-2 self-center text-muted-foreground">{visPage} / {Math.ceil(visTotal / 10)}</span>
+                <Button variant="outline" size="sm" disabled={visPage * 10 >= visTotal} onClick={() => loadVisNovels(visPage + 1, visSearch)}>下一页</Button>
+              </div>
+            </div>
+          )}
+          {visTotal <= 10 && (
+            <p className="text-xs text-muted-foreground pt-3">已选 {visNovelIds.length} 部</p>
+          )}
+
+          <DialogFooter className="pt-3">
             <Button variant="outline" onClick={() => setVisRole(null)}>取消</Button>
             <Button onClick={saveNovelVis} disabled={visSaving}>{visSaving ? '保存中...' : '保存'}</Button>
           </DialogFooter>
