@@ -48,6 +48,39 @@ public class NovelImportController {
     }
 
     /**
+     * Preview import — check if LLM knows this work. For 动漫/漫画 returns exists=false if unknown.
+     */
+    @PostMapping("/import/preview")
+    @PreAuthorize("hasAuthority('novel:create')")
+    public Result<Map<String, Object>> previewImport(@RequestBody Map<String, Object> request) {
+        String name = (String) request.get("name");
+        Integer contentType = request.get("contentType") != null
+            ? ((Number) request.get("contentType")).intValue() : 0;
+        if (name == null || name.trim().isEmpty()) {
+            return Result.error(400, "作品名称不能为空");
+        }
+
+        Map<String, Object> genResult = parseChain.previewGenerate(name.trim(), contentType);
+
+        if (genResult.containsKey("exists") && Boolean.FALSE.equals(genResult.get("exists"))) {
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("found", false);
+            resp.put("message", "未找到「" + name.trim() + "」的足够信息，无法生成故事框架。请检查作品名称拼写。");
+            return Result.success(resp);
+        }
+
+        if (genResult.containsKey("error")) {
+            return Result.error(500, (String) genResult.get("error"));
+        }
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("found", true);
+        resp.put("result", genResult);
+        return Result.success(resp);
+    }
+
+    /**
+     * Import novel by name — LLM generates framework directly.
      * Import novel by name — LLM generates framework directly.
      */
     @PostMapping("/import/name")
@@ -89,9 +122,6 @@ public class NovelImportController {
         novel.setParseStatus(2);
         novel.setParsedAt(LocalDateTime.now());
         novelService.getBaseMapper().updateById(novel);
-
-        // 5. Save parse record with novelId now known
-        parseChain.generateFromName(name.trim(), contentType, novel.getId(), "name_gen");
 
         Map<String, Object> result = new HashMap<>();
         result.put("novel", novel);

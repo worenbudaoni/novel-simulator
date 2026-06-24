@@ -43,7 +43,7 @@ public class ParseChain {
     }
 
     /**
-     * Parse novel content into structured JSON using LLM.
+     * Parse novel TXT content into structured JSON using LLM.
      */
     public Map<String, Object> parse(Long novelId, String inputContent, String promptType) {
         String cacheKey = "parse:" + promptType + ":" + Integer.toHexString(inputContent.hashCode());
@@ -58,37 +58,103 @@ public class ParseChain {
         }
 
         String prompt = buildParsePrompt(inputContent);
+        LlmResult llmResult = callLlm(prompt);
 
-        String llmResponse;
-        int tokensUsed = 0;
-        try {
-            ChatLanguageModel model = buildModel();
-            llmResponse = model.generate(prompt);
-            tokensUsed = llmResponse.length() / 2;
-        } catch (Exception e) {
-            log.error("LLM parse failed", e);
-            saveParseRecord(novelId, promptType, inputContent, e.getMessage(), null, 0, 1);
-            throw new RuntimeException("LLM 解析失败: " + e.getMessage());
+        if (llmResult.error != null) {
+            saveParseRecord(novelId, promptType, inputContent, llmResult.error, null, 0, 1);
+            throw new RuntimeException("LLM 解析失败: " + llmResult.error);
         }
 
         Map<String, Object> result;
         try {
-            String json = extractJson(llmResponse);
-            result = objectMapper.readValue(json, Map.class);
+            result = objectMapper.readValue(llmResult.json, Map.class);
         } catch (Exception e) {
-            log.error("Failed to parse LLM response as JSON", e);
-            saveParseRecord(novelId, promptType, inputContent, llmResponse, null, tokensUsed, 1);
+            saveParseRecord(novelId, promptType, inputContent, llmResult.rawResponse, null, llmResult.tokensUsed, 1);
             throw new RuntimeException("LLM 返回格式错误");
         }
 
-        saveParseRecord(novelId, promptType, inputContent, llmResponse, result, tokensUsed, 0);
-        saveCache(cacheKey, "parse", llmResponse);
-
+        saveParseRecord(novelId, promptType, inputContent, llmResult.rawResponse, result, llmResult.tokensUsed, 0);
+        saveCache(cacheKey, "parse", llmResult.rawResponse);
         return result;
     }
 
     /**
-     * Generate novel framework directly from name using LLM (no search).
+     * Preview generate from name.
+     * For 小说: always generates framework.
+     * For 动漫/漫画: checks if LLM knows the work, returns {exists: false} if not.
+     */
+    public Map<String, Object> previewGenerate(String name, Integer contentType) {
+        String typeName = contentType == null || contentType == 0 ? "小说" :
+                          contentType == 1 ? "动漫" : "漫画";
+        String prompt;
+        if (contentType != null && contentType > 0) {
+            prompt = "你熟悉各种" + typeName + "作品。请判断你是否了解《" + name + "》这部作品。\n\n"
+                + "如果你确定知道这部作品，请返回完整的互动故事框架JSON（不要markdown代码块标记），包含以下字段：\n"
+                + "1. worldView: 世界观设定文本（200-500字）\n"
+                + "2. nodes: 节点数组，每个节点有 title, description, isStart(boolean), isEnd(boolean), sortOrder\n"
+                + "3. edges: 节点连接数组，每个连接有 sourceNodeIndex(int), targetNodeIndex(int), conditionDesc, edgeType(0=固定)\n"
+                + "4. options: 节点选项数组，每个选项有 nodeIndex(int), label, targetNodeIndex(int), triggerEvent(boolean), riskHint\n"
+                + "5. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
+                + "6. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n"
+                + "7. summary: 作品简介（100字以内）\n"
+                + "8. author: 原作者\n\n"
+                + "请确保至少解析出3-5个核心节点。\n\n"
+                + "如果你不确定或不了解这部作品，请严格返回以下JSON（不要多余内容）：\n"
+                + "{\"exists\": false}\n\n"
+                + "作品名称：《" + name + "》";
+        } else {
+            prompt = "你熟悉各种小说作品。请根据你对《" + name + "》的了解，"
+                + "生成该作品的互动故事框架。\n\n"
+                + "请返回严格的JSON格式（不要markdown代码块标记），包含以下字段：\n"
+                + "1. worldView: 世界观设定文本（200-500字）\n"
+                + "2. nodes: 节点数组，每个节点有 title, description, isStart(boolean), isEnd(boolean), sortOrder\n"
+                + "3. edges: 节点连接数组，每个连接有 sourceNodeIndex(int), targetNodeIndex(int), conditionDesc, edgeType(0=固定)\n"
+                + "4. options: 节点选项数组，每个选项有 nodeIndex(int), label, targetNodeIndex(int), triggerEvent(boolean), riskHint\n"
+                + "5. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
+                + "6. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n"
+                + "7. summary: 作品简介（100字以内）\n"
+                + "8. author: 原作者（如知道）\n\n"
+                + "请确保至少解析出3-5个核心节点，覆盖故事的主要情节阶段（开始、发展、高潮、结局）。";
+        }
+
+        String cacheKey = "preview:" + contentType + ":" + Integer.toHexString(name.hashCode());
+        LlmCache existing = llmCacheMapper.selectOne(
+            new LambdaQueryWrapper<LlmCache>().eq(LlmCache::getCacheKey, cacheKey));
+        if (existing != null) {
+            try {
+                return objectMapper.readValue(existing.getResultText(), Map.class);
+            } catch (Exception e) {
+                log.warn("Cache deserialize failed, re-generating", e);
+            }
+        }
+
+        LlmResult llmResult = callLlm(prompt);
+        if (llmResult.error != null) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("error", llmResult.error);
+            return err;
+        }
+
+        Map<String, Object> result;
+        try {
+            result = objectMapper.readValue(llmResult.json, Map.class);
+        } catch (Exception e) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("error", "LLM 返回格式错误");
+            return err;
+        }
+
+        // If response is just {exists: false}, return it directly
+        if (result.containsKey("exists") && Boolean.FALSE.equals(result.get("exists"))) {
+            return result;
+        }
+
+        saveCache(cacheKey, "preview", llmResult.rawResponse);
+        return result;
+    }
+
+    /**
+     * Generate and create novel from name. Saves parse record if novelId provided.
      */
     public Map<String, Object> generateFromName(String name, Integer contentType, Long novelId, String promptType) {
         String typeName = contentType == null || contentType == 0 ? "小说" :
@@ -117,37 +183,51 @@ public class ParseChain {
             }
         }
 
-        String llmResponse;
-        int tokensUsed = 0;
-        try {
-            ChatLanguageModel model = buildModel();
-            llmResponse = model.generate(prompt);
-            tokensUsed = llmResponse.length() / 2;
-        } catch (Exception e) {
-            log.error("LLM generate failed", e);
+        LlmResult llmResult = callLlm(prompt);
+        if (llmResult.error != null) {
             Map<String, Object> err = new HashMap<>();
-            err.put("error", "LLM 生成失败: " + e.getMessage());
+            err.put("error", "LLM 生成失败: " + llmResult.error);
             return err;
         }
 
         Map<String, Object> result;
         try {
-            String json = extractJson(llmResponse);
-            result = objectMapper.readValue(json, Map.class);
+            result = objectMapper.readValue(llmResult.json, Map.class);
         } catch (Exception e) {
-            log.error("Failed to parse LLM response as JSON", e);
             Map<String, Object> err = new HashMap<>();
             err.put("error", "LLM 返回格式错误");
-            err.put("rawResponse", llmResponse);
+            err.put("rawResponse", llmResult.rawResponse);
             return err;
         }
 
         if (novelId != null) {
-            saveParseRecord(novelId, promptType, name, llmResponse, result, tokensUsed, 0);
+            saveParseRecord(novelId, promptType, name, llmResult.rawResponse, result, llmResult.tokensUsed, 0);
         }
-        saveCache(cacheKey, "parse", llmResponse);
-
+        saveCache(cacheKey, "parse", llmResult.rawResponse);
         return result;
+    }
+
+    // --- Private helpers ---
+
+    private static class LlmResult {
+        String rawResponse;
+        String json;
+        String error;
+        int tokensUsed;
+    }
+
+    private LlmResult callLlm(String prompt) {
+        LlmResult r = new LlmResult();
+        try {
+            ChatLanguageModel model = buildModel();
+            r.rawResponse = model.generate(prompt);
+            r.tokensUsed = r.rawResponse.length() / 2;
+            r.json = extractJson(r.rawResponse);
+        } catch (Exception e) {
+            log.error("LLM call failed", e);
+            r.error = e.getMessage();
+        }
+        return r;
     }
 
     private String buildParsePrompt(String content) {
@@ -191,24 +271,30 @@ public class ParseChain {
     }
 
     private void saveParseRecord(Long novelId, String promptType, String input,
-                                  String rawResponse, Map<String, Object> resultJson,
+                                  String rawResponse, String resultJson,
                                   int tokensUsed, int status) {
         ParseRecord record = new ParseRecord();
         record.setNovelId(novelId);
         record.setPromptType(promptType);
         record.setInputSummary(input.length() > 500 ? input.substring(0, 500) : input);
         record.setRawResponse(rawResponse);
-        try {
-            if (resultJson != null) {
-                record.setResultJson(objectMapper.writeValueAsString(resultJson));
-            }
-        } catch (Exception e) {
-            log.warn("Failed to serialize result JSON", e);
-        }
+        record.setResultJson(resultJson);
         record.setTokensUsed(tokensUsed);
         record.setStatus(status);
         record.setCreatedAt(LocalDateTime.now());
         parseRecordMapper.insert(record);
+    }
+
+    private void saveParseRecord(Long novelId, String promptType, String input,
+                                  String rawResponse, Map<String, Object> resultJson,
+                                  int tokensUsed, int status) {
+        try {
+            String json = resultJson != null ? objectMapper.writeValueAsString(resultJson) : null;
+            saveParseRecord(novelId, promptType, input, rawResponse, json, tokensUsed, status);
+        } catch (Exception e) {
+            log.warn("Failed to serialize result JSON", e);
+            saveParseRecord(novelId, promptType, input, rawResponse, null, tokensUsed, status);
+        }
     }
 
     private void saveCache(String cacheKey, String promptType, String resultText) {
