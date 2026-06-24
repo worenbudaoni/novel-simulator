@@ -297,29 +297,17 @@ export default function AdminRolesPage() {
               onKeyDown={e => { if (e.key === 'Enter') loadVisNovels(1, visSearch, visFilter); }}
               className="flex-1"
             />
+            <select
+              value={visFilter}
+              onChange={e => { setVisFilter(e.target.value); loadVisNovels(1, visSearch, e.target.value); }}
+              className="h-9 rounded-md border border-input bg-background px-2 py-1 text-sm shadow-xs"
+            >
+              <option value="">全部</option>
+              <option value="true">已选择</option>
+              <option value="false">未选择</option>
+            </select>
             <Button variant="outline" size="sm" onClick={() => loadVisNovels(1, visSearch, visFilter)}>搜索</Button>
             <Button variant="ghost" size="sm" onClick={() => { setVisSearch(''); setVisFilter(''); loadVisNovels(1, '', ''); }}>重置</Button>
-          </div>
-
-          <div className="flex gap-1 pb-2">
-            {[
-              { label: '全部', value: '' },
-              { label: '已选择', value: 'true' },
-              { label: '未选择', value: 'false' },
-            ].map(f => (
-              <button
-                key={f.value}
-                type="button"
-                onClick={() => { setVisFilter(f.value); loadVisNovels(1, visSearch, f.value); }}
-                className={`px-2.5 py-1 text-xs rounded-full border transition-colors cursor-pointer ${
-                  visFilter === f.value
-                    ? 'bg-primary/10 border-primary/30 text-primary font-medium'
-                    : 'bg-background border-input text-muted-foreground hover:bg-muted/30'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-1 min-h-0 border rounded-md p-2">
