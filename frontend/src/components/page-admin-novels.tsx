@@ -249,7 +249,7 @@ export default function AdminNovelsPage() {
 
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={(open) => { if (!open) resetCreate(); }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>新建作品</DialogTitle>
             <DialogDescription>输入作品信息，选择导入方式</DialogDescription>
@@ -354,7 +354,7 @@ export default function AdminNovelsPage() {
 
       {/* Confirm Dialog — preview before create */}
       <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open && !actionLoading) setConfirmOpen(false); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {confirmType === 'llm' ? 'AI 解析预览' : '上传确认'}
@@ -372,9 +372,9 @@ export default function AdminNovelsPage() {
                 {previewResult.worldView && (
                   <div>
                     <h4 className="text-xs font-medium text-muted-foreground mb-1">世界观</h4>
-                    <p className="text-xs bg-muted/50 rounded p-2 line-clamp-3">
-                      {String(previewResult.worldView).slice(0, 200)}
-                    </p>
+                    <div className="text-xs bg-muted/50 rounded p-2 max-h-32 overflow-y-auto whitespace-pre-wrap">
+                      {String(previewResult.worldView)}
+                    </div>
                   </div>
                 )}
                 <div className="grid grid-cols-3 gap-2 text-center text-sm">
