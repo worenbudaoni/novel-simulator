@@ -91,21 +91,24 @@ export default function AdminUsersPage() {
         <h2 className="text-lg font-semibold">用户管理</h2>
       </div>
 
-      <div className="space-y-2 mb-6">
-        <label className="text-sm font-medium text-muted-foreground">查询条件</label>
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+      <div className="flex items-end gap-3 mb-6 flex-wrap">
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground font-medium">用户名</label>
+          <div className="relative">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
               placeholder="搜索用户名..."
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { setKeyword(searchInput); setPage(1); } }}
-              className="pl-9"
+              className="pl-9 w-52"
             />
           </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground font-medium">状态</label>
           <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
-            <SelectTrigger className="w-20 shrink-0">
+            <SelectTrigger className="w-24">
               {statusFilter === 'true' ? '正常' : statusFilter === 'false' ? '禁用' : '全部'}
             </SelectTrigger>
             <SelectContent>
@@ -114,17 +117,22 @@ export default function AdminUsersPage() {
               <SelectItem value="false">禁用</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-muted-foreground font-medium">角色</label>
           <Select value={roleFilter} onValueChange={v => { setRoleFilter(v); setPage(1); }}>
-            <SelectTrigger className="w-28 shrink-0">
-              {roleFilter ? roles.find(r => String(r.id) === roleFilter)?.name || roleFilter : '全部角色'}
+            <SelectTrigger className="w-28">
+              {roleFilter ? roles.find(r => String(r.id) === roleFilter)?.name || roleFilter : '全部'}
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">全部角色</SelectItem>
+              <SelectItem value="">全部</SelectItem>
               {roles.filter(r => r.code !== 'ADMIN').map(r => (
                 <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="flex items-end gap-2">
           <Button variant="outline" onClick={() => { setKeyword(searchInput); setPage(1); }}>
             <SearchIcon className="size-4 mr-1" /> 搜索
           </Button>
