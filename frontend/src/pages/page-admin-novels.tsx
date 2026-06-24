@@ -3,6 +3,7 @@ import { Button } from 'src/components/ui/button';
 import { Input } from 'src/components/ui/input';
 import { Badge } from 'src/components/ui/badge';
 import { Switch } from 'src/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/components/ui/select';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from 'src/components/ui/table';
@@ -418,16 +419,16 @@ export default function AdminNovelsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">类型</label>
-                  <select
-                    value={createType}
-                    onChange={(e) => { setCreateType(e.target.value); setSelectedFile(null); }}
-                    disabled={actionLoading || previewLoading}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs disabled:opacity-50"
-                  >
-                    <option value="0">小说</option>
-                    <option value="1">动漫</option>
-                    <option value="2">漫画</option>
-                  </select>
+                  <Select value={createType} onValueChange={v => { setCreateType(v); setSelectedFile(null); }} disabled={actionLoading || previewLoading}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择类型" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">小说</SelectItem>
+                      <SelectItem value="1">动漫</SelectItem>
+                      <SelectItem value="2">漫画</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="space-y-1.5">
@@ -844,16 +845,16 @@ export default function AdminNovelsPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">类型</label>
-              <select
-                value={editType}
-                onChange={e => setEditType(Number(e.target.value))}
-                disabled={editSaving}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs disabled:opacity-50"
-              >
-                <option value={0}>小说</option>
-                <option value={1}>动漫</option>
-                <option value={2}>漫画</option>
-              </select>
+              <Select value={String(editType)} onValueChange={v => setEditType(Number(v))} disabled={editSaving}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择类型" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">小说</SelectItem>
+                  <SelectItem value="1">动漫</SelectItem>
+                  <SelectItem value="2">漫画</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center justify-between rounded-lg border px-4 py-3">
               <div>
