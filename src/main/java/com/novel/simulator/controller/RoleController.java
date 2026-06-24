@@ -130,33 +130,29 @@ public class RoleController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keyword) {
-        // Get visible novel IDs for this role
-        Set<Long> visibleIds = novelRoleVisibilityMapper.selectList(
-            new LambdaQueryWrapper<NovelRoleVisibility>().eq(NovelRoleVisibility::getRoleId, id))
-            .stream().map(NovelRoleVisibility::getNovelId).collect(Collectors.toSet());
-
-        // Query novels with keyword
+        // Query novels with SQL-level sort: selected first, then by created_at desc
         LambdaQueryWrapper<Novel> qw = new LambdaQueryWrapper<Novel>();
         if (keyword != null && !keyword.isEmpty()) {
             qw.like(Novel::getTitle, keyword);
         }
-        qw.orderByDesc(Novel::getCreatedAt);
+        // Raw SQL: selected novels first (CASE = 0), then unselected (CASE = 1)
+        qw.last("ORDER BY CASE WHEN id IN (SELECT novel_id FROM novel_role_visibility WHERE role_id = " + id + ") THEN 0 ELSE 1 END, created_at DESC");
         IPage<Novel> p = novelMapper.selectPage(new Page<>(page, size), qw);
 
-        // Build response: selected novels first, then rest
-        List<Map<String, Object>> items = new java.util.ArrayList<>();
-        List<Map<String, Object>> selectedItems = new java.util.ArrayList<>();
-        List<Map<String, Object>> unselectedItems = new java.util.ArrayList<>();
+        // Get visible IDs for marking selected
+        Set<Long> visibleIds = novelRoleVisibilityMapper.selectList(
+            new LambdaQueryWrapper<NovelRoleVisibility>().eq(NovelRoleVisibility::getRoleId, id))
+            .stream().map(NovelRoleVisibility::getNovelId).collect(Collectors.toSet());
 
+        // Build response
+        List<Map<String, Object>> items = new java.util.ArrayList<>();
         for (Novel n : p.getRecords()) {
             Map<String, Object> item = new java.util.HashMap<>();
             item.put("id", n.getId());
             item.put("title", n.getTitle());
             item.put("selected", visibleIds.contains(n.getId()));
-            (visibleIds.contains(n.getId()) ? selectedItems : unselectedItems).add(item);
+            items.add(item);
         }
-        items.addAll(selectedItems);
-        items.addAll(unselectedItems);
 
         Map<String, Object> result = new java.util.HashMap<>();
         result.put("items", items);
