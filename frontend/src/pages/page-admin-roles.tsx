@@ -43,6 +43,7 @@ export default function AdminRolesPage() {
   const [visTotal, setVisTotal] = useState(0);
   const [visPage, setVisPage] = useState(1);
   const [visSearch, setVisSearch] = useState('');
+  const [visFilter, setVisFilter] = useState<string>(''); // '' = all, 'true' = selected, 'false' = unselected
   const [visLoading, setVisLoading] = useState(false);
 
   useEffect(() => {
@@ -121,15 +122,18 @@ export default function AdminRolesPage() {
     setVisRole(role);
     setVisPage(1);
     setVisSearch('');
-    await loadVisNovels(1, '', role.id);
+    setVisFilter('');
+    await loadVisNovels(1, '', '', role.id);
   };
 
-  const loadVisNovels = async (page: number, keyword: string, roleId?: number) => {
+  const loadVisNovels = async (page: number, keyword: string, filter?: string, roleId?: number) => {
     const rid = roleId || visRole?.id;
     if (!rid) return;
     setVisLoading(true);
     try {
-      const res = await api.get(`/admin/role/${rid}/novels/selectable`, { params: { page, size: 10, keyword } });
+      const params: any = { page, size: 10, keyword };
+      if (filter !== undefined && filter !== '') params.selected = filter;
+      const res = await api.get(`/admin/role/${rid}/novels/selectable`, { params });
       if (res.data.code === 200) {
         const data = res.data.data;
         setVisNovels(data.items || []);
@@ -290,11 +294,32 @@ export default function AdminRolesPage() {
               placeholder="搜索作品名称..."
               value={visSearch}
               onChange={e => setVisSearch(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') loadVisNovels(1, visSearch); }}
+              onKeyDown={e => { if (e.key === 'Enter') loadVisNovels(1, visSearch, visFilter); }}
               className="flex-1"
             />
-            <Button variant="outline" size="sm" onClick={() => loadVisNovels(1, visSearch)}>搜索</Button>
-            <Button variant="ghost" size="sm" onClick={() => { setVisSearch(''); loadVisNovels(1, ''); }}>重置</Button>
+            <Button variant="outline" size="sm" onClick={() => loadVisNovels(1, visSearch, visFilter)}>搜索</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setVisSearch(''); setVisFilter(''); loadVisNovels(1, '', ''); }}>重置</Button>
+          </div>
+
+          <div className="flex gap-1 pb-2">
+            {[
+              { label: '全部', value: '' },
+              { label: '已选择', value: 'true' },
+              { label: '未选择', value: 'false' },
+            ].map(f => (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => { setVisFilter(f.value); loadVisNovels(1, visSearch, f.value); }}
+                className={`px-2.5 py-1 text-xs rounded-full border transition-colors cursor-pointer ${
+                  visFilter === f.value
+                    ? 'bg-primary/10 border-primary/30 text-primary font-medium'
+                    : 'bg-background border-input text-muted-foreground hover:bg-muted/30'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-1 min-h-0 border rounded-md p-2">
@@ -318,7 +343,7 @@ export default function AdminRolesPage() {
             <div className="flex items-center justify-between pt-3 text-sm">
               <span className="text-muted-foreground">共 {visTotal} 条，已选 {visNovelIds.length} 部</span>
               <div className="flex gap-1">
-                <Button variant="outline" size="sm" disabled={visPage <= 1} onClick={() => loadVisNovels(visPage - 1, visSearch)}>上一页</Button>
+                <Button variant="outline" size="sm" disabled={visPage <= 1} onClick={() => loadVisNovels(visPage - 1, visSearch, visFilter)}>上一页</Button>
                 <span className="px-2 self-center text-muted-foreground">{visPage} / {Math.ceil(visTotal / 10)}</span>
                 <Button variant="outline" size="sm" disabled={visPage * 10 >= visTotal} onClick={() => loadVisNovels(visPage + 1, visSearch)}>下一页</Button>
               </div>

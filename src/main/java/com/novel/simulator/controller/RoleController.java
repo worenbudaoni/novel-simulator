@@ -129,14 +129,21 @@ public class RoleController {
             @PathVariable Long id,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String keyword) {
-        // Query novels with SQL-level sort: selected first, then by created_at desc
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String selected) {
+        String subquery = "(SELECT novel_id FROM novel_role_visibility WHERE role_id = " + id + ")";
         LambdaQueryWrapper<Novel> qw = new LambdaQueryWrapper<Novel>();
         if (keyword != null && !keyword.isEmpty()) {
             qw.like(Novel::getTitle, keyword);
         }
-        // Raw SQL: selected novels first (CASE = 0), then unselected (CASE = 1)
-        qw.last("ORDER BY CASE WHEN id IN (SELECT novel_id FROM novel_role_visibility WHERE role_id = " + id + ") THEN 0 ELSE 1 END, created_at DESC");
+        // Filter by selection status
+        if ("true".equals(selected)) {
+            qw.inSql(Novel::getId, subquery);
+        } else if ("false".equals(selected)) {
+            qw.notInSql(Novel::getId, subquery);
+        }
+        // Raw SQL: selected novels first, then unselected
+        qw.last("ORDER BY CASE WHEN id IN " + subquery + " THEN 0 ELSE 1 END, created_at DESC");
         IPage<Novel> p = novelMapper.selectPage(new Page<>(page, size), qw);
 
         // Get visible IDs for marking selected
