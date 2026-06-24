@@ -86,36 +86,20 @@ public class ParseChain {
     public Map<String, Object> previewGenerate(String name, Integer contentType) {
         String typeName = contentType == null || contentType == 0 ? "小说" :
                           contentType == 1 ? "动漫" : "漫画";
-        String prompt;
-        if (contentType != null && contentType > 0) {
-            prompt = "你熟悉各种" + typeName + "作品。请判断你是否了解《" + name + "》这部作品。\n\n"
-                + "如果你确定知道这部作品，请返回完整的互动故事框架JSON（不要markdown代码块标记），包含以下字段：\n"
-                + "1. worldView: 世界观设定文本（200-500字）\n"
-                + "2. nodes: 节点数组，每个节点有 title, description, isStart(boolean), isEnd(boolean), sortOrder\n"
-                + "3. edges: 节点连接数组，每个连接有 sourceNodeIndex(int), targetNodeIndex(int), conditionDesc, edgeType(0=固定)\n"
-                + "4. options: 节点选项数组，每个选项有 nodeIndex(int), label, targetNodeIndex(int), triggerEvent(boolean), riskHint\n"
-                + "5. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
-                + "6. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n"
-                + "7. summary: 作品简介（100字以内）\n"
-                + "8. author: 原作者\n\n"
-                + "请确保至少解析出3-5个核心节点。\n\n"
-                + "如果你不确定或不了解这部作品，请严格返回以下JSON（不要多余内容）：\n"
-                + "{\"exists\": false}\n\n"
-                + "作品名称：《" + name + "》";
-        } else {
-            prompt = "你熟悉各种小说作品。请根据你对《" + name + "》的了解，"
-                + "生成该作品的互动故事框架。\n\n"
-                + "请返回严格的JSON格式（不要markdown代码块标记），包含以下字段：\n"
-                + "1. worldView: 世界观设定文本（200-500字）\n"
-                + "2. nodes: 节点数组，每个节点有 title, description, isStart(boolean), isEnd(boolean), sortOrder\n"
-                + "3. edges: 节点连接数组，每个连接有 sourceNodeIndex(int), targetNodeIndex(int), conditionDesc, edgeType(0=固定)\n"
-                + "4. options: 节点选项数组，每个选项有 nodeIndex(int), label, targetNodeIndex(int), triggerEvent(boolean), riskHint\n"
-                + "5. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
-                + "6. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n"
-                + "7. summary: 作品简介（100字以内）\n"
-                + "8. author: 原作者（如知道）\n\n"
-                + "请确保至少解析出3-5个核心节点，覆盖故事的主要情节阶段（开始、发展、高潮、结局）。";
-        }
+        String prompt = "你熟悉各种" + typeName + "作品。请判断你是否了解《" + name + "》这部作品。\n\n"
+            + "如果你确定知道这部作品，请返回完整的互动故事框架JSON（不要markdown代码块标记），包含以下字段：\n"
+            + "1. worldView: 世界观设定文本（200-500字）\n"
+            + "2. nodes: 节点数组，每个节点有 title, description, isStart(boolean), isEnd(boolean), sortOrder\n"
+            + "3. edges: 节点连接数组，每个连接有 sourceNodeIndex(int), targetNodeIndex(int), conditionDesc, edgeType(0=固定)\n"
+            + "4. options: 节点选项数组，每个选项有 nodeIndex(int), label, targetNodeIndex(int), triggerEvent(boolean), riskHint\n"
+            + "5. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
+            + "6. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n"
+            + "7. summary: 作品简介（100字以内）\n"
+            + "8. author: 原作者\n\n"
+            + "请确保至少解析出3-5个核心节点。\n\n"
+            + "如果你不确定或不了解这部作品，请严格返回以下JSON（不要多余内容）：\n"
+            + "{\"exists\": false}\n\n"
+            + "作品名称：《" + name + "》";
 
         String cacheKey = "preview:" + contentType + ":" + Integer.toHexString(name.hashCode());
         LlmCache existing = llmCacheMapper.selectOne(
