@@ -3,8 +3,13 @@ import { Separator } from "src/components/ui/separator";
 import { SidebarTrigger } from "src/components/ui/sidebar";
 import { ChevronRightIcon } from "lucide-react";
 
+const adminLabels: Record<string, string> = {
+  '': '作品管理',
+  users: '用户管理',
+  roles: '角色管理',
+};
+
 const breadcrumbMap: Record<string, string> = {
-  '/admin': '作品管理',
   '/player': '作品列表',
   '/player/guest': '游客浏览',
   '/player/continue': '继续游戏',
@@ -17,10 +22,9 @@ export function SiteHeader() {
   const { pathname } = useLocation();
 
   const buildBreadcrumb = () => {
-    // Remove trailing slash
     const path = pathname.replace(/\/$/, '');
 
-    // Check for /admin/novel/:id/xxx patterns
+    // /admin/novel/:id/xxx
     const novelMatch = path.match(/^\/admin\/novel\/(\d+)\/(.+)$/);
     if (novelMatch) {
       const sub = novelMatch[2];
@@ -30,8 +34,19 @@ export function SiteHeader() {
         events: '事件管理',
       };
       return [
+        { label: '管理后台', href: '/admin' },
         { label: '作品管理', href: '/admin' },
         { label: subNames[sub] || sub, href: path },
+      ];
+    }
+
+    // /admin/xxx
+    const adminMatch = path.match(/^\/admin(?:\/(\w+))?$/);
+    if (adminMatch !== null) {
+      const sub = adminMatch[1] || '';
+      return [
+        { label: '管理后台', href: '/admin' },
+        { label: adminLabels[sub] || sub, href: path },
       ];
     }
 
@@ -40,9 +55,9 @@ export function SiteHeader() {
       return [{ label: breadcrumbMap[path], href: path }];
     }
 
-    // Fallback: try parent path
+    // Fallback
     const parent = path.substring(0, path.lastIndexOf('/')) || '/';
-    if (breadcrumbMap[parent]) {
+    if (parent !== path && breadcrumbMap[parent]) {
       return [
         { label: breadcrumbMap[parent], href: parent },
         { label: path.substring(path.lastIndexOf('/') + 1), href: path },
