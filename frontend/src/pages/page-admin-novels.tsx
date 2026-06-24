@@ -14,7 +14,7 @@ import {
 } from 'src/components/ui/sheet';
 import { toast } from 'sonner';
 import {
-  PlusIcon, SearchIcon, Trash2Icon, UploadIcon, GitBranchIcon, ZapIcon,
+  PlusIcon, SearchIcon, Trash2Icon, UploadIcon, GitBranchIcon, ZapIcon, PencilIcon,
   SparklesIcon, Loader2Icon, CheckCircleIcon, FileUpIcon, XCircleIcon,
   FileTextIcon,
 } from 'lucide-react';
@@ -57,6 +57,11 @@ export default function AdminNovelsPage() {
   const [txtParsedNovelId, setTxtParsedNovelId] = useState<number | null>(null);
   const [expandedSection, setExpandedSection] = useState<string>('nodes');
   const [deleteTarget, setDeleteTarget] = useState<Novel | null>(null);
+  const [editTarget, setEditTarget] = useState<Novel | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editAuthor, setEditAuthor] = useState('');
+  const [editType, setEditType] = useState(0);
+  const [editSaving, setEditSaving] = useState(false);
   const navigate = useNavigate();
 
   const fetchNovels = useCallback(async () => {
@@ -217,8 +222,26 @@ export default function AdminNovelsPage() {
     } catch { /* handled */ }
   };
 
+  const handleEditConfirm = async () => {
+    if (!editTarget) return;
+    if (!editTitle.trim()) { toast.error('作品名称不能为空'); return; }
+    setEditSaving(true);
+    try {
+      const res = await api.put(`/admin/novel/${editTarget.id}`, {
+        title: editTitle.trim(),
+        author: editAuthor.trim() || null,
+        contentType: editType,
+      });
+      if (res.data.code === 200) {
+        toast.success('已更新');
+        setEditTarget(null);
+        fetchNovels();
+      }
+    } catch { /* handled */ }
+    setEditSaving(false);
+  };
+
   const typeLabel = (t: number) => ['小说', '动漫', '漫画'][t] || '未知';
-  const statusLabel = (s: number) => s === 1 ? '已发布' : '草稿';
   const parseLabel = (s: number) => ['未解析', '解析中', '已完成'][s] || '未知';
   const isNovel = createType === '0';
 
@@ -260,7 +283,6 @@ export default function AdminNovelsPage() {
               <TableHead>标题</TableHead>
               <TableHead>作者</TableHead>
               <TableHead>类型</TableHead>
-              <TableHead>状态</TableHead>
               <TableHead>解析</TableHead>
               <TableHead>创建时间</TableHead>
               <TableHead className="w-24">操作</TableHead>
@@ -268,20 +290,22 @@ export default function AdminNovelsPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">加载中...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">加载中...</TableCell></TableRow>
             ) : novels.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">暂无作品</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">暂无作品</TableCell></TableRow>
             ) : novels.map((n) => (
               <TableRow key={n.id}>
                 <TableCell className="text-muted-foreground">{n.id}</TableCell>
                 <TableCell className="font-medium">{n.title}</TableCell>
                 <TableCell>{n.author || '-'}</TableCell>
                 <TableCell>{typeLabel(n.contentType)}</TableCell>
-                <TableCell>{statusLabel(n.status)}</TableCell>
                 <TableCell>{parseLabel(n.parseStatus)}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{n.createdAt?.slice(0, 10)}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
+                    <Button variant="ghost" size="icon-sm" onClick={() => { setEditTarget(n); setEditTitle(n.title); setEditAuthor(n.author || ''); setEditType(n.contentType); }} title="编辑">
+                      <PencilIcon className="size-4" />
+                    </Button>
                     {n.parseStatus !== 2 && (
                       <Button variant="ghost" size="icon-sm" onClick={() => navigate(`/admin/novel/${n.id}/import`)} title="导入">
                         <UploadIcon className="size-4" />
@@ -771,6 +795,45 @@ export default function AdminNovelsPage() {
                 </Button>
               </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={editTarget !== null} onOpenChange={(open) => { if (!open) setEditTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>编辑作品</DialogTitle>
+            <DialogDescription>修改作品信息</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">标题 *</label>
+              <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} disabled={editSaving} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">作者</label>
+              <Input value={editAuthor} onChange={e => setEditAuthor(e.target.value)} disabled={editSaving} placeholder="原作者（可选）" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">类型</label>
+              <select
+                value={editType}
+                onChange={e => setEditType(Number(e.target.value))}
+                disabled={editSaving}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs disabled:opacity-50"
+              >
+                <option value={0}>小说</option>
+                <option value={1}>动漫</option>
+                <option value={2}>漫画</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditTarget(null)} disabled={editSaving}>取消</Button>
+            <Button onClick={handleEditConfirm} disabled={editSaving || !editTitle.trim()}>
+              {editSaving ? <><Loader2Icon className="size-4 animate-spin mr-1" /> 保存中...</> : <><CheckCircleIcon className="size-4 mr-1" /> 保存</>}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
