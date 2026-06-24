@@ -95,14 +95,17 @@ export default function AdminNovelsPage() {
         const data = res.data.data;
         if (!data.found) {
           setActionError(data.message || '未找到作品信息');
+          setPreviewLoading(false);
           return;
         }
         setPreviewResult(data.result);
         setConfirmType('llm');
         setConfirmOpen(true);
       }
-    } catch { /* handled */ }
-    setPreviewLoading(false);
+      setPreviewLoading(false);
+    } catch { /* handled */
+      setPreviewLoading(false);
+    }
   };
 
   const handleConfirmLlm = async () => {
