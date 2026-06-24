@@ -29,6 +29,7 @@ export default function AdminUsersPage() {
   const [keyword, setKeyword] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
   const [roles, setRoles] = useState<{id: number; code: string; name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState<UserItem | null>(null);
@@ -41,10 +42,11 @@ export default function AdminUsersPage() {
       const params: any = { page, size: 10 };
       if (keyword) params.keyword = keyword;
       if (statusFilter) params.enabled = statusFilter;
+      if (roleFilter) params.roleId = roleFilter;
       const uRes = await api.get('/admin/user/list', { params });
       if (uRes.data.code === 200) { setUsers(uRes.data.data.items); setTotal(uRes.data.data.total); }
     } finally { setLoading(false); }
-  }, [page, keyword, statusFilter]);
+  }, [page, keyword, statusFilter, roleFilter]);
 
   useEffect(() => {
     fetchUsers();
@@ -89,33 +91,47 @@ export default function AdminUsersPage() {
         <h2 className="text-lg font-semibold">用户管理</h2>
       </div>
 
-      <div className="flex items-center gap-3 mb-6">
-        <div className="relative flex-1 max-w-sm">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input
-            placeholder="搜索用户名..."
-            value={searchInput}
-            onChange={e => setSearchInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { setKeyword(searchInput); setPage(1); } }}
-            className="pl-9"
-          />
+      <div className="space-y-2 mb-6">
+        <h3 className="text-sm font-medium text-muted-foreground">查询条件</h3>
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input
+              placeholder="搜索用户名..."
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { setKeyword(searchInput); setPage(1); } }}
+              className="pl-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
+            <SelectTrigger className="w-20 shrink-0">
+              {statusFilter === 'true' ? '正常' : statusFilter === 'false' ? '禁用' : '全部'}
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">全部</SelectItem>
+              <SelectItem value="true">正常</SelectItem>
+              <SelectItem value="false">禁用</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={roleFilter} onValueChange={v => { setRoleFilter(v); setPage(1); }}>
+            <SelectTrigger className="w-28 shrink-0">
+              {roleFilter ? roles.find(r => String(r.id) === roleFilter)?.name || roleFilter : '全部角色'}
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">全部角色</SelectItem>
+              {roles.filter(r => r.code !== 'ADMIN').map(r => (
+                <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={() => { setKeyword(searchInput); setPage(1); }}>
+            <SearchIcon className="size-4 mr-1" /> 搜索
+          </Button>
+          <Button variant="ghost" onClick={() => { setSearchInput(''); setKeyword(''); setStatusFilter(''); setRoleFilter(''); setPage(1); }}>
+            重置
+          </Button>
         </div>
-        <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-20 shrink-0">
-            {statusFilter === 'true' ? '正常' : statusFilter === 'false' ? '禁用' : '全部'}
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">全部</SelectItem>
-            <SelectItem value="true">正常</SelectItem>
-            <SelectItem value="false">禁用</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="outline" onClick={() => { setKeyword(searchInput); setPage(1); }}>
-          <SearchIcon className="size-4 mr-1" /> 搜索
-        </Button>
-        <Button variant="ghost" onClick={() => { setSearchInput(''); setKeyword(''); setStatusFilter(''); setPage(1); }}>
-          重置
-        </Button>
       </div>
 
       <div className="rounded-lg border">

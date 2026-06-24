@@ -33,7 +33,8 @@ public class UserController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String enabled) {
+            @RequestParam(required = false) String enabled,
+            @RequestParam(required = false) Long roleId) {
         LambdaQueryWrapper<User> qw = new LambdaQueryWrapper<User>();
         if (keyword != null && !keyword.isEmpty()) {
             qw.like(User::getUsername, keyword);
@@ -42,6 +43,17 @@ public class UserController {
             qw.eq(User::getEnabled, true);
         } else if ("false".equals(enabled)) {
             qw.eq(User::getEnabled, false);
+        }
+        if (roleId != null) {
+            List<Long> userIds = userRoleMapper.selectList(
+                new LambdaQueryWrapper<UserRole>().eq(UserRole::getRoleId, roleId))
+                .stream().map(UserRole::getUserId).collect(Collectors.toList());
+            if (!userIds.isEmpty()) {
+                qw.in(User::getId, userIds);
+            } else {
+                // No users with this role, return empty
+                qw.eq(User::getId, -1L);
+            }
         }
         qw.orderByDesc(User::getCreatedAt);
         IPage<User> p = userMapper.selectPage(new Page<>(page, size), qw);
