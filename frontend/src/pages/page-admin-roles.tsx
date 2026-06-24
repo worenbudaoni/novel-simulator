@@ -299,7 +299,7 @@ export default function AdminRolesPage() {
               className="flex-1"
             />
             <Select value={visFilter} onValueChange={v => { setVisFilter(v); loadVisNovels(1, visSearch, v); }}>
-              <SelectTrigger className="w-28">
+              <SelectTrigger className="w-[100px] shrink-0">
                 {visFilter === 'true' ? '已选择' : visFilter === 'false' ? '未选择' : '全部'}
               </SelectTrigger>
               <SelectContent position="popper">
