@@ -105,13 +105,25 @@ export default function AdminNodeEditorPage() {
       if (n.id) idMap.set(String(n.id), `db-${n.id}`);
     });
 
-    const rfEdges: Edge[] = edges.map(e => ({
-      id: `e-${e.sourceNodeId}-${e.targetNodeId}`,
-      source: idMap.get(String(e.sourceNodeId)) || '',
-      target: idMap.get(String(e.targetNodeId)) || '',
-      markerEnd: { type: MarkerType.ArrowClosed },
-      style: { strokeWidth: 2 },
-    })).filter(e => e.source && e.target);
+    const rfEdges: Edge[] = edges.map(e => {
+      let src = idMap.get(String(e.sourceNodeId));
+      let tgt = idMap.get(String(e.targetNodeId));
+      // Fallback: use index in nodes array
+      if (!src || !tgt) {
+        const srcIdx = nodes.findIndex(n => n.id === e.sourceNodeId);
+        const tgtIdx = nodes.findIndex(n => n.id === e.targetNodeId);
+        if (srcIdx >= 0) src = `db-${nodes[srcIdx].id}`;
+        if (tgtIdx >= 0) tgt = `db-${nodes[tgtIdx].id}`;
+      }
+      if (!src || !tgt) return null as any;
+      return {
+        id: `e-${e.sourceNodeId}-${e.targetNodeId}`,
+        source: src,
+        target: tgt,
+        markerEnd: { type: MarkerType.ArrowClosed },
+        style: { strokeWidth: 2 },
+      };
+    }).filter(Boolean);
 
     return { nodes: rfNodes, edges: rfEdges };
   };
