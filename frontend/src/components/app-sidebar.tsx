@@ -1,7 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
 import { NavMain } from "src/components/nav-main"
-import { NavDocuments } from "src/components/nav-documents"
-import { NavSecondary } from "src/components/nav-secondary"
 import { NavUser } from "src/components/nav-user"
 import { Button } from "src/components/ui/button"
 import {
@@ -16,26 +14,15 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import {
   BookOpen,
-  Play,
-  History,
-  Heart,
-  Star,
   LayoutDashboard,
   GitBranch,
   Zap,
-  Users,
   CommandIcon,
 } from "lucide-react"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, hasRole } = useAuth();
   const { pathname } = useLocation();
-
-  const isActive = (url: string) => {
-    if (url === '/admin') return pathname === '/admin' || pathname.startsWith('/admin/novel/');
-    if (url === '/player') return pathname === '/player' || pathname === '/player/guest';
-    return pathname.startsWith(url);
-  };
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -54,31 +41,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         {user ? (
-          <>
-            <NavMain items={[
-              { title: "作品列表", url: "/player", icon: <BookOpen />, isActive: isActive('/player') && !pathname.startsWith('/player/continue') && !pathname.startsWith('/player/history') },
-              { title: "继续游戏", url: "/player/continue", icon: <Play />, isActive: isActive('/player/continue') },
-              { title: "游戏历史", url: "/player/history", icon: <History />, isActive: isActive('/player/history') },
-            ]} />
-            <NavDocuments items={[
-              { name: "我的收藏", url: "/player/favorites", icon: <Heart /> },
-              { name: "为你推荐", url: "/player/recommendations", icon: <Star /> },
-            ]} />
-            {hasRole('ADMIN') && (
-              <NavMain title="管理后台" items={[
-                { title: "作品管理", url: "/admin", icon: <LayoutDashboard />, isActive: pathname === '/admin' || pathname.startsWith('/admin/novel/') },
-                { title: "节点管理", url: "/admin", icon: <GitBranch />, isActive: pathname.includes('/nodes') },
-                { title: "事件管理", url: "/admin", icon: <Zap />, isActive: pathname.includes('/events') },
-                { title: "用户管理", url: "/admin", icon: <Users />, isActive: false },
-              ]} />
-            )}
-          </>
+          <NavMain items={[
+            { title: "作品列表", url: "/player", icon: <BookOpen />, isActive: pathname === '/player' || pathname === '/player/guest' },
+          ]} />
         ) : (
           <NavMain items={[
-            { title: "公开作品", url: "/player", icon: <BookOpen />, isActive: true },
+            { title: "公开作品", url: "/player", icon: <BookOpen />, isActive: pathname === '/player' || pathname === '/player/guest' },
           ]} />
         )}
-        <NavSecondary items={[]} className="mt-auto" />
+        {user && hasRole('ADMIN') && (
+          <NavMain title="管理后台" items={[
+            { title: "作品管理", url: "/admin", icon: <LayoutDashboard />, isActive: pathname === '/admin' || pathname.startsWith('/admin/novel/') },
+            { title: "节点编辑", url: "/admin", icon: <GitBranch />, isActive: pathname.includes('/nodes') },
+            { title: "事件管理", url: "/admin", icon: <Zap />, isActive: pathname.includes('/events') },
+          ]} />
+        )}
       </SidebarContent>
       <SidebarFooter>
         {user ? <NavUser /> : (
