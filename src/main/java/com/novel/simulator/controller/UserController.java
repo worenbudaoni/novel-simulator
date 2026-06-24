@@ -34,7 +34,7 @@ public class UserController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String enabled,
-            @RequestParam(required = false) Long roleId) {
+            @RequestParam(required = false) String roleIdStr) {
         LambdaQueryWrapper<User> qw = new LambdaQueryWrapper<User>();
         if (keyword != null && !keyword.isEmpty()) {
             qw.like(User::getUsername, keyword);
@@ -44,14 +44,21 @@ public class UserController {
         } else if ("false".equals(enabled)) {
             qw.eq(User::getEnabled, false);
         }
-        if (roleId != null) {
-            List<Long> userIds = userRoleMapper.selectList(
-                new LambdaQueryWrapper<UserRole>().eq(UserRole::getRoleId, roleId))
-                .stream().map(UserRole::getUserId).collect(Collectors.toList());
-            if (!userIds.isEmpty()) {
-                qw.in(User::getId, userIds);
+        if (roleIdStr != null && !roleIdStr.isEmpty()) {
+            String[] parts = roleIdStr.split(",");
+            List<Long> allUserIds = new java.util.ArrayList<>();
+            for (String part : parts) {
+                try {
+                    Long rid = Long.parseLong(part.trim());
+                    List<Long> userIds = userRoleMapper.selectList(
+                        new LambdaQueryWrapper<UserRole>().eq(UserRole::getRoleId, rid))
+                        .stream().map(UserRole::getUserId).collect(Collectors.toList());
+                    allUserIds.addAll(userIds);
+                } catch (NumberFormatException ignored) {}
+            }
+            if (!allUserIds.isEmpty()) {
+                qw.in(User::getId, allUserIds.stream().distinct().collect(Collectors.toList()));
             } else {
-                // No users with this role, return empty
                 qw.eq(User::getId, -1L);
             }
         }

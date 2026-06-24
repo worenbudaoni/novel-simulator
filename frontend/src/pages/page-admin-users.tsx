@@ -29,7 +29,8 @@ export default function AdminUsersPage() {
   const [keyword, setKeyword] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
+  const [tempStatus, setTempStatus] = useState('');
+  const [roleFilter, setRoleFilter] = useState<number[]>([]);
   const [roles, setRoles] = useState<{id: number; code: string; name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState<UserItem | null>(null);
@@ -42,7 +43,7 @@ export default function AdminUsersPage() {
       const params: any = { page, size: 10 };
       if (keyword) params.keyword = keyword;
       if (statusFilter) params.enabled = statusFilter;
-      if (roleFilter) params.roleId = roleFilter;
+      if (roleFilter.length > 0) params.roleIds = roleFilter.join(',');
       const uRes = await api.get('/admin/user/list', { params });
       if (uRes.data.code === 200) { setUsers(uRes.data.data.items); setTotal(uRes.data.data.total); }
     } finally { setLoading(false); }
@@ -92,7 +93,7 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="flex items-end gap-3 mb-6 flex-wrap">
-        <div className="space-y-1">
+        <div>
           <label className="text-xs text-muted-foreground font-medium">用户名</label>
           <div className="relative">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -105,11 +106,11 @@ export default function AdminUsersPage() {
             />
           </div>
         </div>
-        <div className="space-y-1">
+        <div>
           <label className="text-xs text-muted-foreground font-medium">状态</label>
-          <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
-            <SelectTrigger className="w-24" size="default" style={{ height: 36, paddingTop: 4, paddingBottom: 4 }}>
-              {statusFilter === 'true' ? '正常' : statusFilter === 'false' ? '禁用' : '全部'}
+          <Select value={tempStatus} onValueChange={setTempStatus}>
+            <SelectTrigger className="w-24">
+              {tempStatus === 'true' ? '正常' : tempStatus === 'false' ? '禁用' : '全部'}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">全部</SelectItem>
@@ -118,25 +119,31 @@ export default function AdminUsersPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
+        <div>
           <label className="text-xs text-muted-foreground font-medium">角色</label>
-          <Select value={roleFilter} onValueChange={v => { setRoleFilter(v); setPage(1); }}>
-            <SelectTrigger className="w-28" size="default" style={{ height: 36, paddingTop: 4, paddingBottom: 4 }}>
-  {roleFilter ? roles.find(r => String(r.id) === roleFilter)?.name || roleFilter : '全部'}
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">全部</SelectItem>
-              {roles.filter(r => r.code !== 'ADMIN').map(r => (
-                <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex gap-1.5 pt-0.5">
+            {roles.filter(r => r.code !== 'ADMIN').map(r => {
+              const selected = roleFilter.includes(r.id);
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setRoleFilter(prev => selected ? prev.filter(id => id !== r.id) : [...prev, r.id])}
+                  className={`px-2.5 py-1.5 text-xs rounded-md border transition-colors cursor-pointer ${
+                    selected ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-background border-input text-muted-foreground hover:bg-muted/30'
+                  }`}
+                >
+                  {r.name}
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div className="flex items-end gap-2">
-          <Button variant="outline" onClick={() => { setKeyword(searchInput); setPage(1); }}>
+          <Button variant="outline" onClick={() => { setKeyword(searchInput); setStatusFilter(tempStatus); setPage(1); }}>
             <SearchIcon className="size-4 mr-1" /> 搜索
           </Button>
-          <Button variant="ghost" onClick={() => { setSearchInput(''); setKeyword(''); setStatusFilter(''); setRoleFilter(''); setPage(1); }}>
+          <Button variant="ghost" onClick={() => { setSearchInput(''); setKeyword(''); setTempStatus(''); setStatusFilter(''); setRoleFilter([]); setPage(1); }}>
             重置
           </Button>
         </div>
