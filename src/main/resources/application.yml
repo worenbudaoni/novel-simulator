@@ -2,6 +2,10 @@ server:
   port: 8080
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
   datasource:
     url: jdbc:mysql://localhost:3306/novel_simulator?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
@@ -18,6 +22,11 @@ spring:
         max-active: 8
         max-idle: 8
         min-idle: 0
+
+llm:
+  api-url: ""
+  api-key: ""
+  model-name: gpt-3.5-turbo
 
 mybatis-plus:
   configuration:
