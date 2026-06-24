@@ -64,6 +64,10 @@ public class NovelImportController {
             ? ((Number) request.get("nodeCount")).intValue() : 5;
         if (nodeCount < 3) nodeCount = 3;
         if (nodeCount > 20) nodeCount = 20;
+        int eventCount = request.get("eventCount") != null
+            ? ((Number) request.get("eventCount")).intValue() : 3;
+        if (eventCount < 0) eventCount = 0;
+        if (eventCount > 10) eventCount = 10;
 
         // Check duplicate name
         com.novel.simulator.entity.Novel existing = novelService.findByTitle(name.trim());
@@ -71,7 +75,7 @@ public class NovelImportController {
             return Result.error(400, "作品「" + name.trim() + "」已存在");
         }
 
-        Map<String, Object> genResult = parseChain.previewGenerate(name.trim(), contentType, nodeCount);
+        Map<String, Object> genResult = parseChain.previewGenerate(name.trim(), contentType, nodeCount, eventCount);
 
         if (genResult.containsKey("exists") && Boolean.FALSE.equals(genResult.get("exists"))) {
             Map<String, Object> resp = new HashMap<>();
@@ -116,8 +120,12 @@ public class NovelImportController {
             ? ((Number) request.get("nodeCount")).intValue() : 5;
         if (nodeCount < 3) nodeCount = 3;
         if (nodeCount > 20) nodeCount = 20;
+        int eventCount = request.get("eventCount") != null
+            ? ((Number) request.get("eventCount")).intValue() : 3;
+        if (eventCount < 0) eventCount = 0;
+        if (eventCount > 10) eventCount = 10;
 
-        Map<String, Object> genResult = parseChain.generateFromName(name.trim(), contentType, null, "name_gen", nodeCount);
+        Map<String, Object> genResult = parseChain.generateFromName(name.trim(), contentType, null, "name_gen", nodeCount, eventCount);
         if (genResult.containsKey("error")) {
             return Result.error(500, (String) genResult.get("error"));
         }

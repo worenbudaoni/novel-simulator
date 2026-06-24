@@ -45,6 +45,7 @@ export default function AdminNovelsPage() {
   const [actionError, setActionError] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [nodeCount, setNodeCount] = useState(5);
+  const [eventCount, setEventCount] = useState(3);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Confirm dialog state
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -80,6 +81,7 @@ export default function AdminNovelsPage() {
     setConfirmOpen(false);
     setPreviewResult(null);
     setNodeCount(5);
+    setEventCount(3);
   };
 
   const handlePreviewLlm = async () => {
@@ -91,6 +93,7 @@ export default function AdminNovelsPage() {
         name: createTitle.trim(),
         contentType: Number(createType),
         nodeCount,
+        eventCount,
       });
       if (res.data.code === 200) {
         const data = res.data.data;
@@ -116,6 +119,7 @@ export default function AdminNovelsPage() {
         name: createTitle.trim(),
         contentType: Number(createType),
         nodeCount,
+        eventCount,
       });
       if (res.data.code === 200) {
         const data = res.data.data;
@@ -324,6 +328,27 @@ export default function AdminNovelsPage() {
                   <span>最少 3</span>
                   <span>默认 5</span>
                   <span>最多 20</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">生成事件数</label>
+                  <span className="text-sm font-mono text-primary font-bold tabular-nums">{eventCount}</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={10}
+                  value={eventCount}
+                  onChange={e => setEventCount(Number(e.target.value))}
+                  disabled={actionLoading}
+                  className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>不生成</span>
+                  <span>默认 3</span>
+                  <span>最多 10</span>
                 </div>
               </div>
 
