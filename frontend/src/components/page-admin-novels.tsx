@@ -52,6 +52,7 @@ export default function AdminNovelsPage() {
   const [previewResult, setPreviewResult] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string>('nodes');
+  const [deleteTarget, setDeleteTarget] = useState<Novel | null>(null);
   const navigate = useNavigate();
 
   const fetchNovels = useCallback(async () => {
@@ -163,12 +164,13 @@ export default function AdminNovelsPage() {
     setActionLoading(false);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('确定删除该作品？')) return;
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
     try {
-      const res = await api.delete(`/admin/novel/${id}`);
+      const res = await api.delete(`/admin/novel/${deleteTarget.id}`);
       if (res.data.code === 200) {
         toast.success('已删除');
+        setDeleteTarget(null);
         fetchNovels();
       }
     } catch { /* handled */ }
@@ -228,16 +230,18 @@ export default function AdminNovelsPage() {
                 <TableCell className="text-sm text-muted-foreground">{n.createdAt?.slice(0, 10)}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon-sm" onClick={() => navigate(`/admin/novel/${n.id}/import`)} title="导入">
-                      <UploadIcon className="size-4" />
-                    </Button>
+                    {n.parseStatus !== 2 && (
+                      <Button variant="ghost" size="icon-sm" onClick={() => navigate(`/admin/novel/${n.id}/import`)} title="导入">
+                        <UploadIcon className="size-4" />
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon-sm" onClick={() => navigate(`/admin/novel/${n.id}/nodes`)} title="节点编辑">
                       <GitBranchIcon className="size-4" />
                     </Button>
                     <Button variant="ghost" size="icon-sm" onClick={() => navigate(`/admin/novel/${n.id}/events`)} title="事件管理">
                       <ZapIcon className="size-4" />
                     </Button>
-                    <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(n.id)}>
+                    <Button variant="ghost" size="icon-sm" onClick={() => setDeleteTarget(n)}>
                       <Trash2Icon className="size-4 text-destructive" />
                     </Button>
                   </div>
@@ -509,6 +513,24 @@ export default function AdminNovelsPage() {
               ) : (
                 <><CheckCircleIcon className="size-4 mr-1" /> 确认创建</>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+            <DialogDescription>
+              确定删除「{deleteTarget?.title}」？此操作不可撤销，作品下的所有节点、事件数据将一并删除。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>取消</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              <Trash2Icon className="size-4 mr-1" /> 删除
             </Button>
           </DialogFooter>
         </DialogContent>
