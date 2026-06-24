@@ -41,6 +41,7 @@ export default function AdminNovelsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [nodeCount, setNodeCount] = useState(5);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Confirm dialog state
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -74,6 +75,7 @@ export default function AdminNovelsPage() {
     setSelectedFile(null);
     setConfirmOpen(false);
     setPreviewResult(null);
+    setNodeCount(5);
   };
 
   const handlePreviewLlm = async () => {
@@ -84,6 +86,7 @@ export default function AdminNovelsPage() {
       const res = await api.post('/admin/novel/import/preview', {
         name: createTitle.trim(),
         contentType: Number(createType),
+        nodeCount,
       });
       if (res.data.code === 200) {
         const data = res.data.data;
@@ -105,11 +108,12 @@ export default function AdminNovelsPage() {
       const res = await api.post('/admin/novel/import/name', {
         name: createTitle.trim(),
         contentType: Number(createType),
+        nodeCount,
       });
       if (res.data.code === 200) {
         const data = res.data.data;
-        const nodeCount = (data.parseResult?.nodes as any[])?.length || 0;
-        toast.success(`「${data.novel.title}」创建成功，${nodeCount} 个节点`);
+        const count = (data.parseResult?.nodes as any[])?.length || 0;
+        toast.success(`「${data.novel.title}」创建成功，${count} 个节点`);
         resetCreate();
         fetchNovels();
       }
@@ -287,6 +291,23 @@ export default function AdminNovelsPage() {
                 <option value="1">动漫</option>
                 <option value="2">漫画</option>
               </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">生成节点数</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={3}
+                  max={20}
+                  value={nodeCount}
+                  onChange={e => setNodeCount(Number(e.target.value))}
+                  disabled={actionLoading}
+                  className="flex-1 h-2 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
+                />
+                <span className="text-sm font-mono w-8 text-center text-primary font-bold">{nodeCount}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">AI 将生成 {nodeCount} 个核心节点，范围 3-20 个</p>
             </div>
 
             <div className="pt-3 border-t space-y-3">

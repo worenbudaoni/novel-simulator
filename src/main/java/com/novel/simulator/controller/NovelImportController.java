@@ -60,7 +60,12 @@ public class NovelImportController {
             return Result.error(400, "作品名称不能为空");
         }
 
-        Map<String, Object> genResult = parseChain.previewGenerate(name.trim(), contentType);
+        int nodeCount = request.get("nodeCount") != null
+            ? ((Number) request.get("nodeCount")).intValue() : 5;
+        if (nodeCount < 3) nodeCount = 3;
+        if (nodeCount > 20) nodeCount = 20;
+
+        Map<String, Object> genResult = parseChain.previewGenerate(name.trim(), contentType, nodeCount);
 
         if (genResult.containsKey("exists") && Boolean.FALSE.equals(genResult.get("exists"))) {
             Map<String, Object> resp = new HashMap<>();
@@ -95,7 +100,12 @@ public class NovelImportController {
         }
 
         // 1. LLM generates framework
-        Map<String, Object> genResult = parseChain.generateFromName(name.trim(), contentType, null, "name_gen");
+        int nodeCount = request.get("nodeCount") != null
+            ? ((Number) request.get("nodeCount")).intValue() : 5;
+        if (nodeCount < 3) nodeCount = 3;
+        if (nodeCount > 20) nodeCount = 20;
+
+        Map<String, Object> genResult = parseChain.generateFromName(name.trim(), contentType, null, "name_gen", nodeCount);
         if (genResult.containsKey("error")) {
             return Result.error(500, (String) genResult.get("error"));
         }

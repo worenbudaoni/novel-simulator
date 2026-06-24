@@ -83,7 +83,7 @@ public class ParseChain {
      * For 小说: always generates framework.
      * For 动漫/漫画: checks if LLM knows the work, returns {exists: false} if not.
      */
-    public Map<String, Object> previewGenerate(String name, Integer contentType) {
+    public Map<String, Object> previewGenerate(String name, Integer contentType, int nodeCount) {
         String typeName = contentType == null || contentType == 0 ? "小说" :
                           contentType == 1 ? "动漫" : "漫画";
         String prompt = "你熟悉各种" + typeName + "作品。请判断你是否了解《" + name + "》这部作品。\n\n"
@@ -96,12 +96,12 @@ public class ParseChain {
             + "6. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n"
             + "7. summary: 作品简介（100字以内）\n"
             + "8. author: 原作者\n\n"
-            + "请确保至少解析出3-5个核心节点。\n\n"
+            + "请确保生成" + nodeCount + "个核心节点。\n\n"
             + "如果你不确定或不了解这部作品，请严格返回以下JSON（不要多余内容）：\n"
             + "{\"exists\": false}\n\n"
             + "作品名称：《" + name + "》";
 
-        String cacheKey = "preview:" + contentType + ":" + Integer.toHexString(name.hashCode());
+        String cacheKey = "preview:" + contentType + ":" + nodeCount + ":" + Integer.toHexString(name.hashCode());
         LlmCache existing = llmCacheMapper.selectOne(
             new LambdaQueryWrapper<LlmCache>().eq(LlmCache::getCacheKey, cacheKey));
         if (existing != null) {
@@ -140,7 +140,7 @@ public class ParseChain {
     /**
      * Generate and create novel from name. Saves parse record if novelId provided.
      */
-    public Map<String, Object> generateFromName(String name, Integer contentType, Long novelId, String promptType) {
+    public Map<String, Object> generateFromName(String name, Integer contentType, Long novelId, String promptType, int nodeCount) {
         String typeName = contentType == null || contentType == 0 ? "小说" :
                           contentType == 1 ? "动漫" : "漫画";
         String prompt = "你熟悉各种" + typeName + "作品。请根据你对《" + name + "》的了解，"
@@ -154,9 +154,9 @@ public class ParseChain {
             + "6. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n"
             + "7. summary: 作品简介（100字以内）\n"
             + "8. author: 原作者（如知道）\n\n"
-            + "请确保至少解析出3-5个核心节点，覆盖故事的主要情节阶段（开始、发展、高潮、结局）。";
+            + "请确保生成" + nodeCount + "个核心节点，覆盖故事的主要情节阶段（开始、发展、高潮、结局）。";
 
-        String cacheKey = "gen:" + promptType + ":" + Integer.toHexString(name.hashCode());
+        String cacheKey = "gen:" + promptType + ":" + nodeCount + ":" + Integer.toHexString(name.hashCode());
         LlmCache existing = llmCacheMapper.selectOne(
             new LambdaQueryWrapper<LlmCache>().eq(LlmCache::getCacheKey, cacheKey));
         if (existing != null) {
