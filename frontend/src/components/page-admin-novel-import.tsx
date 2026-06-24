@@ -82,9 +82,7 @@ export default function AdminNovelImportPage() {
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('novelId', novelId);
-      const res = await api.post('/admin/novel/import/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const res = await api.post('/admin/novel/import/upload', formData);
       if (res.data.code === 200) {
         setUploadResult(res.data.data);
         setNovel(res.data.data.novel);

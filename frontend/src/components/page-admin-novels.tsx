@@ -155,9 +155,7 @@ export default function AdminNovelsPage() {
         const formData = new FormData();
         formData.append('file', selectedFile);
         formData.append('novelId', newId);
-        const uploadRes = await api.post('/admin/novel/import/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        const uploadRes = await api.post('/admin/novel/import/upload', formData);
         if (uploadRes.data.code === 200) {
           toast.success(`「${createTitle.trim()}」创建成功，TXT 解析完成`);
           resetCreate();

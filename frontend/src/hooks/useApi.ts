@@ -13,6 +13,10 @@ api.interceptors.request.use((config) => {
   if (sessionId) {
     config.headers.Authorization = `Bearer ${sessionId}`;
   }
+  // Let axios/browser set multipart boundary
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
   return config;
 });
 
