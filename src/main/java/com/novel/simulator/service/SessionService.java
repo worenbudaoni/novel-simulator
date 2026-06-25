@@ -30,6 +30,13 @@ public class SessionService {
 
     @Transactional
     public UserSession create(Long novelId, Long userId) {
+        return create(novelId, userId, null, null, null, null, null, null, null);
+    }
+
+    @Transactional
+    public UserSession create(Long novelId, Long userId, String characterName,
+                               Integer hp, Integer attack, Integer defense,
+                               Integer intelligence, Integer charm, Integer luck) {
         Node startNode = nodeMapper.selectOne(
             new LambdaQueryWrapper<Node>()
                 .eq(Node::getNovelId, novelId).eq(Node::getIsStart, true));
@@ -52,12 +59,12 @@ public class SessionService {
 
         UserCharacter character = new UserCharacter();
         character.setSessionId(sessionId);
-        character.setHp(100);
-        character.setAttack(10);
-        character.setDefense(10);
-        character.setIntelligence(50);
-        character.setCharm(50);
-        character.setLuck(50);
+        character.setHp(hp != null ? hp : 100);
+        character.setAttack(attack != null ? attack : 10);
+        character.setDefense(defense != null ? defense : 10);
+        character.setIntelligence(intelligence != null ? intelligence : 50);
+        character.setCharm(charm != null ? charm : 50);
+        character.setLuck(luck != null ? luck : 50);
         character.setChoicesMade(0);
         character.setEventsTriggered(0);
         character.setTimesDied(0);

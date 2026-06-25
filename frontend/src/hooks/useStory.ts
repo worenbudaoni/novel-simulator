@@ -54,10 +54,16 @@ export function useStory() {
   const [loading, setLoading] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
 
-  const createSession = useCallback(async (novelId: number) => {
+  const createSession = useCallback(async (novelId: number, characterName?: string, attrs?: any) => {
     setLoading(true);
     try {
-      const res = await api.post('/player/session/create', { novelId });
+      const body: any = { novelId };
+      if (characterName) body.characterName = characterName;
+      if (attrs) {
+        body.hp = attrs.hp; body.attack = attrs.attack; body.defense = attrs.defense;
+        body.intelligence = attrs.intelligence; body.charm = attrs.charm; body.luck = attrs.luck;
+      }
+      const res = await api.post('/player/session/create', body);
       if (res.data.code === 200) {
         const data = res.data.data;
         setSession(data.session);

@@ -183,7 +183,10 @@ public class PlayerController {
         @SuppressWarnings("unchecked")
         Map<String, Object> currentUser = (Map<String, Object>) httpRequest.getAttribute("currentUser");
         Long userId = currentUser != null ? Long.valueOf(currentUser.get("userId").toString()) : null;
-        UserSession session = sessionService.create(request.getNovelId(), userId);
+        UserSession session = sessionService.create(request.getNovelId(), userId,
+            request.getCharacterName(),
+            request.getHp(), request.getAttack(), request.getDefense(),
+            request.getIntelligence(), request.getCharm(), request.getLuck());
         return Result.success(sessionService.getSessionState(session.getSessionId()));
     }
 
