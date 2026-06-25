@@ -15,6 +15,9 @@ import AdminEventPoolPage from 'src/pages/page-admin-event-pool';
 import AdminUsersPage from 'src/pages/page-admin-users';
 import AdminRolesPage from 'src/pages/page-admin-roles';
 import AdminPermissionsPage from 'src/pages/page-admin-permissions';
+import PlayerNovelsPage from 'src/pages/page-player-novels';
+import PlayerSettingsPage from 'src/pages/page-player-settings';
+import PlayerStoryPage from 'src/pages/page-player-story';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, CommandIcon } from 'lucide-react';
@@ -95,6 +98,12 @@ export default function App() {
           <Route path="/login" element={<AuthLayout><LoginForm /></AuthLayout>} />
           <Route path="/register" element={<AuthLayout><SignupForm /></AuthLayout>} />
           <Route path="/player" element={<PlayerPage />} />
+          <Route path="/player/settings/:novelId" element={
+            <DashboardLayout><PlayerSettingsPage /></DashboardLayout>
+          } />
+          <Route path="/player/story/:sessionId" element={
+            <DashboardLayout><PlayerStoryPage /></DashboardLayout>
+          } />
           <Route path="/player/guest" element={
             <DashboardLayout>
               <SectionCards />
