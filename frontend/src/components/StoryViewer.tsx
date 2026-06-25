@@ -23,7 +23,7 @@ export default function StoryViewer({ text, streaming, placeholder }: StoryViewe
     <Card>
       <CardContent className="pt-4">
         {text ? (
-          <div className="prose prose-sm max-w-none dark:prose-invert h-96 overflow-y-auto border border-border rounded-lg p-4">
+          <div className="prose prose-sm max-w-none dark:prose-invert h-96 overflow-y-auto p-2">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {text}
             </ReactMarkdown>

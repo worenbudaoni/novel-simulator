@@ -61,8 +61,11 @@ export default function PlayerStoryPage() {
   const handleChoose = async (optionId: number) => {
     setActionDisabled(true);
     try {
-      await chooseAction(optionId);
+      const result = await chooseAction(optionId);
       if (!sessionId) return;
+
+      // 用户可见的选择描述
+      const choiceLabel = result?.chosenOption?.label || '做出了选择';
 
       // 解析设置，判断是否触发转盘
       let shouldSpin = false;
@@ -78,7 +81,7 @@ export default function PlayerStoryPage() {
         setShowWheel(true);
         setPendingSessionId(sessionId);
       } else {
-        triggerStory(sessionId, '做出了选择');
+        triggerStory(sessionId, choiceLabel);
       }
     } catch { setActionDisabled(false); }
   };
