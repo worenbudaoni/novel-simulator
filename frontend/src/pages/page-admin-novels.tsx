@@ -49,7 +49,7 @@ export default function AdminNovelsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [nodeCount, setNodeCount] = useState(5);
+  const [nodeCount, setNodeCount] = useState(12);
   const [eventCount, setEventCount] = useState(8);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Confirm dialog state
@@ -448,8 +448,8 @@ export default function AdminNovelsPage() {
                 </div>
                 <input
                   type="range"
-                  min={3}
-                  max={20}
+                  min={10}
+                  max={30}
                   value={nodeCount}
                   onChange={e => setNodeCount(Number(e.target.value))}
                   disabled={actionLoading || previewLoading}

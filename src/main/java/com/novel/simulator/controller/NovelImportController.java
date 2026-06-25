@@ -65,9 +65,9 @@ public class NovelImportController {
         }
 
         int nodeCount = request.get("nodeCount") != null
-            ? ((Number) request.get("nodeCount")).intValue() : 5;
-        if (nodeCount < 3) nodeCount = 3;
-        if (nodeCount > 20) nodeCount = 20;
+            ? ((Number) request.get("nodeCount")).intValue() : 12;
+        if (nodeCount < 10) nodeCount = 10;
+        if (nodeCount > 30) nodeCount = 30;
         int eventCount = request.get("eventCount") != null
             ? ((Number) request.get("eventCount")).intValue() : 8;
         if (eventCount < 5) eventCount = 5;
@@ -121,9 +121,9 @@ public class NovelImportController {
 
         // 1. LLM generates framework
         int nodeCount = request.get("nodeCount") != null
-            ? ((Number) request.get("nodeCount")).intValue() : 5;
-        if (nodeCount < 3) nodeCount = 3;
-        if (nodeCount > 20) nodeCount = 20;
+            ? ((Number) request.get("nodeCount")).intValue() : 12;
+        if (nodeCount < 10) nodeCount = 10;
+        if (nodeCount > 30) nodeCount = 30;
         int eventCount = request.get("eventCount") != null
             ? ((Number) request.get("eventCount")).intValue() : 8;
         if (eventCount < 5) eventCount = 5;
@@ -171,7 +171,7 @@ public class NovelImportController {
     @PostMapping("/import/preview-upload")
     @PreAuthorize("hasAuthority('novel:create')")
     public Result<Map<String, Object>> previewTxtUpload(@RequestParam("file") MultipartFile file,
-                                                         @RequestParam(value = "nodeCount", defaultValue = "5") int nodeCount,
+                                                         @RequestParam(value = "nodeCount", defaultValue = "12") int nodeCount,
                                                          @RequestParam(value = "eventCount", defaultValue = "8") int eventCount) {
         String content;
         try (InputStream is = file.getInputStream()) {
@@ -180,8 +180,8 @@ public class NovelImportController {
             return Result.error(400, "文件读取失败: " + e.getMessage());
         }
 
-        if (nodeCount < 3) nodeCount = 3;
-        if (nodeCount > 20) nodeCount = 20;
+        if (nodeCount < 10) nodeCount = 10;
+        if (nodeCount > 30) nodeCount = 30;
         if (eventCount < 5) eventCount = 5;
         if (eventCount > 15) eventCount = 15;
 
@@ -227,7 +227,7 @@ public class NovelImportController {
     @PreAuthorize("hasAuthority('novel:create')")
     public Result<Map<String, Object>> importByUpload(@RequestParam("file") MultipartFile file,
                                                        @RequestParam("novelId") Long novelId,
-                                                       @RequestParam(value = "nodeCount", defaultValue = "5") int nodeCount,
+                                                       @RequestParam(value = "nodeCount", defaultValue = "12") int nodeCount,
                                                        @RequestParam(value = "eventCount", defaultValue = "8") int eventCount) {
         Novel novel = novelService.getById(novelId);
         if (novel == null) {
