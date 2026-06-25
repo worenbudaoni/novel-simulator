@@ -259,7 +259,7 @@ public class StoryChain {
         // 5. 保存完整历史到 Redis
         saveHistory(session.getSessionId(), history);
 
-        return response;
+        return storyText;
     }
 
     // ========== Ending Generation ==========
