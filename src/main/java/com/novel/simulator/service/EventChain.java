@@ -94,6 +94,7 @@ public class EventChain {
                                                       UserCharacter character, String eventType) {
         Novel novel = novelMapper.selectById(session.getNovelId());
         String worldView = novel != null ? novel.getWorldView() : "";
+        String novelTitle = novel != null ? novel.getTitle() : "";
 
         // Null-safe defaults for character stats
         int hp = character.getHp() != null ? character.getHp() : 100;
@@ -107,15 +108,16 @@ public class EventChain {
         String[] sectorNames = {"奇遇", "宝箱", "战斗", "诅咒", "命运", "邂逅"};
         String sectorName = sectorNames[sector];
 
-        String prompt = "你是一个互动故事的事件生成器，正在为以下世界观生成随机事件。\n\n"
-            + "【世界观】\n" + (worldView != null ? worldView : "未知") + "\n\n"
+        String prompt = "你是一个严格遵循原作的互动故事事件生成器。\n\n"
+            + "【作品名称】\n" + (novelTitle != null ? novelTitle : "未知") + "\n\n"
+            + "【世界观·设定】\n" + (worldView != null && !worldView.isEmpty() ? worldView : "未知") + "\n\n"
             + "【当前场景】\n" + (currentNode.getTitle() != null ? currentNode.getTitle() : "未知")
             + " — " + (currentNode.getDescription() != null ? currentNode.getDescription() : "") + "\n\n"
             + "【角色状态】\n"
             + "HP=" + hp + ", 攻击=" + atk + ", 防御=" + def + "\n"
             + "悟性=" + inte + ", 魅力=" + cha + ", 气运=" + luk + "\n\n"
             + "【扇区类型】\n" + sectorName + "\n\n"
-            + "请生成一个符合世界观、有沉浸感的事件，严格返回以下 JSON 格式（不要 markdown 代码块标记，不要额外内容）：\n\n"
+            + "请生成一个严格符合该作品世界观的事件，严格返回以下 JSON 格式（不要 markdown 代码块标记，不要额外内容）：\n\n"
             + "{\n"
             + "  \"title\": \"事件标题\",\n"
             + "  \"content\": \"事件描述\",\n"
@@ -133,13 +135,16 @@ public class EventChain {
             + "- 诅咒 → 压抑、负面、阴影\n"
             + "- 命运 → 玄妙、转折、因果\n"
             + "- 邂逅 → 温暖、相遇、羁绊\n\n"
-            + "要求：\n"
-            + "- title：带情绪/氛围的标题（如「暗影突袭」「天降机缘」「古道遇险」）\n"
+            + "【必须遵守的规则】\n"
+            + "- 所有内容必须严格限定在《" + (novelTitle != null ? novelTitle : "该作品") + "》的世界观范围内\n"
+            + "- 禁止出现任何该作品中不存在的人物、地点、概念或设定\n"
+            + "- 使用该作品中已有的地名、角色、势力、科技或规则来构建事件\n"
             + "- content：500-1000 字，像小说段落一样丰富，有场景描写、氛围渲染、细节刻画\n"
+            + "- title：带情绪/氛围的标题，贴合该作品的风格\n"
             + "- HP 变化范围 -30 到 +30，其他属性 -5 到 +5\n"
             + "- 正面扇区属性变化多为正，负面多为负\n"
             + "- 当前 HP 低时伤害相应减小（避免秒杀）\n"
-            + "- 数值合理，符合世界观逻辑";
+            + "- 数值合理，符合该作品的逻辑";
 
         LlmResult llmResult = callLlm(prompt);
         if (llmResult.error != null) {
