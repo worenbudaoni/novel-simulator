@@ -8,7 +8,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from 'src/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from 'src/components/ui/select';
 import { Switch } from 'src/components/ui/switch';
 import { toast } from 'sonner';
 import api from '@/hooks/useApi';
@@ -313,8 +313,12 @@ export default function AdminPermissionsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">类型</label>
-                <Select value={formType} onValueChange={(v: any) => setFormType(v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select value={formType} onValueChange={(v) => v !== null && setFormType(v)}>
+                  <SelectTrigger>
+                    <span className="flex flex-1 text-left text-sm">
+                      {formType === '1' ? '菜单' : '按钮'}
+                    </span>
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">菜单</SelectItem>
                     <SelectItem value="2">按钮</SelectItem>
@@ -331,8 +335,12 @@ export default function AdminPermissionsPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">父节点</label>
-              <Select value={formParentId} onValueChange={(v: any) => setFormParentId(v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select value={formParentId} onValueChange={(v) => v !== null && setFormParentId(v)}>
+                <SelectTrigger>
+                  <span className="flex flex-1 text-left text-sm">
+                    {formParentId === '0' ? '根节点' : allNodes.find(n => String(n.id) === formParentId)?.name || formParentId}
+                  </span>
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">根节点</SelectItem>
                   {allNodes.filter(n => n.type === 1 && n.id !== editNode?.id).map(n => (
