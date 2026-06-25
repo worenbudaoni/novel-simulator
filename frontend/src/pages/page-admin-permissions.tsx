@@ -114,6 +114,19 @@ export default function AdminPermissionsPage() {
     return flatten(tree);
   }, [tree]);
 
+  // 带层级的节点列表，用于树形 Select
+  const nodesWithDepth = useMemo(() => {
+    const flatten = (nodes: PermissionNode[], depth: number): { node: PermissionNode; depth: number }[] => {
+      const result: { node: PermissionNode; depth: number }[] = [];
+      for (const n of nodes) {
+        result.push({ node: n, depth });
+        if (n.children) result.push(...flatten(n.children, depth + 1));
+      }
+      return result;
+    };
+    return flatten(tree, 0);
+  }, [tree]);
+
   // 搜索时预过滤数据：父节点匹配时保留全部子节点
   const filteredData = useMemo(() => {
     if (!search) return tree;
@@ -393,14 +406,30 @@ export default function AdminPermissionsPage() {
                       <FormControl>
                         <SelectTrigger className="w-full">
                           <SelectValue>
-                            {(v: any) => v === '0' ? '根节点' : allNodes.find(n => String(n.id) === v)?.name || v}
+                            {(v: any) => {
+                              if (v === '0') return '根节点';
+                              const n = allNodes.find(x => String(x.id) === v);
+                              if (!n) return v;
+                              // 找父节点构建路径
+                              const path = [n.name];
+                              let pid = n.parentId;
+                              while (pid !== 0) {
+                                const p = allNodes.find(x => x.id === pid);
+                                if (!p) break;
+                                path.unshift(p.name);
+                                pid = p.parentId;
+                              }
+                              return path.join(' / ');
+                            }}
                           </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="0">根节点</SelectItem>
-                        {allNodes.filter(n => n.type === 1 && n.id !== editNode?.id).map(n => (
-                          <SelectItem key={n.id} value={String(n.id)}>{n.name}</SelectItem>
+                        {nodesWithDepth.filter(n => n.node.type === 1 && n.node.id !== editNode?.id).map(({ node, depth }) => (
+                          <SelectItem key={node.id} value={String(node.id)}>
+                            <span style={{ display: 'inline-block', paddingLeft: `${depth * 20}px` }}>{node.name}</span>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
