@@ -7,7 +7,7 @@ import ChoicePanel from 'src/components/ChoicePanel';
 import StoryViewer from 'src/components/StoryViewer';
 import WheelOfFortune from 'src/components/WheelOfFortune';
 import CharacterPanel from 'src/components/CharacterPanel';
-import { Loader2Icon, ArrowLeftIcon, SaveIcon, RotateCcwIcon } from 'lucide-react';
+import { ArrowLeftIcon, SaveIcon, RotateCcwIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import EndingModal from 'src/components/EndingModal';
 import SaveLoadModal from 'src/components/SaveLoadModal';
@@ -109,8 +109,27 @@ export default function PlayerStoryPage() {
 
   if (loading || !session) {
     return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground">
-        <Loader2Icon className="size-5 animate-spin mr-2" /> 加载中...
+      <div className="max-w-3xl mx-auto animate-pulse">
+        <div className="flex items-center justify-between mb-4">
+          <div className="h-8 w-20 bg-muted rounded" />
+          <div className="flex gap-2">
+            <div className="h-8 w-16 bg-muted rounded" />
+            <div className="h-8 w-24 bg-muted rounded" />
+          </div>
+        </div>
+        <div className="grid gap-6 lg:grid-cols-[1fr_220px]">
+          <div className="space-y-4">
+            <div className="h-6 w-48 bg-muted rounded" />
+            <div className="h-32 bg-muted rounded-lg" />
+            <div className="space-y-2">
+              <div className="h-12 bg-muted rounded-lg" />
+              <div className="h-12 bg-muted rounded-lg" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="h-48 bg-muted rounded-lg" />
+          </div>
+        </div>
       </div>
     );
   }

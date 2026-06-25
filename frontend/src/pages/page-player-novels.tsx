@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from 'src/c
 import { Badge } from 'src/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/hooks/useApi';
-import { BookOpenIcon, Loader2Icon } from 'lucide-react';
+import { BookOpenIcon } from 'lucide-react';
 
 interface NovelItem {
   id: number;
@@ -36,8 +36,23 @@ export default function PlayerNovelsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground">
-        <Loader2Icon className="size-5 animate-spin mr-2" /> 加载中...
+      <div>
+        <div className="h-7 w-24 bg-muted rounded animate-pulse mb-1" />
+        <div className="h-5 w-48 bg-muted rounded animate-pulse mb-6" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="rounded-xl border bg-card animate-pulse">
+              <div className="p-4 pb-2 space-y-2">
+                <div className="h-5 w-24 bg-muted rounded" />
+                <div className="h-4 w-32 bg-muted rounded" />
+              </div>
+              <div className="p-4 space-y-2">
+                <div className="h-12 bg-muted rounded" />
+                <div className="h-9 bg-muted rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -48,10 +63,14 @@ export default function PlayerNovelsPage() {
       <p className="text-sm text-muted-foreground mb-6">选择一部作品开始你的冒险</p>
 
       {novels.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <BookOpenIcon className="size-12 mx-auto mb-3 opacity-30" />
-          <p>暂无可见作品</p>
-          {!user && <p className="text-xs mt-1">登录后可查看更多作品</p>}
+        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+          <BookOpenIcon className="size-16 mx-auto mb-4 opacity-20" />
+          <p className="text-lg font-medium">暂无可见作品</p>
+          <p className="text-sm mt-1 max-w-xs text-center">
+            {user
+              ? '当前没有已发布的作品，请联系管理员导入并发布作品'
+              : '登录后可查看更多作品，或等待管理员添加公开作品'}
+          </p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
