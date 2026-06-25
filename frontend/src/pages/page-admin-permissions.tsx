@@ -16,6 +16,7 @@ import { Switch } from 'src/components/ui/switch';
 import {
   Form, FormField, FormItem, FormLabel, FormControl, FormMessage,
 } from 'src/components/ui/form';
+import SearchSelect from 'src/components/SearchSelect';
 import { toast } from 'sonner';
 import api from '@/hooks/useApi';
 import {
@@ -126,6 +127,32 @@ export default function AdminPermissionsPage() {
     };
     return flatten(tree, 0);
   }, [tree]);
+
+  // 构建父节点 Select 选项（含路径）
+  const parentOptions = useMemo(() => {
+    const findPath = (nodeId: number): string => {
+      const n = allNodes.find(x => x.id === nodeId);
+      if (!n) return '';
+      const path = [n.name];
+      let pid = n.parentId;
+      while (pid !== 0) {
+        const p = allNodes.find(x => x.id === pid);
+        if (!p) break;
+        path.unshift(p.name);
+        pid = p.parentId;
+      }
+      return path.join(' / ');
+    };
+    const items: { value: string; label: string; depth: number; path: string }[] = [
+      { value: '0', label: '根节点', depth: 0, path: '' },
+    ];
+    for (const { node, depth } of nodesWithDepth) {
+      if (node.type === 1 && node.id !== editNode?.id) {
+        items.push({ value: String(node.id), label: node.name, depth, path: findPath(node.id) });
+      }
+    }
+    return items;
+  }, [allNodes, nodesWithDepth, editNode]);
 
   // 搜索时预过滤数据：父节点匹配时保留全部子节点
   const filteredData = useMemo(() => {
@@ -402,37 +429,15 @@ export default function AdminPermissionsPage() {
                 <FormField name="parentId" control={form.control} render={({ field }) => (
                   <FormItem>
                     <FormLabel>父节点</FormLabel>
-                    <Select value={field.value} onValueChange={(v) => v !== null && field.onChange(v)}>
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue>
-                            {(v: any) => {
-                              if (v === '0') return '根节点';
-                              const n = allNodes.find(x => String(x.id) === v);
-                              if (!n) return v;
-                              // 找父节点构建路径
-                              const path = [n.name];
-                              let pid = n.parentId;
-                              while (pid !== 0) {
-                                const p = allNodes.find(x => x.id === pid);
-                                if (!p) break;
-                                path.unshift(p.name);
-                                pid = p.parentId;
-                              }
-                              return path.join(' / ');
-                            }}
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="0">根节点</SelectItem>
-                        {nodesWithDepth.filter(n => n.node.type === 1 && n.node.id !== editNode?.id).map(({ node, depth }) => (
-                          <SelectItem key={node.id} value={String(node.id)}>
-                            <span style={{ display: 'inline-block', paddingLeft: `${depth * 20}px` }}>{node.name}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <SearchSelect
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        options={parentOptions}
+                        placeholder="选择父节点"
+                        emptyText="未找到匹配节点"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
