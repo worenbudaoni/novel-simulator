@@ -70,7 +70,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 { title: "作品管理", url: "/admin", icon: <LayoutDashboard />, isActive: pathname === '/admin' || pathname.startsWith('/admin/novel/') },
                 { title: "用户管理", url: "/admin/users", icon: <Users />, isActive: pathname === '/admin/users' },
                 { title: "角色管理", url: "/admin/roles", icon: <Shield />, isActive: pathname === '/admin/roles' },
-                { title: "权限管理", url: "/admin", icon: <KeyRound />, isActive: false },
+                { title: "权限管理", url: "/admin/permissions", icon: <KeyRound />, isActive: pathname === '/admin/permissions' },
                 { title: "Prompt 配置", url: "/admin", icon: <FileCode />, isActive: false },
               ]} />
             )}

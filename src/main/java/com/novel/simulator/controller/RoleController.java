@@ -184,4 +184,21 @@ public class RoleController {
         }
         return Result.success();
     }
+
+    @PostMapping("/permissions")
+    @PreAuthorize("hasAuthority('role:manage')")
+    public Result<Permission> createPermission(@RequestBody Permission permission) {
+        permission.setCreatedAt(LocalDateTime.now());
+        permissionMapper.insert(permission);
+        return Result.success(permission);
+    }
+
+    @DeleteMapping("/permissions/{id}")
+    @PreAuthorize("hasAuthority('role:manage')")
+    public Result<Void> deletePermission(@PathVariable Long id) {
+        rolePermissionMapper.delete(new LambdaQueryWrapper<RolePermission>()
+            .eq(RolePermission::getPermissionId, id));
+        permissionMapper.deleteById(id);
+        return Result.success();
+    }
 }

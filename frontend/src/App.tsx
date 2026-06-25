@@ -14,6 +14,7 @@ import AdminNodeEditorPage from 'src/pages/page-admin-node-editor';
 import AdminEventPoolPage from 'src/pages/page-admin-event-pool';
 import AdminUsersPage from 'src/pages/page-admin-users';
 import AdminRolesPage from 'src/pages/page-admin-roles';
+import AdminPermissionsPage from 'src/pages/page-admin-permissions';
 import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, CommandIcon } from 'lucide-react';
 
@@ -154,6 +155,13 @@ export default function App() {
             <ProtectedAdmin>
               <DashboardLayout>
                 <AdminRolesPage />
+              </DashboardLayout>
+            </ProtectedAdmin>
+          } />
+          <Route path="/admin/permissions" element={
+            <ProtectedAdmin>
+              <DashboardLayout>
+                <AdminPermissionsPage />
               </DashboardLayout>
             </ProtectedAdmin>
           } />
