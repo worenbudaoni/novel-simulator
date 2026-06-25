@@ -9,6 +9,7 @@ import WheelOfFortune from 'src/components/WheelOfFortune';
 import CharacterPanel from 'src/components/CharacterPanel';
 import { Loader2Icon, ArrowLeftIcon, SaveIcon, RotateCcwIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import EndingModal from 'src/components/EndingModal';
 
 export default function PlayerStoryPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -20,6 +21,7 @@ export default function PlayerStoryPage() {
   const [showWheel, setShowWheel] = useState(false);
   const [pendingSpin, setPendingSpin] = useState(false);
   const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
+  const [showEnding, setShowEnding] = useState(false);
 
   useEffect(() => {
     if (sessionId) loadSession(sessionId);
@@ -28,6 +30,14 @@ export default function PlayerStoryPage() {
   useEffect(() => {
     if (session?.storyText) setStoryText(session.storyText);
   }, [session?.storyText]);
+
+  // 到达结局节点时弹出结局
+  useEffect(() => {
+    if (currentNode?.isEnd && !streaming && storyText) {
+      setShowEnding(true);
+      setActionDisabled(true);
+    }
+  }, [currentNode?.isEnd, streaming]);
 
   // 触发 SSE 故事流
   const triggerStory = useCallback((sid: string) => {
@@ -168,6 +178,27 @@ export default function PlayerStoryPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 结局弹窗 */}
+      {showEnding && (
+        <EndingModal
+          nodeTitle={currentNode?.title || '结局'}
+          nodeDescription={currentNode?.description}
+          character={character ? {
+            hp: character.hp,
+            attack: character.attack,
+            defense: character.defense,
+            intelligence: character.intelligence,
+            charm: character.charm,
+            luck: character.luck,
+            choicesMade: character.choicesMade,
+            eventsTriggered: character.eventsTriggered,
+            currentTitle: character.currentTitle,
+          } : null}
+          onRestart={async () => { setShowEnding(false); await restartSession(); setStoryText(''); }}
+          onBackToHome={() => navigate('/player')}
+        />
       )}
     </div>
   );
