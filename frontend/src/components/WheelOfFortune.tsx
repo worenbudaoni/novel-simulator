@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Loader2Icon } from 'lucide-react';
 
 interface WheelOfFortuneProps {
-  onSpin: () => void;
+  onSpin: (sectorIndex: number) => void;
   disabled?: boolean;
   spinning?: boolean;
 }
 
 const COLORS = ['#a855f7', '#eab308', '#ef4444', '#22c55e', '#6366f1', '#06b6d4'];
+
+const SECTOR_NAMES = ['奇遇', '宝箱', '战斗', '诅咒', '命运', '邂逅'];
 
 const SECTORS = [
   { icon: '✨' },
@@ -20,17 +22,19 @@ const SECTORS = [
 
 export default function WheelOfFortune({ onSpin, disabled, spinning }: WheelOfFortuneProps) {
   const [pointerRot, setPointerRot] = useState(0);
+  const [resultSector, setResultSector] = useState(-1);
 
   const handleSpin = () => {
+    const idx = Math.floor(Math.random() * 6);
+    setResultSector(idx);
+    const target = idx * 60 + 30; // 扇区中心
     const extra = (3 + Math.floor(Math.random() * 3)) * 360;
-    const randomSector = Math.random() * 360;
     setPointerRot(prev => {
-      let r = prev + extra + randomSector;
-      // 保证每次多转 3-5 圈
+      let r = prev + extra + target;
       if (r - prev < 1080) r += 1080;
       return r;
     });
-    onSpin();
+    onSpin(idx);
   };
 
   const n = SECTORS.length;
@@ -75,7 +79,14 @@ export default function WheelOfFortune({ onSpin, disabled, spinning }: WheelOfFo
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground">点击中心按钮抽奖</p>
+      {!spinning && resultSector >= 0 && (
+        <div className="text-center">
+          <span className="text-xl">{SECTORS[resultSector].icon}</span>
+          <span className="text-sm font-medium ml-1">{SECTOR_NAMES[resultSector]}</span>
+        </div>
+      )}
+      {spinning && <p className="text-xs text-muted-foreground">抽奖中...</p>}
+      {!spinning && resultSector < 0 && <p className="text-xs text-muted-foreground">点击中心按钮抽奖</p>}
     </div>
   );
 }

@@ -104,19 +104,17 @@ export default function PlayerStoryPage() {
   // 转盘抽奖
   const handleSpin = async () => {
     setPendingSpin(true);
-    const spinStart = Date.now();
+    // 同时发起 API 和计时，互不阻塞
+    const spinPromise = spinAction();
+    // 指针转 1s + 停留 1s = 2s 后关转盘
+    await new Promise(r => setTimeout(r, 2000));
+    setShowWheel(false);
     try {
-      const result = await spinAction();
-      // 从点击开始算，至少等动画结束（1s）再停留 1s，总共至少 2s
-      const elapsed = Date.now() - spinStart;
-      const minWait = Math.max(0, 2000 - elapsed);
-      await new Promise(r => setTimeout(r, minWait));
-      // displayDesc: 展示在故事区；sseDesc: 只传标题给 SSE，完整事件内容从 Redis 读取
+      const result = await spinPromise;
       const displayDesc = result?.eventTitle
         ? result.eventTitle + '！' + (result.eventDescription || '')
         : (result?.eventDescription || '');
       const sseDesc = result?.eventTitle || '';
-      setShowWheel(false);
       if (sessionId) {
         triggerStory(sessionId, displayDesc, sseDesc);
       }
