@@ -24,6 +24,7 @@ export default function PlayerStoryPage() {
   const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
   const [showEnding, setShowEnding] = useState(false);
   const [showSaveLoad, setShowSaveLoad] = useState(false);
+  const [lastEventDesc, setLastEventDesc] = useState('');
 
   useEffect(() => {
     if (sessionId) loadSession(sessionId);
@@ -42,14 +43,15 @@ export default function PlayerStoryPage() {
   }, [currentNode?.isEnd, streaming]);
 
   // 触发 SSE 故事流
-  const triggerStory = useCallback((sid: string) => {
+  const triggerStory = useCallback((sid: string, desc?: string) => {
     setStoryText('');
     setPendingSessionId(sid);
+    setLastEventDesc(desc || '');
     connect(sid, {
       onStory: (text) => setStoryText(prev => prev + text + '\n\n'),
       onDone: () => { setActionDisabled(false); setPendingSpin(false); setShowWheel(false); setPendingSessionId(null); },
       onError: (msg) => { toast.error(msg); setActionDisabled(false); setPendingSpin(false); setShowWheel(false); setPendingSessionId(null); },
-    });
+    }, desc);
   }, [connect]);
 
   // 选择选项
@@ -73,7 +75,7 @@ export default function PlayerStoryPage() {
         setShowWheel(true);
         setPendingSessionId(sessionId);
       } else {
-        triggerStory(sessionId);
+        triggerStory(sessionId, '做出了选择');
       }
     } catch { setActionDisabled(false); }
   };
@@ -83,13 +85,17 @@ export default function PlayerStoryPage() {
     setPendingSpin(true);
     try {
       const result = await spinAction();
-      if (result?.triggeredEvent) {
-        toast.info(`触发事件：${result.triggeredEvent.title}`);
+      let desc = '';
+      if (result?.eventTitle) {
+        toast.info(result.eventTitle);
+        desc = result.eventTitle + '！' + (result.eventDescription || '');
+      } else if (result?.eventDescription) {
+        desc = result.eventDescription;
       }
-      // 关闭转盘，触发故事
+      // 关闭转盘，触发故事（带事件描述）
       setShowWheel(false);
       if (pendingSessionId) {
-        triggerStory(pendingSessionId);
+        triggerStory(pendingSessionId, desc);
       }
     } catch { setPendingSpin(false); setActionDisabled(false); }
   };

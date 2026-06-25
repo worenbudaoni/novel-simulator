@@ -241,7 +241,8 @@ public class PlayerController {
     }
 
     @GetMapping("/story/stream/{sessionId}")
-    public SseEmitter streamStory(@PathVariable String sessionId) {
+    public SseEmitter streamStory(@PathVariable String sessionId,
+                                   @RequestParam(required = false) String description) {
         SseEmitter emitter = new SseEmitter(300_000L);
         try {
             UserSession session = sessionService.getBySessionId(sessionId);
@@ -256,7 +257,18 @@ public class PlayerController {
                 return emitter;
             }
 
-            String story = storyChain.generateStory(session, currentNode, character, "");
+            String story;
+            // 结局节点 → 生成结局总结，替换当前故事文本
+            if (Boolean.TRUE.equals(currentNode.getIsEnd())) {
+                story = storyChain.generateEnding(session, character);
+                session.setStoryText(story);
+            } else {
+                story = storyChain.generateStory(session, currentNode, character,
+                    description != null ? description : "");
+                String existingStory = session.getStoryText() != null ? session.getStoryText() : "";
+                session.setStoryText(existingStory + "\n\n" + story);
+            }
+
             String[] paragraphs = story.split("\n\n");
             for (String para : paragraphs) {
                 emitter.send(SseEmitter.event().name("story").data(para));
@@ -264,8 +276,6 @@ public class PlayerController {
             }
             emitter.send(SseEmitter.event().name("done").data(""));
 
-            String existingStory = session.getStoryText() != null ? session.getStoryText() : "";
-            session.setStoryText(existingStory + "\n\n" + story);
             session.setStorySummary(storyChain.generateSummary(session.getStoryText()));
             session.setUpdatedAt(java.time.LocalDateTime.now());
             userSessionMapper.updateById(session);

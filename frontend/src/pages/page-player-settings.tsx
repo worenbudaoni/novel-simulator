@@ -18,9 +18,9 @@ const RANDOM_NAMES = [
 
 const TEMPLATES = [
   { icon: '🗡️', label: '战士',   hp: 100, attack: 20, defense: 20, intelligence: 30, charm: 30, luck: 40, desc: '高攻高防' },
-  { icon: '📖', label: '智者',   hp: 80,  attack: 8,  defense: 8,  intelligence: 70, charm: 40, luck: 40, desc: '高智力' },
-  { icon: '💄', label: '魅力型', hp: 90,  attack: 10, defense: 10, intelligence: 40, charm: 70, luck: 40, desc: '高魅力' },
-  { icon: '🍀', label: '幸运型', hp: 80,  attack: 10, defense: 10, intelligence: 40, charm: 40, luck: 70, desc: '高运气' },
+  { icon: '📖', label: '智者',   hp: 80,  attack: 8,  defense: 8,  intelligence: 70, charm: 40, luck: 40, desc: '高悟性' },
+  { icon: '💕', label: '魅力型', hp: 90,  attack: 10, defense: 10, intelligence: 40, charm: 70, luck: 40, desc: '高魅力' },
+  { icon: '🍀', label: '幸运型', hp: 80,  attack: 10, defense: 10, intelligence: 40, charm: 40, luck: 70, desc: '高气运' },
   { icon: '⚖️', label: '均衡型', hp: 100, attack: 12, defense: 12, intelligence: 45, charm: 45, luck: 45, desc: '属性平均' },
   { icon: '🔥', label: '挑战型', hp: 70,  attack: 8,  defense: 8,  intelligence: 50, charm: 50, luck: 50, desc: '低起点高成长' },
 ];

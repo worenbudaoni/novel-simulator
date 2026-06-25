@@ -40,6 +40,12 @@ public class ActionEngine {
 
         UserCharacter character = getCharacter(sessionId);
         character.setChoicesMade(character.getChoicesMade() != null ? character.getChoicesMade() + 1 : 1);
+        // 每次选择微增属性
+        java.util.Random rnd = new java.util.Random();
+        character.setIntelligence(character.getIntelligence() + (rnd.nextBoolean() ? 1 : 0));
+        character.setCharm(character.getCharm() + (rnd.nextBoolean() ? 1 : 0));
+        character.setLuck(character.getLuck() + (rnd.nextBoolean() ? 1 : 0));
+        if (character.getHp() < 100) character.setHp(character.getHp() + 1);
         updateHistory(session, option.getNodeId());
 
         Node targetNode = null;
@@ -72,9 +78,13 @@ public class ActionEngine {
         Node currentNode = nodeMapper.selectById(nodeId);
         Map<String, Object> eventData = eventChain.generateEvent(session, currentNode, character, null);
 
-        // 应用属性变化
-        int hpChange = (int) eventData.getOrDefault("hpChange", 0);
-        character.setHp(character.getHp() + hpChange);
+        // 应用多维属性变化
+        character.setHp(character.getHp() + ((Number) eventData.getOrDefault("hpChange", 0)).intValue());
+        character.setAttack(character.getAttack() + ((Number) eventData.getOrDefault("atkChange", 0)).intValue());
+        character.setDefense(character.getDefense() + ((Number) eventData.getOrDefault("defChange", 0)).intValue());
+        character.setIntelligence(character.getIntelligence() + ((Number) eventData.getOrDefault("intChange", 0)).intValue());
+        character.setCharm(character.getCharm() + ((Number) eventData.getOrDefault("chaChange", 0)).intValue());
+        character.setLuck(character.getLuck() + ((Number) eventData.getOrDefault("lukChange", 0)).intValue());
         character.setEventsTriggered(character.getEventsTriggered() != null ? character.getEventsTriggered() + 1 : 1);
         character.setUpdatedAt(LocalDateTime.now());
         userCharacterMapper.updateById(character);
@@ -83,8 +93,19 @@ public class ActionEngine {
 
         ActionResult result = new ActionResult();
         result.setActionType("spin");
+        result.setEventTitle((String) eventData.get("title"));
         result.setEventDescription((String) eventData.get("content"));
         result.setCharacter(character);
+
+        // 返回属性变化供前端展示
+        Map<String, Object> changes = new HashMap<>();
+        changes.put("hp", eventData.get("hpChange"));
+        changes.put("attack", eventData.get("atkChange"));
+        changes.put("defense", eventData.get("defChange"));
+        changes.put("intelligence", eventData.get("intChange"));
+        changes.put("charm", eventData.get("chaChange"));
+        changes.put("luck", eventData.get("lukChange"));
+        result.setAttrChanges(changes);
         return result;
     }
 

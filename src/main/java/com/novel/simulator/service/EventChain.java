@@ -7,62 +7,73 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
-/**
- * LLM 随机事件生成 Chain
- * 根据世界观、当前节点、角色属性生成符合上下文的事件
- * 当前为 stub 实现，后续接入真实 LLM
- */
 @Service
 public class EventChain {
     private static final Logger log = LoggerFactory.getLogger(EventChain.class);
 
-    private static final List<String> POSITIVE_EVENTS = Arrays.asList(
-        "你发现了一个隐藏的宝箱，里面有一些有用的物品。",
-        "一位路过的旅人给了你一些有用的建议。",
-        "你找到了一条捷径，节省了不少时间。",
-        "空气中弥漫着治愈的力量，你感到体力恢复了一些。"
-    );
-
-    private static final List<String> NEGATIVE_EVENTS = Arrays.asList(
-        "你不慎踩中了陷阱，受到了伤害。",
-        "一群强盗突然出现，抢走了你的一些物品。",
-        "天气突然变得恶劣，你不得不在原地休息。",
-        "你误入了有毒的雾区，感到身体不适。"
-    );
-
-    private static final List<String> NEUTRAL_EVENTS = Arrays.asList(
-        "你听到了远处传来的奇怪声音，但什么都没有发生。",
-        "一阵风吹过，卷起了地上的落叶。",
-        "你发现了一些可疑的足迹，但它们很快就消失了。"
-    );
-
     public Map<String, Object> generateEvent(UserSession session, Node currentNode,
                                               UserCharacter character, String eventType) {
+        int sector = new Random().nextInt(6);
         Map<String, Object> result = new HashMap<>();
+        String title, content;
+        int hp=0, atk=0, def=0, inte=0, cha=0, luk=0;
 
-        // 根据类型选择事件内容
-        String content;
-        int eventTypeCode;
-        int hpChange = 0;
-
-        if ("positive".equals(eventType) || Math.random() < 0.3) {
-            eventTypeCode = 0;
-            content = POSITIVE_EVENTS.get(new Random().nextInt(POSITIVE_EVENTS.size()));
-            hpChange = new Random().nextInt(20) + 5;
-        } else if (Math.random() < 0.6) {
-            eventTypeCode = 1;
-            content = NEGATIVE_EVENTS.get(new Random().nextInt(NEGATIVE_EVENTS.size()));
-            hpChange = -(new Random().nextInt(25) + 5);
-        } else {
-            eventTypeCode = 2;
-            content = NEUTRAL_EVENTS.get(new Random().nextInt(NEUTRAL_EVENTS.size()));
+        switch (sector) {
+            case 0: // 奇遇
+                title = "✨ 奇遇";
+                content = "命运的齿轮悄然转动，你在一处不经意的地方发现了一段古老的铭文。"
+                    + "虽然无法完全理解，但你的悟性似乎得到了启发。";
+                inte = 1 + new Random().nextInt(3);
+                luk = 1 + new Random().nextInt(3);
+                break;
+            case 1: // 宝箱
+                title = "💎 宝箱";
+                content = "你发现了一个被遗忘的宝箱！打开后，里面有一些珍贵的物资和装备。"
+                    + "这让你在接下来的旅程中更有底气。";
+                atk = 1 + new Random().nextInt(3);
+                def = 1 + new Random().nextInt(3);
+                luk = 1;
+                break;
+            case 2: // 战斗
+                title = "⚔️ 战斗";
+                content = "一阵腥风扑面而来，你遭到了袭击！经过一番激烈的搏斗，"
+                    + "你虽然受了伤，但也从战斗中积累了宝贵的经验。";
+                hp = -(10 + new Random().nextInt(10));
+                atk = 1 + new Random().nextInt(2);
+                def = 1;
+                break;
+            case 3: // 诅咒
+                title = "💀 诅咒";
+                content = "你触碰了不该碰的东西——一股阴冷的能量沿着手臂蔓延。"
+                    + "你感到自己的气运在流逝，必须尽快找到化解之法。";
+                hp = -(5 + new Random().nextInt(10));
+                inte = -(1 + new Random().nextInt(3));
+                luk = -(1 + new Random().nextInt(3));
+                break;
+            case 4: // 命运
+                title = "🌀 命运";
+                content = "一位神秘的占卜师出现在你面前，她凝视着你，目光仿佛穿透了时空。"
+                    + "「你的命运……正在改变。」她留下这句话后便消失了。";
+                luk = 2 + new Random().nextInt(4);
+                inte = 1;
+                break;
+            default: // 邂逅
+                title = "💕 邂逅";
+                content = "你遇到了一位友善的旅人。你们相谈甚欢，临别时他/她送给你一些补给，"
+                    + "并为你指了一条更安全的路。";
+                cha = 1 + new Random().nextInt(3);
+                hp = 5 + new Random().nextInt(10);
+                break;
         }
 
-        result.put("title", eventTypeCode == 0 ? "好运气" : eventTypeCode == 1 ? "倒霉事" : "怪事");
+        result.put("title", title);
         result.put("content", content);
-        result.put("eventType", eventTypeCode);
-        result.put("hpChange", hpChange);
-
+        result.put("hpChange", hp);
+        result.put("atkChange", atk);
+        result.put("defChange", def);
+        result.put("intChange", inte);
+        result.put("chaChange", cha);
+        result.put("lukChange", luk);
         return result;
     }
 }

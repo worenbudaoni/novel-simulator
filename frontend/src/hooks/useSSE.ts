@@ -12,14 +12,14 @@ export function useSSE() {
   const eventSourceRef = useRef<EventSource | null>(null);
   const optionsRef = useRef<SSEOptions>({});
 
-  const connect = useCallback((sessionId: string, options?: SSEOptions) => {
+  const connect = useCallback((sessionId: string, options?: SSEOptions, description?: string) => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
 
     optionsRef.current = options || {};
     const token = localStorage.getItem('sessionId');
-    const url = `/api/player/story/stream/${sessionId}?token=${token}`;
+    const url = `/api/player/story/stream/${sessionId}?token=${token}${description ? `&description=${encodeURIComponent(description)}` : ''}`;
     const es = new EventSource(url);
     eventSourceRef.current = es;
     setConnected(true);
