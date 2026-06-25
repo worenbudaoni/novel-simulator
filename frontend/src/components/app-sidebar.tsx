@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { NavMain } from "src/components/nav-main"
 import { NavDocuments } from "src/components/nav-documents"
 import { NavSecondary } from "src/components/nav-secondary"
@@ -28,18 +28,26 @@ const defaultIcon = <LayoutDashboard className="size-4" />;
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
-  const { menuTree, loading } = useMenuTree();
+  const { menuTree } = useMenuTree();
+  const { pathname } = useLocation();
 
-  const adminItems: { title: string; url: string; icon: React.ReactNode }[] = [];
-  if (!loading) {
-    const sysGroup = menuTree.find(n => n.code === 'menu:admin');
-    if (sysGroup && sysGroup.children) {
-      for (const child of sysGroup.children) {
-        if (child.type !== 1) continue;
-        const url = child.route || '/';
-        const icon = routeIcons[url] || defaultIcon;
-        adminItems.push({ title: child.name, url, icon });
-      }
+  const isActive = (url: string) => {
+    if (url === '/admin') return pathname === '/admin' || pathname.startsWith('/admin/novel/');
+    if (url === '/player') return pathname === '/player' || pathname === '/player/guest';
+    return pathname.startsWith(url);
+  };
+
+  const adminItems: { title: string; url: string; icon: React.ReactNode; isActive?: boolean }[] = [];
+  const seenUrls = new Set<string>();
+  const sysGroup = menuTree.find(n => n.code === 'menu:admin');
+  if (sysGroup && sysGroup.children) {
+    for (const child of sysGroup.children) {
+      if (child.type !== 1) continue;
+      const url = child.route || '/';
+      if (seenUrls.has(url)) continue;
+      seenUrls.add(url);
+      const icon = routeIcons[url] || defaultIcon;
+      adminItems.push({ title: child.name, url, icon, isActive: isActive(url) });
     }
   }
 

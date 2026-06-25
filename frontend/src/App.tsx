@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, Outlet } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { SidebarProvider, SidebarInset } from 'src/components/ui/sidebar';
 import { AppSidebar } from 'src/components/app-sidebar';
@@ -19,13 +19,13 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, CommandIcon } from 'lucide-react';
 
-function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardLayout({ children }: { children?: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
         <SiteHeader />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-6">{children ?? <Outlet />}</main>
       </SidebarInset>
     </SidebarProvider>
   );
@@ -100,55 +100,16 @@ export default function App() {
               <SectionCards />
             </DashboardLayout>
           } />
-          <Route path="/admin" element={
-            <ProtectedRoute code="menu:novels">
-              <DashboardLayout>
-                <AdminNovelsPage />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/novel/:novelId/import" element={
-            <ProtectedRoute code="menu:novels">
-              <DashboardLayout>
-                <AdminNovelImportPage />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/novel/:novelId/nodes" element={
-            <ProtectedRoute code="menu:novels">
-              <DashboardLayout>
-                <AdminNodeEditorPage />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/novel/:novelId/events" element={
-            <ProtectedRoute code="menu:novels">
-              <DashboardLayout>
-                <AdminEventPoolPage />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/users" element={
-            <ProtectedRoute code="menu:users">
-              <DashboardLayout>
-                <AdminUsersPage />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/roles" element={
-            <ProtectedRoute code="menu:roles">
-              <DashboardLayout>
-                <AdminRolesPage />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/permissions" element={
-            <ProtectedRoute code="menu:permissions">
-              <DashboardLayout>
-                <AdminPermissionsPage />
-              </DashboardLayout>
-            </ProtectedRoute>
-          } />
+          {/* 有侧边栏路由组 — 防止导航时重新挂载 */}
+          <Route element={<DashboardLayout><Outlet /></DashboardLayout>}>
+            <Route path="/admin" element={<ProtectedRoute code="menu:novels"><AdminNovelsPage /></ProtectedRoute>} />
+            <Route path="/admin/novel/:novelId/import" element={<ProtectedRoute code="menu:novels"><AdminNovelImportPage /></ProtectedRoute>} />
+            <Route path="/admin/novel/:novelId/nodes" element={<ProtectedRoute code="menu:novels"><AdminNodeEditorPage /></ProtectedRoute>} />
+            <Route path="/admin/novel/:novelId/events" element={<ProtectedRoute code="menu:novels"><AdminEventPoolPage /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute code="menu:users"><AdminUsersPage /></ProtectedRoute>} />
+            <Route path="/admin/roles" element={<ProtectedRoute code="menu:roles"><AdminRolesPage /></ProtectedRoute>} />
+            <Route path="/admin/permissions" element={<ProtectedRoute code="menu:permissions"><AdminPermissionsPage /></ProtectedRoute>} />
+          </Route>
           <Route path="/" element={<Navigate to="/player" replace />} />
           <Route path="*" element={<Navigate to="/player" replace />} />
         </Routes>
