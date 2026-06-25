@@ -1,4 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from 'src/components/ui/button';
 import { Input } from 'src/components/ui/input';
 import { Badge } from 'src/components/ui/badge';
@@ -10,6 +13,9 @@ import {
 } from 'src/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/components/ui/select';
 import { Switch } from 'src/components/ui/switch';
+import {
+  Form, FormField, FormItem, FormLabel, FormControl, FormMessage,
+} from 'src/components/ui/form';
 import { toast } from 'sonner';
 import api from '@/hooks/useApi';
 import {
@@ -24,6 +30,18 @@ import {
   createColumnHelper,
   flexRender,
 } from '@tanstack/react-table';
+
+const formSchema = z.object({
+  name: z.string().min(1, '请输入权限名称'),
+  code: z.string().min(1, '请输入权限标识'),
+  type: z.string().min(1),
+  parentId: z.string().min(1),
+  route: z.string().optional(),
+  sortOrder: z.string().optional(),
+  status: z.boolean(),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 interface PermissionNode {
   id: number;
@@ -56,16 +74,14 @@ export default function AdminPermissionsPage() {
   const [search, setSearch] = useState('');
   const [showDialog, setShowDialog] = useState(false);
   const [editNode, setEditNode] = useState<PermissionNode | null>(null);
-
-  // Form fields
-  const [formName, setFormName] = useState('');
-  const [formCode, setFormCode] = useState('');
-  const [formType, setFormType] = useState('2');
-  const [formParentId, setFormParentId] = useState('0');
-  const [formRoute, setFormRoute] = useState('');
-  const [formSortOrder, setFormSortOrder] = useState('0');
-  const [formStatus, setFormStatus] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: { name: '', code: '', type: '2', parentId: '0', route: '', sortOrder: '0', status: true },
+  });
+
+  const watchType = form.watch('type');
 
   useEffect(() => { loadTree(); }, []);
 
@@ -82,14 +98,10 @@ export default function AdminPermissionsPage() {
     } finally { setLoading(false); }
   };
 
-  // 所有节点展平（用于父节点选择器）
   const allNodes = useMemo(() => {
     const flatten = (nodes: PermissionNode[]): PermissionNode[] => {
       const result: PermissionNode[] = [];
-      for (const n of nodes) {
-        result.push(n);
-        if (n.children) result.push(...flatten(n.children));
-      }
+      for (const n of nodes) { result.push(n); if (n.children) result.push(...flatten(n.children)); }
       return result;
     };
     return flatten(tree);
@@ -97,33 +109,31 @@ export default function AdminPermissionsPage() {
 
   // --- 新建 / 编辑 ---
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setEditNode(null);
-    setFormName(''); setFormCode(''); setFormType('2');
-    setFormParentId('0'); setFormRoute(''); setFormSortOrder('0');
-    setFormStatus(true);
+    form.reset({ name: '', code: '', type: '2', parentId: '0', route: '', sortOrder: '0', status: true });
     setShowDialog(true);
-  };
+  }, [form]);
 
-  const openEdit = (node: PermissionNode) => {
+  const openEdit = useCallback((node: PermissionNode) => {
     setEditNode(node);
-    setFormName(node.name);
-    setFormCode(node.code);
-    setFormType(String(node.type));
-    setFormParentId(String(node.parentId));
-    setFormRoute(node.route || '');
-    setFormSortOrder(String(node.sortOrder));
-    setFormStatus(node.status === 1);
+    form.reset({
+      name: node.name,
+      code: node.code,
+      type: String(node.type),
+      parentId: String(node.parentId),
+      route: node.route || '',
+      sortOrder: String(node.sortOrder),
+      status: node.status === 1,
+    });
     setShowDialog(true);
-  };
+  }, [form]);
 
-  const handleSave = async () => {
-    if (!formName.trim()) { toast.error('请输入权限名称'); return; }
-    if (!formCode.trim()) { toast.error('请输入权限标识'); return; }
+  const handleSave = useCallback(async (data: FormData) => {
     setSaving(true);
     try {
-      const body: any = { name: formName.trim(), code: formCode.trim(), type: Number(formType), parentId: Number(formParentId), sortOrder: Number(formSortOrder), status: formStatus ? 1 : 0 };
-      if (formType === '1' && formRoute.trim()) body.route = formRoute.trim();
+      const body: any = { name: data.name, code: data.code, type: Number(data.type), parentId: Number(data.parentId), sortOrder: Number(data.sortOrder), status: data.status ? 1 : 0 };
+      if (data.type === '1' && data.route) body.route = data.route;
 
       if (editNode) {
         await api.put(`/admin/permissions/${editNode.id}`, body);
@@ -135,16 +145,16 @@ export default function AdminPermissionsPage() {
       setShowDialog(false);
       await loadTree();
     } finally { setSaving(false); }
-  };
+  }, [editNode]);
 
-  const handleDelete = async (node: PermissionNode) => {
+  const handleDelete = useCallback(async (node: PermissionNode) => {
     if (!confirm(`确定删除「${node.name}」？${node.children?.length ? ' 其子节点也将被删除。' : ''}`)) return;
     try {
       await api.delete(`/admin/permissions/${node.id}`);
       toast.success('已删除');
       await loadTree();
     } catch { /* handled */ }
-  };
+  }, []);
 
   // --- 列定义 ---
 
@@ -231,7 +241,7 @@ export default function AdminPermissionsPage() {
         </div>
       ),
     }),
-  ], []);
+  ], [openEdit, handleDelete]);
 
   const globalFilter = useMemo(() => search || undefined, [search]);
 
@@ -308,75 +318,110 @@ export default function AdminPermissionsPage() {
 
       {/* 新建 / 编辑 Dialog */}
       <Dialog open={showDialog} onOpenChange={o => { if (!o) { setShowDialog(false); setEditNode(null); } }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{editNode ? '编辑权限' : '新建权限'}</DialogTitle>
-            <DialogDescription>{editNode ? '修改权限信息' : '创建新的菜单或按钮权限'}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">类型</label>
-                <Select value={formType} onValueChange={(v) => v !== null && setFormType(v)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      {(v: any) => v === '1' ? '菜单' : v === '2' ? '按钮' : v}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">菜单</SelectItem>
-                    <SelectItem value="2">按钮</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">状态</label>
-                <div className="flex items-center h-9">
-                  <Switch checked={formStatus} onCheckedChange={setFormStatus} />
-                  <span className="ml-2 text-sm text-muted-foreground">{formStatus ? '有效' : '无效'}</span>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSave)}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>{editNode ? '编辑权限' : '新建权限'}</DialogTitle>
+                <DialogDescription>{editNode ? '修改权限信息' : '创建新的菜单或按钮权限'}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField name="type" control={form.control} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>类型</FormLabel>
+                      <Select value={field.value} onValueChange={(v) => v !== null && field.onChange(v)}>
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue>
+                              {(v: any) => v === '1' ? '菜单' : '按钮'}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="1">菜单</SelectItem>
+                          <SelectItem value="2">按钮</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <FormField name="status" control={form.control} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>状态</FormLabel>
+                      <div className="flex items-center h-9">
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <span className="ml-2 text-sm text-muted-foreground">{field.value ? '有效' : '无效'}</span>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                 </div>
+
+                <FormField name="parentId" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>父节点</FormLabel>
+                    <Select value={field.value} onValueChange={(v) => v !== null && field.onChange(v)}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue>
+                            {(v: any) => v === '0' ? '根节点' : allNodes.find(n => String(n.id) === v)?.name || v}
+                          </SelectValue>
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="0">根节点</SelectItem>
+                        {allNodes.filter(n => n.type === 1 && n.id !== editNode?.id).map(n => (
+                          <SelectItem key={n.id} value={String(n.id)}>{n.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField name="name" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>名称</FormLabel>
+                    <FormControl><Input {...field} placeholder="如：导出作品" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField name="code" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>权限标识</FormLabel>
+                    <FormControl><Input {...field} placeholder="如：novel:export" className="font-mono" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                {watchType === '1' && (
+                  <FormField name="route" control={form.control} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>路由路径</FormLabel>
+                      <FormControl><Input {...field} placeholder="如：/admin/settings" className="font-mono" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                )}
+
+                <FormField name="sortOrder" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>排序</FormLabel>
+                    <FormControl><Input type="number" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">父节点</label>
-              <Select value={formParentId} onValueChange={(v) => v !== null && setFormParentId(v)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue>
-                    {(v: any) => v === '0' ? '根节点' : allNodes.find(n => String(n.id) === v)?.name || v}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">根节点</SelectItem>
-                  {allNodes.filter(n => n.type === 1 && n.id !== editNode?.id).map(n => (
-                    <SelectItem key={n.id} value={String(n.id)}>{n.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">名称</label>
-              <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="如：导出作品" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">权限标识</label>
-              <Input value={formCode} onChange={e => setFormCode(e.target.value)} placeholder="如：novel:export" className="font-mono" />
-            </div>
-            {formType === '1' && (
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">路由路径</label>
-                <Input value={formRoute} onChange={e => setFormRoute(e.target.value)} placeholder="如：/admin/settings" className="font-mono" />
-              </div>
-            )}
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">排序</label>
-              <Input type="number" value={formSortOrder} onChange={e => setFormSortOrder(e.target.value)} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowDialog(false); setEditNode(null); }}>取消</Button>
-            <Button onClick={handleSave} disabled={saving}>{saving ? '保存中...' : editNode ? '保存修改' : '创建'}</Button>
-          </DialogFooter>
-        </DialogContent>
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => { setShowDialog(false); setEditNode(null); }}>取消</Button>
+                <Button type="submit" disabled={saving}>{saving ? '保存中...' : editNode ? '保存修改' : '创建'}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </form>
+        </Form>
       </Dialog>
     </div>
   );
