@@ -5,7 +5,6 @@ import com.novel.simulator.entity.Novel;
 import com.novel.simulator.entity.UserCharacter;
 import com.novel.simulator.entity.UserSession;
 import com.novel.simulator.mapper.NovelMapper;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import org.slf4j.Logger;
@@ -20,7 +19,6 @@ public class StoryChain {
     private static final Logger log = LoggerFactory.getLogger(StoryChain.class);
 
     private final NovelMapper novelMapper;
-    private final ObjectMapper objectMapper;
 
     @Value("${llm.api-url:}")
     private String llmApiUrl;
@@ -31,9 +29,8 @@ public class StoryChain {
     @Value("${llm.model-name:gpt-3.5-turbo}")
     private String llmModelName;
 
-    public StoryChain(NovelMapper novelMapper, ObjectMapper objectMapper) {
+    public StoryChain(NovelMapper novelMapper) {
         this.novelMapper = novelMapper;
-        this.objectMapper = objectMapper;
     }
 
     private static class LlmResult {
