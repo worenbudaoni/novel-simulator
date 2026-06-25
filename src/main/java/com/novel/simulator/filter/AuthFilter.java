@@ -27,7 +27,7 @@ public class AuthFilter extends OncePerRequestFilter {
 
     private static final String SESSION_PREFIX = "auth:sessions:";
     private static final long SESSION_TTL = 24;
-    private static final List<String> WHITE_LIST = Arrays.asList("/api/auth/login", "/api/auth/register");
+    private static final List<String> WHITE_LIST = Arrays.asList("/api/auth/login", "/api/auth/register", "/api/auth/menus");
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;

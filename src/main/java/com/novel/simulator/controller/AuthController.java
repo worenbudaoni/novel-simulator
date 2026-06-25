@@ -65,7 +65,7 @@ public class AuthController {
         @SuppressWarnings("unchecked")
         Map<String, Object> currentUser = (Map<String, Object>) request.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.unauthorized("未登录");
+            return Result.success(java.util.Collections.emptyList());
         }
         @SuppressWarnings("unchecked")
         List<String> permissions = (List<String>) currentUser.get("permissions");
