@@ -35,6 +35,7 @@ public class SecurityConfig {
             .and()
             .authorizeRequests()
             .antMatchers("/api/auth/**").permitAll()
+            .antMatchers("/api/player/**").permitAll()
             .anyRequest().authenticated()
             .and()
             .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class);

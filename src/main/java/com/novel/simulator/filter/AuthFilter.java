@@ -45,6 +45,19 @@ public class AuthFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
+        // Player API 放行（游客可不带 token 访问，Controller 自行处理角色）
+        if (path.startsWith("/api/player/")) {
+            String token = request.getParameter("token");
+            if (token != null && !token.isEmpty()) {
+                // 有 token 则正常鉴权
+                processAuth(request, response, filterChain, token);
+            } else {
+                // 无 token 也放行，Controller 按 GUEST 处理
+                filterChain.doFilter(request, response);
+            }
+            return;
+        }
+
         if (WHITE_LIST.contains(path)) {
             filterChain.doFilter(request, response);
             return;
@@ -63,6 +76,11 @@ public class AuthFilter extends OncePerRequestFilter {
             writeUnauthorized(response, "Missing or invalid Authorization header");
             return;
         }
+        processAuth(request, response, filterChain, sessionId);
+    }
+
+    private void processAuth(HttpServletRequest request, HttpServletResponse response,
+                             FilterChain filterChain, String sessionId) throws IOException, ServletException {
         String sessionKey = SESSION_PREFIX + sessionId;
         String sessionJson = redisTemplate.opsForValue().get(sessionKey);
 
