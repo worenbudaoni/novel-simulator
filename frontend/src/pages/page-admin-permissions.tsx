@@ -368,7 +368,7 @@ export default function AdminPermissionsPage() {
               return (
                 <TableRow
                   key={row.id}
-                  className={`hover:bg-muted/10 ${row.getCanExpand() ? 'cursor-pointer' : ''}`}
+                  className={`hover:bg-muted/40 ${row.getCanExpand() ? 'cursor-pointer' : ''}`}
                   onClick={() => row.getCanExpand() && row.getToggleExpandedHandler()()}
                 >
                   {row.getVisibleCells().map((cell, ci) => (
