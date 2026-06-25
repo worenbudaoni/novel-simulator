@@ -73,7 +73,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               { title: "作品列表", url: "/player", icon: <BookOpen /> },
             ]} />
             <NavDocuments items={[]} />
-            <div className="flex-1" />
             {adminItems.length > 0 && (
               <NavMain title="管理后台" items={adminItems} />
             )}
