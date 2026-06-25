@@ -204,13 +204,25 @@ public class ParseChain {
 
     private LlmResult callLlm(String prompt) {
         LlmResult r = new LlmResult();
+        // API Key 未配置时跳过 LLM 调用，直接走 demo 降级
+        if (llmApiKey == null || llmApiKey.isEmpty() || "sk-placeholder".equals(llmApiKey)) {
+            r.error = "API Key not configured, skipping LLM call";
+            return r;
+        }
         try {
-            ChatLanguageModel model = buildModel();
+            ChatLanguageModel model = OpenAiChatModel.builder()
+                .apiKey(llmApiKey)
+                .modelName(llmModelName)
+                .baseUrl(llmApiUrl)
+                .temperature(0.7)
+                .maxTokens(4096)
+                .timeout(java.time.Duration.ofSeconds(15))
+                .build();
             r.rawResponse = model.generate(prompt);
             r.tokensUsed = r.rawResponse.length() / 2;
             r.json = extractJson(r.rawResponse);
         } catch (Exception e) {
-            log.error("LLM call failed", e);
+            log.warn("LLM call failed: {}", e.getMessage());
             r.error = e.getMessage();
         }
         return r;
