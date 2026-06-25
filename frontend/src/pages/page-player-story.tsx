@@ -104,10 +104,13 @@ export default function PlayerStoryPage() {
   // 转盘抽奖
   const handleSpin = async () => {
     setPendingSpin(true);
+    const spinStart = Date.now();
     try {
       const result = await spinAction();
-      // 等转盘动画播完（CSS transition 1s + 留白），再关闭转盘、触发故事
-      await new Promise(r => setTimeout(r, 1500));
+      // 从点击开始算，至少等动画结束（1s）再停留 1s，总共至少 2s
+      const elapsed = Date.now() - spinStart;
+      const minWait = Math.max(0, 2000 - elapsed);
+      await new Promise(r => setTimeout(r, minWait));
       // displayDesc: 展示在故事区；sseDesc: 只传标题给 SSE，完整事件内容从 Redis 读取
       const displayDesc = result?.eventTitle
         ? result.eventTitle + '！' + (result.eventDescription || '')
