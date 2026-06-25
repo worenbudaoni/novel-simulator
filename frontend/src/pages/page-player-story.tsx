@@ -10,6 +10,7 @@ import CharacterPanel from 'src/components/CharacterPanel';
 import { Loader2Icon, ArrowLeftIcon, SaveIcon, RotateCcwIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import EndingModal from 'src/components/EndingModal';
+import SaveLoadModal from 'src/components/SaveLoadModal';
 
 export default function PlayerStoryPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -22,6 +23,7 @@ export default function PlayerStoryPage() {
   const [pendingSpin, setPendingSpin] = useState(false);
   const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
   const [showEnding, setShowEnding] = useState(false);
+  const [showSaveLoad, setShowSaveLoad] = useState(false);
 
   useEffect(() => {
     if (sessionId) loadSession(sessionId);
@@ -120,7 +122,7 @@ export default function PlayerStoryPage() {
           <ArrowLeftIcon className="size-4 mr-1" /> 返回
         </Button>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleSave} disabled={actionDisabled}>
+          <Button variant="outline" size="sm" onClick={() => setShowSaveLoad(true)} disabled={actionDisabled}>
             <SaveIcon className="size-4 mr-1" /> 存档
           </Button>
           <Button variant="outline" size="sm" onClick={async () => { await restartSession(); setStoryText(''); }} disabled={actionDisabled}>
@@ -200,6 +202,12 @@ export default function PlayerStoryPage() {
           onBackToHome={() => navigate('/player')}
         />
       )}
+
+      {/* 存档管理弹窗 */}
+      <SaveLoadModal
+        open={showSaveLoad}
+        onClose={() => setShowSaveLoad(false)}
+      />
     </div>
   );
 }

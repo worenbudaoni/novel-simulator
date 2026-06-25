@@ -52,6 +52,7 @@ export function useStory() {
   const [currentNode, setCurrentNode] = useState<NodeData | null>(null);
   const [currentOptions, setCurrentOptions] = useState<NodeOption[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sessions, setSessions] = useState<any[]>([]);
 
   const createSession = useCallback(async (novelId: number) => {
     setLoading(true);
@@ -160,9 +161,33 @@ export function useStory() {
     return null;
   }, [session]);
 
+  const fetchSessions = useCallback(async () => {
+    try {
+      const res = await api.get('/player/session/list');
+      if (res.data.code === 200) setSessions(res.data.data || []);
+    } catch { /* ignore */ }
+  }, []);
+
+  const loadBySessionId = useCallback(async (sid: string) => {
+    setLoading(true);
+    try {
+      const res = await api.post('/player/session/load', { sessionId: sid });
+      if (res.data.code === 200) {
+        const data = res.data.data;
+        setSession(data.session);
+        setCharacter(data.character);
+        if (data.session?.currentNodeId) {
+          await loadNode(data.session.currentNodeId);
+        }
+        return data;
+      }
+    } finally { setLoading(false); }
+    return null;
+  }, [loadNode]);
+
   return {
-    session, character, currentNode, currentOptions, loading,
-    createSession, loadSession, loadNode, saveSession, restartSession, saveSettings,
-    chooseAction, spinAction,
+    session, character, currentNode, currentOptions, loading, sessions,
+    createSession, loadSession, loadBySessionId, fetchSessions, chooseAction, spinAction,
+    loadNode, saveSession, restartSession, saveSettings,
   };
 }
