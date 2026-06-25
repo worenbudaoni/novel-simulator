@@ -49,6 +49,8 @@ public class PermissionController {
         permission.setUpdatedAt(LocalDateTime.now());
         if (permission.getStatus() == null) permission.setStatus(1);
         if (permission.getType() == null) permission.setType(2);
+        if (permission.getResource() == null) permission.setResource("");
+        if (permission.getAction() == null) permission.setAction("");
         permissionMapper.insert(permission);
         return Result.success(permission);
     }
