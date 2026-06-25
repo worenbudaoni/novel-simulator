@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { flushSync } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from 'src/components/ui/button';
 import { useStory } from '@/hooks/useStory';
@@ -51,7 +52,12 @@ export default function PlayerStoryPage() {
     setPendingSessionId(sid);
     setLastEventDesc(desc || '');
     connect(sid, {
-      onStory: (text) => setStoryText(prev => prev + text + '\n\n'),
+      onStory: (text) => {
+        // flushSync 强制立即渲染，避免 React 18 批处理合并 SSE 段落
+        flushSync(() => {
+          setStoryText(prev => prev + text + '\n\n');
+        });
+      },
       onDone: () => { setActionDisabled(false); setPendingSpin(false); setShowWheel(false); setPendingSessionId(null); },
       onError: (msg) => { toast.error(msg); setActionDisabled(false); setPendingSpin(false); setShowWheel(false); setPendingSessionId(null); },
     }, desc);
