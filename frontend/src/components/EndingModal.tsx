@@ -21,14 +21,15 @@ interface EndingModalProps {
   character: CharacterFinalData | null;
   onRestart: () => void;
   onBackToHome: () => void;
+  onClose?: () => void;
 }
 
 export default function EndingModal({
-  nodeTitle, nodeDescription, storyText, character, onRestart, onBackToHome,
+  nodeTitle, nodeDescription, storyText, character, onRestart, onBackToHome, onClose,
 }: EndingModalProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <Card className="max-w-md w-full animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => onClose?.()}>
+      <Card className="max-w-md w-full animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <CardContent className="pt-6 pb-6 space-y-5">
           {/* 结局标题 */}
           <div className="text-center space-y-2">

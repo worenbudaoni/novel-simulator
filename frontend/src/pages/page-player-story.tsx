@@ -197,6 +197,7 @@ export default function PlayerStoryPage() {
           nodeTitle={currentNode?.title || '结局'}
           nodeDescription={currentNode?.description}
           storyText={storyText}
+          onClose={() => setShowEnding(false)}
           character={character ? {
             hp: character.hp,
             attack: character.attack,
