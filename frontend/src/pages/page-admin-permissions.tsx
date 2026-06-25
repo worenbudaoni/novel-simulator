@@ -74,6 +74,7 @@ export default function AdminPermissionsPage() {
   const [search, setSearch] = useState('');
   const [showDialog, setShowDialog] = useState(false);
   const [editNode, setEditNode] = useState<PermissionNode | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PermissionNode | null>(null);
   const [saving, setSaving] = useState(false);
 
   const form = useForm<FormData>({
@@ -147,13 +148,18 @@ export default function AdminPermissionsPage() {
     } finally { setSaving(false); }
   }, [editNode]);
 
-  const handleDelete = useCallback(async (node: PermissionNode) => {
-    if (!confirm(`确定删除「${node.name}」？${node.children?.length ? ' 其子节点也将被删除。' : ''}`)) return;
+  const handleDelete = useCallback(async () => {
+    if (!deleteTarget) return;
     try {
-      await api.delete(`/admin/permissions/${node.id}`);
+      await api.delete(`/admin/permissions/${deleteTarget.id}`);
       toast.success('已删除');
+      setDeleteTarget(null);
       await loadTree();
     } catch { /* handled */ }
+  }, [deleteTarget]);
+
+  const confirmDelete = useCallback((node: PermissionNode) => {
+    setDeleteTarget(node);
   }, []);
 
   // --- 列定义 ---
@@ -235,13 +241,13 @@ export default function AdminPermissionsPage() {
           <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(row.original); }} className="p-1 hover:bg-muted rounded cursor-pointer" title="编辑">
             <PencilIcon className="size-3.5 text-muted-foreground" />
           </button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); handleDelete(row.original); }} className="p-1 hover:bg-destructive/10 rounded cursor-pointer" title="删除">
+          <button type="button" onClick={(e) => { e.stopPropagation(); confirmDelete(row.original); }} className="p-1 hover:bg-destructive/10 rounded cursor-pointer" title="删除">
             <Trash2Icon className="size-3.5 text-destructive" />
           </button>
         </div>
       ),
     }),
-  ], [openEdit, handleDelete]);
+  ], [openEdit, confirmDelete]);
 
   const globalFilter = useMemo(() => search || undefined, [search]);
 
@@ -423,6 +429,26 @@ export default function AdminPermissionsPage() {
         </Form>
       </DialogContent>
     </Dialog>
+
+      {/* 删除确认 Dialog */}
+      <Dialog open={deleteTarget !== null} onOpenChange={o => { if (!o) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>确认删除</DialogTitle>
+            <DialogDescription>
+              确定删除「{deleteTarget?.name}」？
+              {deleteTarget?.children?.length ? ' 其子节点也将被删除。' : ''}
+              此操作不可撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>取消</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={saving}>
+              {saving ? '删除中...' : '删除'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
