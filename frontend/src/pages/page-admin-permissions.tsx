@@ -318,9 +318,9 @@ export default function AdminPermissionsPage() {
 
       {/* 新建 / 编辑 Dialog */}
       <Dialog open={showDialog} onOpenChange={o => { if (!o) { setShowDialog(false); setEditNode(null); } }}>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSave)}>
-            <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSave)}>
               <DialogHeader>
                 <DialogTitle>{editNode ? '编辑权限' : '新建权限'}</DialogTitle>
                 <DialogDescription>{editNode ? '修改权限信息' : '创建新的菜单或按钮权限'}</DialogDescription>
@@ -418,11 +418,11 @@ export default function AdminPermissionsPage() {
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => { setShowDialog(false); setEditNode(null); }}>取消</Button>
                 <Button type="submit" disabled={saving}>{saving ? '保存中...' : editNode ? '保存修改' : '创建'}</Button>
-              </DialogFooter>
-            </DialogContent>
+            </DialogFooter>
           </form>
         </Form>
-      </Dialog>
+      </DialogContent>
+    </Dialog>
     </div>
   );
 }
