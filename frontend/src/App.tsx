@@ -41,6 +41,34 @@ function PlayerPage() {
   );
 }
 
+function HomePage() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-muted/30 px-4">
+      <div className="text-center max-w-sm">
+        <div className="flex justify-center mb-6">
+          <div className="p-4 rounded-full bg-primary/10">
+            <BookOpen className="h-12 w-12 text-primary" />
+          </div>
+        </div>
+        <h1 className="text-2xl font-bold mb-2">Novel Simulator</h1>
+        <p className="text-muted-foreground mb-6">开始你的故事之旅</p>
+        <div className="flex flex-col gap-3">
+          <Link to="/login">
+            <Button size="lg" className="w-full">登录</Button>
+          </Link>
+          <Link to="/player">
+            <Button variant="outline" size="lg" className="w-full">游客进入</Button>
+          </Link>
+        </div>
+        <p className="text-sm text-muted-foreground mt-3">
+          还没有账号？{' '}
+          <Link to="/register" className="text-primary underline underline-offset-4">注册</Link>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-muted/30">
@@ -82,8 +110,8 @@ export default function App() {
             <Route path="/admin/roles" element={<ProtectedRoute code="menu:roles"><AdminRolesPage /></ProtectedRoute>} />
             <Route path="/admin/permissions" element={<ProtectedRoute code="menu:permissions"><AdminPermissionsPage /></ProtectedRoute>} />
           </Route>
-          <Route path="/" element={<Navigate to="/player" replace />} />
-          <Route path="*" element={<Navigate to="/player" replace />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

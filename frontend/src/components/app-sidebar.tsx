@@ -79,7 +79,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </>
         ) : (
           <NavMain items={[
-            { title: "公开作品", url: "/player", icon: <BookOpen />, isActive: true },
+            { title: "公开作品", url: "/player", icon: <BookOpen />, isActive: isActive('/player') },
           ]} />
         )}
         <NavSecondary items={[]} />
