@@ -79,6 +79,11 @@ export default function AdminPermissionsPage() {
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState<ExpandedState>({});
 
+  // 搜索时展开所有，搜索结束恢复折叠
+  useEffect(() => {
+    setExpanded(search ? true : {});
+  }, [search]);
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: { name: '', code: '', type: '2', parentId: '0', route: '', sortOrder: '0', status: true },
@@ -266,8 +271,8 @@ export default function AdminPermissionsPage() {
       const q = String(filterValue).toLowerCase();
       return name.includes(q) || code.includes(q);
     },
-    state: { globalFilter, expanded: search ? true : expanded },
-    onExpandedChange: (updater) => { if (!search) setExpanded(updater); },
+    state: { globalFilter, expanded },
+    onExpandedChange: setExpanded,
     filterFromLeafRows: true,
     autoResetExpanded: false,
     getRowCanExpand: (row) => !!(row.original.subRows && row.original.subRows.length > 0),
