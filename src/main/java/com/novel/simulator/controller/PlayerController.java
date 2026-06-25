@@ -61,7 +61,6 @@ public class PlayerController {
      * 当前用户可见的作品列表
      */
     @GetMapping("/novel/list")
-    @PreAuthorize("hasAuthority('player:play')")
     public Result<List<PlayerNovelVO>> listNovels(HttpServletRequest request) {
         @SuppressWarnings("unchecked")
         Map<String, Object> currentUser = (Map<String, Object>) request.getAttribute("currentUser");
@@ -96,7 +95,6 @@ public class PlayerController {
      * 获取完整节点树
      */
     @GetMapping("/novel/{novelId}/full")
-    @PreAuthorize("hasAuthority('player:play')")
     public Result<Map<String, Object>> getFullTree(@PathVariable Long novelId) {
         Novel novel = novelService.getById(novelId);
         if (novel.getStatus() != 1) return Result.error(400, "作品未发布");
@@ -123,7 +121,6 @@ public class PlayerController {
      * 获取节点详情 + 选项
      */
     @GetMapping("/node/{nodeId}")
-    @PreAuthorize("hasAuthority('player:play')")
     public Result<Map<String, Object>> getNode(@PathVariable Long nodeId) {
         Node node = nodeMapper.selectById(nodeId);
         if (node == null) return Result.error(404, "节点不存在");
@@ -138,7 +135,6 @@ public class PlayerController {
     }
 
     @PostMapping("/session/create")
-    @PreAuthorize("hasAuthority('player:play')")
     public Result<Map<String, Object>> createSession(@RequestBody CreateSessionRequest request,
                                                       HttpServletRequest httpRequest) {
         @SuppressWarnings("unchecked")
@@ -149,27 +145,23 @@ public class PlayerController {
     }
 
     @GetMapping("/session/{sessionId}")
-    @PreAuthorize("hasAuthority('player:play')")
     public Result<Map<String, Object>> getSession(@PathVariable String sessionId) {
         return Result.success(sessionService.getSessionState(sessionId));
     }
 
     @PostMapping("/session/save")
-    @PreAuthorize("hasAuthority('player:play')")
     public Result<Void> saveSession(@RequestBody Map<String, String> request) {
         sessionService.save(request.get("sessionId"));
         return Result.success();
     }
 
     @PostMapping("/session/load")
-    @PreAuthorize("hasAuthority('player:play')")
     public Result<Map<String, Object>> loadSession(@RequestBody Map<String, String> request) {
         UserSession session = sessionService.load(request.get("sessionId"));
         return Result.success(sessionService.getSessionState(session.getSessionId()));
     }
 
     @GetMapping("/session/list")
-    @PreAuthorize("hasAuthority('player:play')")
     public Result<List<UserSession>> listSessions(HttpServletRequest httpRequest) {
         @SuppressWarnings("unchecked")
         Map<String, Object> currentUser = (Map<String, Object>) httpRequest.getAttribute("currentUser");
@@ -179,35 +171,30 @@ public class PlayerController {
     }
 
     @PostMapping("/session/restart")
-    @PreAuthorize("hasAuthority('player:play')")
     public Result<Map<String, Object>> restartSession(@RequestBody Map<String, String> request) {
         UserSession session = sessionService.restart(request.get("sessionId"));
         return Result.success(sessionService.getSessionState(session.getSessionId()));
     }
 
     @PostMapping("/session/settings")
-    @PreAuthorize("hasAuthority('player:play')")
     public Result<Void> saveSettings(@RequestBody SaveSettingsRequest request) {
         sessionService.saveSettings(request.getSessionId(), request.getSettings());
         return Result.success();
     }
 
     @PostMapping("/action/choose")
-    @PreAuthorize("hasAuthority('player:play')")
     public Result<ActionResult> choose(@RequestBody ChooseActionRequest request) {
         ActionResult result = actionEngine.choose(request.getSessionId(), request.getOptionId());
         return Result.success(result);
     }
 
     @PostMapping("/action/spin")
-    @PreAuthorize("hasAuthority('player:play')")
     public Result<ActionResult> spin(@RequestBody SpinActionRequest request) {
         ActionResult result = actionEngine.spin(request.getSessionId(), request.getNodeId());
         return Result.success(result);
     }
 
     @GetMapping("/story/stream/{sessionId}")
-    @PreAuthorize("hasAuthority('player:play')")
     public SseEmitter streamStory(@PathVariable String sessionId) {
         SseEmitter emitter = new SseEmitter(300_000L);
         try {

@@ -73,7 +73,7 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="flex items-center h-14 px-4 lg:px-6 border-b border-border bg-background">
-        <Link to="/player" className="flex items-center gap-2 font-semibold text-foreground">
+        <Link to="/" className="flex items-center gap-2 font-semibold text-foreground">
           <CommandIcon className="size-5" />
           <span>Novel Simulator</span>
         </Link>
