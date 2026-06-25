@@ -94,13 +94,6 @@ export default function PlayerStoryPage() {
     } catch { setPendingSpin(false); setActionDisabled(false); }
   };
 
-  // 取消转盘（跳过）
-  const handleSkipWheel = () => {
-    setShowWheel(false);
-    if (pendingSessionId) {
-      triggerStory(pendingSessionId);
-    }
-  };
 
   const handleSave = async () => {
     await saveSession();
@@ -193,9 +186,6 @@ export default function PlayerStoryPage() {
           <div className="max-w-sm w-full mx-4">
             <WheelOfFortune onSpin={handleSpin} disabled={pendingSpin} spinning={pendingSpin} />
             <div className="flex justify-center mt-3">
-              <Button variant="ghost" size="sm" onClick={handleSkipWheel} className="text-white/70 hover:text-white">
-                跳过（直接继续剧情）
-              </Button>
             </div>
           </div>
         </div>
@@ -206,6 +196,7 @@ export default function PlayerStoryPage() {
         <EndingModal
           nodeTitle={currentNode?.title || '结局'}
           nodeDescription={currentNode?.description}
+          storyText={storyText}
           character={character ? {
             hp: character.hp,
             attack: character.attack,

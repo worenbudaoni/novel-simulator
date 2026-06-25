@@ -17,13 +17,14 @@ interface CharacterFinalData {
 interface EndingModalProps {
   nodeTitle: string;
   nodeDescription?: string;
+  storyText?: string;
   character: CharacterFinalData | null;
   onRestart: () => void;
   onBackToHome: () => void;
 }
 
 export default function EndingModal({
-  nodeTitle, nodeDescription, character, onRestart, onBackToHome,
+  nodeTitle, nodeDescription, storyText, character, onRestart, onBackToHome,
 }: EndingModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -66,10 +67,15 @@ export default function EndingModal({
             </div>
           )}
 
-          {/* 评分占位（P4 实现） */}
-          <div className="text-center text-xs text-muted-foreground">
-            评分系统将在 P4 实现
-          </div>
+          {/* 完整故事回顾 */}
+          {storyText && (
+            <div className="bg-muted/20 rounded-lg p-3 max-h-40 overflow-y-auto">
+              <h3 className="text-sm font-semibold mb-2">📖 完整故事</h3>
+              <div className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                {storyText}
+              </div>
+            </div>
+          )}
 
           {/* 操作按钮 */}
           <div className="flex flex-col gap-2">
