@@ -34,7 +34,7 @@ public class UserController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String enabled,
-            @RequestParam(required = false) String roleIdStr) {
+            @RequestParam(value = "roleIds", required = false) String roleIdStr) {
         LambdaQueryWrapper<User> qw = new LambdaQueryWrapper<User>();
         if (keyword != null && !keyword.isEmpty()) {
             qw.like(User::getUsername, keyword);
