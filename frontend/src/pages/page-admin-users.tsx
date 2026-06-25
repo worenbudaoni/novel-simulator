@@ -35,6 +35,7 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [tempStatus, setTempStatus] = useState('');
   const [roleFilter, setRoleFilter] = useState<number[]>([]);
+  const [tempRoleFilter, setTempRoleFilter] = useState<number[]>([]);
   const comboboxAnchor = useComboboxAnchor();
   const [roles, setRoles] = useState<{id: number; code: string; name: string}[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,8 +131,8 @@ export default function AdminUsersPage() {
             multiple
             autoHighlight
             items={roles.filter(r => r.code !== 'ADMIN').map(r => ({ id: r.id, name: r.name }))}
-            value={roleFilter}
-            onValueChange={v => setRoleFilter(v as number[])}
+            value={tempRoleFilter}
+            onValueChange={v => setTempRoleFilter(v as number[])}
           >
             <ComboboxChips ref={comboboxAnchor} className="w-72 min-h-9">
               <ComboboxValue>
@@ -159,10 +160,10 @@ export default function AdminUsersPage() {
           </Combobox>
         </div>
         <div className="flex items-end gap-2">
-          <Button variant="outline" onClick={() => { setKeyword(searchInput); setStatusFilter(tempStatus); setPage(1); }}>
+          <Button variant="outline" onClick={() => { setKeyword(searchInput); setStatusFilter(tempStatus); setRoleFilter(tempRoleFilter); setPage(1); }}>
             <SearchIcon className="size-4 mr-1" /> 搜索
           </Button>
-          <Button variant="ghost" onClick={() => { setSearchInput(''); setKeyword(''); setTempStatus(''); setStatusFilter(''); setRoleFilter([]); setPage(1); }}>
+          <Button variant="ghost" onClick={() => { setSearchInput(''); setKeyword(''); setTempStatus(''); setStatusFilter(''); setRoleFilter([]); setTempRoleFilter([]); setPage(1); }}>
             重置
           </Button>
         </div>
