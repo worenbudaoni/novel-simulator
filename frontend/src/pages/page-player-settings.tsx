@@ -99,8 +99,8 @@ export default function PlayerSettingsPage() {
     setSpinning(true);
     const idx = Math.floor(Math.random() * TEMPLATES.length);
     const template = TEMPLATES[idx];
-    // 指针旋转：当前角度 + 3-5圈 + 目标扇区
-    setPointerRot(prev => prev + 1080 + Math.random() * 720 + idx * 60);
+    // 指针旋转：3-5圈 + 目标扇区中心（偏移 30° 对齐）
+    setPointerRot(prev => prev + 1080 + Math.random() * 720 + idx * 60 + 30);
     const variance = () => rand(-5, 5);
     const hasTrait = Math.random() < 0.3;
     const trait = hasTrait ? TRAITS[Math.floor(Math.random() * TRAITS.length)] : undefined;
