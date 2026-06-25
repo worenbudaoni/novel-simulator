@@ -34,8 +34,18 @@ interface PermissionNode {
   route: string | null;
   status: number;
   sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
   children?: PermissionNode[];
   subRows?: PermissionNode[];
+}
+
+function formatTime(s: string) {
+  try {
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return s;
+    return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  } catch { return s; }
 }
 
 const columnHelper = createColumnHelper<PermissionNode>();
@@ -140,6 +150,22 @@ export default function AdminPermissionsPage() {
         </span>
       ),
     }),
+    columnHelper.accessor('createdAt', {
+      header: '创建时间',
+      size: 140,
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return v ? <span className="text-xs text-muted-foreground">{formatTime(v)}</span> : null;
+      },
+    }),
+    columnHelper.accessor('updatedAt', {
+      header: '修改时间',
+      size: 140,
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return v ? <span className="text-xs text-muted-foreground">{formatTime(v)}</span> : null;
+      },
+    }),
     columnHelper.display({
       id: 'actions',
       size: 40,
@@ -240,7 +266,7 @@ export default function AdminPermissionsPage() {
           <TableBody>
             {table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">暂无权限</TableCell>
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">暂无权限</TableCell>
               </TableRow>
             ) : table.getRowModel().rows.map(row => {
               const depth = row.depth;

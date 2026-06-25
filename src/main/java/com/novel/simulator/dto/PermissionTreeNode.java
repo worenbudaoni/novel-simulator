@@ -1,5 +1,6 @@
 package com.novel.simulator.dto;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class PermissionTreeNode {
@@ -11,12 +12,15 @@ public class PermissionTreeNode {
     private String route;
     private Integer status;
     private Integer sortOrder;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private List<PermissionTreeNode> children;
 
     public PermissionTreeNode() {}
 
     public PermissionTreeNode(Long id, Long parentId, String name, String code,
-                              Integer type, String route, Integer status, Integer sortOrder) {
+                              Integer type, String route, Integer status, Integer sortOrder,
+                              LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.parentId = parentId;
         this.name = name;
@@ -25,6 +29,8 @@ public class PermissionTreeNode {
         this.route = route;
         this.status = status;
         this.sortOrder = sortOrder;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     // getters and setters
@@ -44,6 +50,10 @@ public class PermissionTreeNode {
     public void setStatus(Integer status) { this.status = status; }
     public Integer getSortOrder() { return sortOrder; }
     public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     public List<PermissionTreeNode> getChildren() { return children; }
     public void setChildren(List<PermissionTreeNode> children) { this.children = children; }
 }

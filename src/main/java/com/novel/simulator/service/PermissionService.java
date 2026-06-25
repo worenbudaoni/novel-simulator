@@ -92,7 +92,8 @@ public class PermissionService {
             if (Objects.equals(p.getParentId(), parentId)) {
                 PermissionTreeNode node = new PermissionTreeNode(
                     p.getId(), p.getParentId(), p.getName(), p.getCode(),
-                    p.getType(), p.getRoute(), p.getStatus(), p.getSortOrder());
+                    p.getType(), p.getRoute(), p.getStatus(), p.getSortOrder(),
+                    p.getCreatedAt(), p.getUpdatedAt());
                 node.setChildren(buildTree(flatList, p.getId()));
                 result.add(node);
             }
