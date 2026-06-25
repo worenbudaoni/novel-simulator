@@ -3,21 +3,27 @@ package com.novel.simulator.controller;
 import com.novel.simulator.common.Result;
 import com.novel.simulator.dto.AuthResponse;
 import com.novel.simulator.dto.LoginRequest;
+import com.novel.simulator.dto.PermissionTreeNode;
 import com.novel.simulator.dto.RegisterRequest;
 import com.novel.simulator.service.AuthService;
+import com.novel.simulator.service.PermissionService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final AuthService authService;
+    private final PermissionService permissionService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, PermissionService permissionService) {
         this.authService = authService;
+        this.permissionService = permissionService;
     }
 
     @PostMapping("/register")
@@ -52,6 +58,21 @@ public class AuthController {
             return Result.unauthorized("会话已过期");
         }
         return Result.success(user);
+    }
+
+    @GetMapping("/menus")
+    public Result<List<PermissionTreeNode>> getMenus(HttpServletRequest request) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> currentUser = (Map<String, Object>) request.getAttribute("currentUser");
+        if (currentUser == null) {
+            return Result.unauthorized("未登录");
+        }
+        @SuppressWarnings("unchecked")
+        List<String> permissions = (List<String>) currentUser.get("permissions");
+        if (permissions == null || permissions.isEmpty()) {
+            return Result.success(java.util.Collections.emptyList());
+        }
+        return Result.success(permissionService.getMenuTree(permissions));
     }
 
     private String extractSessionId(HttpServletRequest request) {
