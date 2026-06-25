@@ -35,14 +35,11 @@ public class ParseChain {
     @Value("${llm.model-name:gpt-3.5-turbo}")
     private String llmModelName;
 
-    private final DemoNodeGenerator demoNodeGenerator;
-
     public ParseChain(ParseRecordMapper parseRecordMapper, LlmCacheMapper llmCacheMapper,
-                      ObjectMapper objectMapper, DemoNodeGenerator demoNodeGenerator) {
+                      ObjectMapper objectMapper) {
         this.parseRecordMapper = parseRecordMapper;
         this.llmCacheMapper = llmCacheMapper;
         this.objectMapper = objectMapper;
-        this.demoNodeGenerator = demoNodeGenerator;
     }
 
     /**
@@ -118,22 +115,23 @@ public class ParseChain {
 
         LlmResult llmResult = callLlm(prompt);
         if (llmResult.error != null) {
-            log.warn("LLM unavailable for preview, using demo data generator");
-            return demoNodeGenerator.generate(nodeCount, eventCount, name);
+            Map<String, Object> err = new HashMap<>();
+            err.put("error", llmResult.error);
+            return err;
         }
 
         Map<String, Object> result;
         try {
             result = objectMapper.readValue(llmResult.json, Map.class);
         } catch (Exception e) {
-            log.warn("LLM response parse failed, using demo data generator");
-            return demoNodeGenerator.generate(nodeCount, eventCount, name);
+            Map<String, Object> err = new HashMap<>();
+            err.put("error", "LLM 返回格式错误");
+            return err;
         }
 
-        // If response is just {exists: false}, use demo
+        // If response is just {exists: false}, return it directly
         if (result.containsKey("exists") && Boolean.FALSE.equals(result.get("exists"))) {
-            log.warn("LLM returned exists=false, using demo data generator");
-            return demoNodeGenerator.generate(nodeCount, eventCount, name);
+            return result;
         }
 
         saveCache(cacheKey, "preview", llmResult.rawResponse);
@@ -174,16 +172,19 @@ public class ParseChain {
 
         LlmResult llmResult = callLlm(prompt);
         if (llmResult.error != null) {
-            log.warn("LLM unavailable for {}, using demo data generator", name);
-            return demoNodeGenerator.generate(nodeCount, eventCount, name);
+            Map<String, Object> err = new HashMap<>();
+            err.put("error", "LLM 生成失败: " + llmResult.error);
+            return err;
         }
 
         Map<String, Object> result;
         try {
             result = objectMapper.readValue(llmResult.json, Map.class);
         } catch (Exception e) {
-            log.warn("LLM response parse failed for {}, using demo data generator", name);
-            return demoNodeGenerator.generate(nodeCount, eventCount, name);
+            Map<String, Object> err = new HashMap<>();
+            err.put("error", "LLM 返回格式错误");
+            err.put("rawResponse", llmResult.rawResponse);
+            return err;
         }
 
         if (novelId != null) {
@@ -204,9 +205,8 @@ public class ParseChain {
 
     private LlmResult callLlm(String prompt) {
         LlmResult r = new LlmResult();
-        // API Key 未配置时跳过 LLM 调用，直接走 demo 降级
-        if (llmApiKey == null || llmApiKey.isEmpty() || "sk-placeholder".equals(llmApiKey)) {
-            r.error = "API Key not configured, skipping LLM call";
+        if (llmApiKey == null || llmApiKey.isEmpty()) {
+            r.error = "LLM API Key 未配置，请在 application.yml 中配置 llm.api-key";
             return r;
         }
         try {
