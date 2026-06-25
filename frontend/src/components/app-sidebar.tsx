@@ -44,7 +44,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              className="data-[slot=sidebar-menu-button]:p-1.5! hover:bg-transparent hover:text-inherit cursor-default"
+              className="data-[slot=sidebar-menu-button]:p-1.5! hover:bg-transparent hover:text-inherit active:bg-transparent data-active:bg-transparent cursor-default"
               render={<Link to="/player" />}
             >
               <CommandIcon className="size-5!" />
