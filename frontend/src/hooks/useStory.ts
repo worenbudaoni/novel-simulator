@@ -116,8 +116,40 @@ export function useStory() {
     await api.post('/player/session/settings', { sessionId: session.sessionId, settings });
   }, [session]);
 
+  const chooseAction = useCallback(async (optionId: number) => {
+    if (!session?.sessionId) return null;
+    const res = await api.post('/player/action/choose', {
+      sessionId: session.sessionId,
+      optionId,
+    });
+    if (res.data.code === 200) {
+      const data = res.data.data;
+      if (data.character) setCharacter(data.character);
+      if (data.targetNode?.id) {
+        await loadNode(data.targetNode.id);
+      }
+      return data;
+    }
+    return null;
+  }, [session, loadNode]);
+
+  const spinAction = useCallback(async () => {
+    if (!session?.sessionId) return null;
+    const res = await api.post('/player/action/spin', {
+      sessionId: session.sessionId,
+      nodeId: session.currentNodeId,
+    });
+    if (res.data.code === 200) {
+      const data = res.data.data;
+      if (data.character) setCharacter(data.character);
+      return data;
+    }
+    return null;
+  }, [session]);
+
   return {
     session, character, currentNode, currentOptions, loading,
     createSession, loadSession, loadNode, saveSession, restartSession, saveSettings,
+    chooseAction, spinAction,
   };
 }
