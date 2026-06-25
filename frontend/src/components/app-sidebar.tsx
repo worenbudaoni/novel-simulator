@@ -70,7 +70,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {user ? (
           <>
             <NavMain items={[
-              { title: "作品列表", url: "/player", icon: <BookOpen /> },
+              { title: "作品列表", url: "/player", icon: <BookOpen />, isActive: isActive('/player') },
             ]} />
             <NavDocuments items={[]} />
             {adminItems.length > 0 && (
