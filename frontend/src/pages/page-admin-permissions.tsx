@@ -222,10 +222,10 @@ export default function AdminPermissionsPage() {
       size: 52,
       cell: ({ row }) => (
         <div className="flex gap-0.5">
-          <button type="button" onClick={() => openEdit(row.original)} className="p-1 hover:bg-muted rounded cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
+          <button type="button" onClick={() => openEdit(row.original)} className="p-1 hover:bg-muted rounded cursor-pointer" title="编辑">
             <PencilIcon className="size-3.5 text-muted-foreground" />
           </button>
-          <button type="button" onClick={() => handleDelete(row.original)} className="p-1 hover:bg-destructive/10 rounded cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
+          <button type="button" onClick={() => handleDelete(row.original)} className="p-1 hover:bg-destructive/10 rounded cursor-pointer" title="删除">
             <Trash2Icon className="size-3.5 text-destructive" />
           </button>
         </div>
