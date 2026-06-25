@@ -23,8 +23,7 @@ public class PermissionService {
      */
     public List<PermissionTreeNode> getPermissionTree() {
         List<Permission> all = permissionMapper.selectList(
-            new LambdaQueryWrapper<Permission>().eq(Permission::getStatus, 1)
-                .orderByAsc(Permission::getSortOrder));
+            new LambdaQueryWrapper<Permission>().orderByAsc(Permission::getSortOrder));
         return buildTree(all, 0L);
     }
 
