@@ -102,7 +102,7 @@ export default function PlayerSettingsPage() {
     // 指针旋转：从当前位置多转 3-5 圈，停在目标扇区
     setPointerRot(prev => {
       const extraTurns = (3 + Math.floor(Math.random() * 3)) * 360; // 3-5 整圈
-      const target = idx * 60 + 30; // 目标扇区角度
+      const target = idx * 60 + Math.random() * 60; // 扇区内随机位置
       let result = prev + extraTurns; // 从当前位置多转 N 圈
       result = result - (result % 360) + target; // 修正到目标扇区
       if (result <= prev) result += 360; // 确保不会倒退
