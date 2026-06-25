@@ -3,9 +3,6 @@ import { Button } from 'src/components/ui/button';
 import { Input } from 'src/components/ui/input';
 import { Badge } from 'src/components/ui/badge';
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from 'src/components/ui/table';
-import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from 'src/components/ui/dialog';
 import { toast } from 'sonner';
@@ -27,9 +24,7 @@ export default function AdminPermissionsPage() {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState<Set<string>>(new Set(['novel', 'node', 'event', 'user', 'role', 'player']));
   const [showCreate, setShowCreate] = useState(false);
   const [newCode, setNewCode] = useState('');
   const [newName, setNewName] = useState('');
@@ -44,29 +39,26 @@ export default function AdminPermissionsPage() {
     }).finally(() => setLoading(false));
   }, []);
 
-  // Group by resource, flatten for table
-  const grouped = useMemo(() => {
-    const filtered = permissions.filter(p =>
-      !search || p.code.includes(search) || p.name.includes(search) || p.resource.includes(search)
+  const filtered = useMemo(() => {
+    if (!search) return permissions;
+    return permissions.filter(p =>
+      p.code.includes(search) || p.name.includes(search) || p.resource.includes(search)
     );
-    const groups: { resource: string; items: Permission[] }[] = [];
+  }, [permissions, search]);
+
+  const grouped = useMemo(() => {
     const map = new Map<string, Permission[]>();
     filtered.forEach(p => {
       if (!map.has(p.resource)) map.set(p.resource, []);
       map.get(p.resource)!.push(p);
     });
-    map.forEach((items, resource) => groups.push({ resource, items }));
-    groups.sort((a, b) => a.resource.localeCompare(b.resource));
-    return groups;
-  }, [permissions, search]);
-
-  // Paginate groups
-  const totalGroups = grouped.length;
-  const totalPages = Math.ceil(totalGroups / pageSize);
-  const pagedGroups = grouped.slice((page - 1) * pageSize, page * pageSize);
+    return Array.from(map.entries())
+      .map(([resource, items]) => ({ resource, items }))
+      .sort((a, b) => a.resource.localeCompare(b.resource));
+  }, [filtered]);
 
   const toggleGroup = (resource: string) => {
-    setCollapsed(prev => {
+    setExpanded(prev => {
       const next = new Set(prev);
       if (next.has(resource)) next.delete(resource); else next.add(resource);
       return next;
@@ -81,10 +73,8 @@ export default function AdminPermissionsPage() {
     setSaving(true);
     try {
       await api.post('/admin/role/permissions', {
-        code: newCode.trim(),
-        name: newName.trim(),
-        resource: newResource.trim(),
-        action: newAction.trim(),
+        code: newCode.trim(), name: newName.trim(),
+        resource: newResource.trim(), action: newAction.trim(),
       });
       toast.success('权限已创建');
       setShowCreate(false);
@@ -114,76 +104,48 @@ export default function AdminPermissionsPage() {
         <Button onClick={() => setShowCreate(true)}><PlusIcon className="size-4 mr-1" /> 新建权限</Button>
       </div>
 
-      <div className="flex items-center gap-3 mb-6">
-        <div className="relative max-w-sm flex-1">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input placeholder="搜索权限编码或名称..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-9" />
-        </div>
+      <div className="relative max-w-sm mb-6">
+        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+        <Input placeholder="搜索权限编码或名称..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
 
-      {pagedGroups.length === 0 ? (
+      {grouped.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">暂无匹配权限</div>
       ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8"></TableHead>
-                <TableHead>资源 / 权限编码</TableHead>
-                <TableHead>权限名称</TableHead>
-                <TableHead>操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pagedGroups.map(({ resource, items }) => {
-                const isCollapsed = collapsed.has(resource);
-                return (
-                  <TableRow key={resource} className="group">
-                    <TableCell>
-                      <button type="button" onClick={() => toggleGroup(resource)} className="p-1 hover:bg-muted rounded cursor-pointer">
-                        {isCollapsed ? <ChevronRightIcon className="size-4" /> : <ChevronDownIcon className="size-4" />}
-                      </button>
-                    </TableCell>
-                    <TableCell className="font-medium capitalize" colSpan={3}>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">{resource}</Badge>
-                        <span className="text-xs text-muted-foreground">({items.length} 项)</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {pagedGroups.map(({ resource, items }) => {
-                if (collapsed.has(resource)) return null;
-                const groupKey = `detail-${resource}`;
-                return items.map((p, i) => (
-                  <TableRow key={`${groupKey}-${p.id}`} className="bg-muted/10">
-                    <TableCell></TableCell>
-                    <TableCell className="font-mono text-sm pl-8">{p.code}</TableCell>
-                    <TableCell>{p.name}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(p)}>
-                        <Trash2Icon className="size-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ));
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+        <div className="rounded-lg border divide-y">
+          {grouped.map(({ resource, items }) => {
+            const isExpanded = expanded.has(resource);
+            return (
+              <div key={resource}>
+                {/* Group Header */}
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(resource)}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted/30 transition-colors cursor-pointer text-left"
+                >
+                  {isExpanded ? <ChevronDownIcon className="size-4 shrink-0" /> : <ChevronRightIcon className="size-4 shrink-0" />}
+                  <Badge variant="outline" className="text-xs font-mono">{resource}</Badge>
+                  <span className="font-medium capitalize ml-1">{resource === 'novel' ? '作品' : resource === 'node' ? '节点' : resource === 'event' ? '事件' : resource === 'user' ? '用户' : resource === 'role' ? '角色' : resource === 'player' ? '玩家' : resource}</span>
+                  <span className="text-xs text-muted-foreground">({items.length})</span>
+                </button>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 text-sm">
-          <span className="text-muted-foreground">共 {totalGroups} 个资源组</span>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>上一页</Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-              <Button key={p} variant={p === page ? 'default' : 'outline'} size="sm" className="min-w-[32px]" onClick={() => setPage(p)}>{p}</Button>
-            ))}
-            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>下一页</Button>
-          </div>
+                {/* Children */}
+                {isExpanded && (
+                  <div className="divide-y border-t bg-muted/5">
+                    {items.map(p => (
+                      <div key={p.id} className="flex items-center gap-3 px-4 py-2 pl-14 text-sm hover:bg-muted/10 transition-colors">
+                        <code className="text-xs font-mono text-primary min-w-[180px]">{p.code}</code>
+                        <span className="flex-1 text-muted-foreground">{p.name}</span>
+                        <button type="button" onClick={() => handleDelete(p)} className="p-1 hover:bg-destructive/10 rounded cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
+                          <Trash2Icon className="size-3.5 text-destructive" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
