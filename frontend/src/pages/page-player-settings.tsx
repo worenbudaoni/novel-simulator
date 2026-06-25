@@ -17,12 +17,12 @@ const RANDOM_NAMES = [
 ];
 
 const TEMPLATES = [
-  { label: '⚔️ 战士',  hp: 100, attack: 20, defense: 20, intelligence: 30, charm: 30, luck: 40, desc: '高攻高防' },
-  { label: '🧙 智者',  hp: 80,  attack: 8,  defense: 8,  intelligence: 70, charm: 40, luck: 40, desc: '高智力' },
-  { label: '❤️ 魅力型', hp: 90,  attack: 10, defense: 10, intelligence: 40, charm: 70, luck: 40, desc: '高魅力' },
-  { label: '🍀 幸运型', hp: 80,  attack: 10, defense: 10, intelligence: 40, charm: 40, luck: 70, desc: '高运气' },
-  { label: '⚖️ 均衡型', hp: 100, attack: 12, defense: 12, intelligence: 45, charm: 45, luck: 45, desc: '属性平均' },
-  { label: '💀 挑战型', hp: 70,  attack: 8,  defense: 8,  intelligence: 50, charm: 50, luck: 50, desc: '低起点高成长' },
+  { icon: '⚔️', label: '战士',   hp: 100, attack: 20, defense: 20, intelligence: 30, charm: 30, luck: 40, desc: '高攻高防' },
+  { icon: '🧙',  label: '智者',   hp: 80,  attack: 8,  defense: 8,  intelligence: 70, charm: 40, luck: 40, desc: '高智力' },
+  { icon: '❤️',  label: '魅力型', hp: 90,  attack: 10, defense: 10, intelligence: 40, charm: 70, luck: 40, desc: '高魅力' },
+  { icon: '🍀',  label: '幸运型', hp: 80,  attack: 10, defense: 10, intelligence: 40, charm: 40, luck: 70, desc: '高运气' },
+  { icon: '⚖️',  label: '均衡型', hp: 100, attack: 12, defense: 12, intelligence: 45, charm: 45, luck: 45, desc: '属性平均' },
+  { icon: '💀',  label: '挑战型', hp: 70,  attack: 8,  defense: 8,  intelligence: 50, charm: 50, luck: 50, desc: '低起点高成长' },
 ];
 
 const TRAITS = [
@@ -41,6 +41,7 @@ const TRAITS = [
 function rand(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 
 interface RolledAttrs {
+  icon: string;
   label: string;
   hp: number;
   attack: number;
@@ -104,6 +105,7 @@ export default function PlayerSettingsPage() {
     const trait = hasTrait ? TRAITS[Math.floor(Math.random() * TRAITS.length)] : undefined;
 
     const attrs: RolledAttrs = {
+      icon: template.icon,
       label: template.label,
       hp: Math.max(50, template.hp + variance()),
       attack: Math.max(3, template.attack + variance()),
@@ -224,20 +226,12 @@ export default function PlayerSettingsPage() {
                               fill={colors[i]} stroke="white" strokeWidth="1.5"
                             />
                             <text
-                              x={100 + 50 * Math.cos(midAngle)}
-                              y={100 + 50 * Math.sin(midAngle)}
+                              x={100 + 44 * Math.cos(midAngle)}
+                              y={100 + 44 * Math.sin(midAngle)}
                               textAnchor="middle" dominantBaseline="central"
-                              fontSize="16" fontWeight="bold" fill="white"
+                              fontSize="28"
                             >
-                              {t.label}
-                            </text>
-                            <text
-                              x={100 + 50 * Math.cos(midAngle)}
-                              y={100 + 50 * Math.sin(midAngle) + 20}
-                              textAnchor="middle" dominantBaseline="central"
-                              fontSize="10" fill="white" opacity="0.9"
-                            >
-                              {t.desc}
+                              {t.icon}
                             </text>
                           </g>
                         );
@@ -264,9 +258,12 @@ export default function PlayerSettingsPage() {
               {/* 结果 */}
               {rolled && (
                 <div className="bg-muted/30 rounded-lg p-4 space-y-3">
-                  <div className="text-center">
-                    <span className="text-lg font-semibold">{rolled.label}</span>
-                    <span className="text-xs text-muted-foreground ml-2">{rolled.desc}</span>
+                  <div className="text-center space-y-1">
+                    <span className="text-3xl">{rolled.icon}</span>
+                    <div>
+                      <span className="text-lg font-semibold">{rolled.label}</span>
+                      <span className="text-xs text-muted-foreground ml-2">{rolled.desc}</span>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <AttrBar label="❤️ 气血" value={rolled.hp} max={120} />
