@@ -26,7 +26,6 @@ import {
   useReactTable,
   getCoreRowModel,
   getExpandedRowModel,
-  getFilteredRowModel,
   createColumnHelper,
   flexRender,
   type ExpandedState,
@@ -114,6 +113,28 @@ export default function AdminPermissionsPage() {
     };
     return flatten(tree);
   }, [tree]);
+
+  // 搜索时预过滤数据：父节点匹配时保留全部子节点
+  const filteredData = useMemo(() => {
+    if (!search) return tree;
+    const q = search.toLowerCase();
+    const filterTree = (nodes: PermissionNode[]): PermissionNode[] => {
+      const result: PermissionNode[] = [];
+      for (const node of nodes) {
+        const selfMatch = node.name.toLowerCase().includes(q) || node.code.toLowerCase().includes(q);
+        const filteredChildren = node.subRows ? filterTree(node.subRows) : [];
+        if (selfMatch) {
+          // 父节点匹配 → 保留全部子节点
+          result.push(node);
+        } else if (filteredChildren.length > 0) {
+          // 子节点匹配 → 只保留匹配的子树
+          result.push({ ...node, subRows: filteredChildren });
+        }
+      }
+      return result;
+    };
+    return filterTree(tree);
+  }, [tree, search]);
 
   // --- 新建 / 编辑 ---
 
@@ -256,24 +277,14 @@ export default function AdminPermissionsPage() {
     }),
   ], [openEdit, confirmDelete]);
 
-  const globalFilter = useMemo(() => search || undefined, [search]);
-
   const table = useReactTable({
-    data: tree,
+    data: filteredData,
     columns,
     getSubRows: (row) => row.subRows,
     getCoreRowModel: getCoreRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    globalFilterFn: (row, _, filterValue) => {
-      const name = row.original.name?.toLowerCase() ?? '';
-      const code = row.original.code?.toLowerCase() ?? '';
-      const q = String(filterValue).toLowerCase();
-      return name.includes(q) || code.includes(q);
-    },
-    state: { globalFilter, expanded },
+    state: { expanded },
     onExpandedChange: setExpanded,
-    filterFromLeafRows: true,
     autoResetExpanded: false,
     getRowCanExpand: (row) => !!(row.original.subRows && row.original.subRows.length > 0),
     defaultColumn: { minSize: 60, size: 100 },
