@@ -2,7 +2,7 @@
 
 > 总设计文档: `docs/superpowers/specs/2026-06-18-novel-interactive-story-simulator-design.md`
 > 实施计划: `docs/superpowers/plans/2026-06-18-P1-基础架构.md`, `docs/superpowers/plans/2026-06-24-P2-content-management.md`
-> 最后更新: 2026-06-24
+> 最后更新: 2026-06-25
 
 ---
 
@@ -12,13 +12,14 @@
 |------|------|--------|------|
 | **P1 基础架构** | ✅ **已完成** | **代码 100% / 数据库待执行** | 后端代码 + 前端脚手架全部完成，需建表后联调 |
 | **P2 内容管理** | ✅ **已完成** | **后端 100% / 前端 100%** | Novel CRUD, Node/Event CRUD, LLM导入(名称+TXT), Admin页面完整 |
+| **RBAC 权限树重构** | ✅ **已完成** | **后端 100% / 前端 100%** | 树形权限表、动态侧边栏、声明式权限控制、树形角色权限分配、TanStack Table 权限管理 |
 | P3 核心玩法 | ⏳ 待开始 | 0% | - |
 | P4 叙事与评分 | ⏳ 待开始 | 0% | - |
 | P5 管理完善与移动端 | ⏳ 待开始 | 0% | - |
 
 ## 当前阶段
 
-**当前阶段：** P2 内容管理 ✅
+**当前阶段：** RBAC 权限树重构 ✅ → P3 核心玩法 ⏳
 
 ## P1 完成情况
 
@@ -81,12 +82,43 @@
 4. **启动后端**：`mvn spring-boot:run`
 5. **启动前端**：`cd frontend && npm run dev`
 
+## RBAC 权限树重构完成情况
+
+### 后端（已完成）
+| 任务 | 说明 |
+|------|------|
+| permission 表树形化 | parent_id/type/route/status/sort_order/created_by/updated_at 字段 |
+| 数据迁移 | 7个菜单节点 + 21个按钮权限，role_permission 映射 |
+| PermissionService | buildTree 递归构建、getMenuTree 按用户权限过滤菜单 |
+| PermissionController | /tree 返回全量权限树、CRUD 接口（含递归删除子节点） |
+| AuthController /menus | 返回当前用户可见菜单树，侧边栏驱动 |
+| AuthService | 管理员查询 status=1 的有效权限 |
+
+### 前端（已完成）
+| 任务 | 说明 |
+|------|------|
+| usePermission hook | hasPermission/hasAnyPermission/hasAllPermissions |
+| Authorized 组件 | 声明式按钮级权限控制 |
+| ProtectedRoute 组件 | 路由守卫支持 code 参数，403页面 |
+| useMenuTree hook | 模块级缓存，仅首次请求菜单树 |
+| PermissionTree 组件 | 树形勾选（全选/半选/父节点联动），支持搜索过滤 |
+| SearchSelect 组件 | 可搜索的树形 Select（Command+Popover 实现） |
+| 侧边栏动态渲染 | 从 /api/auth/menus 驱动，isActive 高亮，去重 |
+| 路由守卫改造 | ProtectedRoute 替换内联 ProtectedAdmin |
+| 权限管理页 | TanStack Table 树形表格、行点击展开、新建/编辑/删除弹窗、react-hook-form + zod 表单校验 |
+| 角色管理页 | 权限分配弹窗改为 PermissionTree 树形勾选 |
+
+### 设计文档
+- 设计: `docs/superpowers/specs/2026-06-25-rbac-permission-tree-design.md`
+- 实施计划: `docs/superpowers/plans/2026-06-25-rbac-permission-tree.md`
+
 ## 阶段完成记录
 
 | 日期 | 阶段 | 完成内容 |
 |------|------|---------|
 | 2026-06-18 | P1 基础架构 | 全部代码编写完成（待数据库建表后联调） |
 | 2026-06-24 | P2 内容管理 | Novel/Node/Event CRUD, LLM导入(TXT+名称), Admin前端页面完整 |
+| 2026-06-25 | RBAC 权限树重构 | 树形权限表、动态侧边栏、权限组件、树形角色权限分配、TanStack Table、表单校验、可搜索 Select |
 
 ## 快速导航
 
@@ -95,3 +127,5 @@
 - [P3 核心玩法](P3-核心玩法.md)
 - [P4 叙事与评分](P4-叙事与评分.md)
 - [P5 管理完善与移动端](P5-管理完善与移动端.md)
+- [RBAC 权限树设计](../specs/2026-06-25-rbac-permission-tree-design.md)
+- [RBAC 权限树实施计划](../plans/2026-06-25-rbac-permission-tree.md)
