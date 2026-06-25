@@ -17,12 +17,12 @@ const RANDOM_NAMES = [
 ];
 
 const TEMPLATES = [
-  { icon: '⚔️', label: '战士',   hp: 100, attack: 20, defense: 20, intelligence: 30, charm: 30, luck: 40, desc: '高攻高防' },
-  { icon: '🧙',  label: '智者',   hp: 80,  attack: 8,  defense: 8,  intelligence: 70, charm: 40, luck: 40, desc: '高智力' },
-  { icon: '❤️',  label: '魅力型', hp: 90,  attack: 10, defense: 10, intelligence: 40, charm: 70, luck: 40, desc: '高魅力' },
-  { icon: '🍀',  label: '幸运型', hp: 80,  attack: 10, defense: 10, intelligence: 40, charm: 40, luck: 70, desc: '高运气' },
-  { icon: '⚖️',  label: '均衡型', hp: 100, attack: 12, defense: 12, intelligence: 45, charm: 45, luck: 45, desc: '属性平均' },
-  { icon: '💀',  label: '挑战型', hp: 70,  attack: 8,  defense: 8,  intelligence: 50, charm: 50, luck: 50, desc: '低起点高成长' },
+  { icon: '🗡️', label: '战士',   hp: 100, attack: 20, defense: 20, intelligence: 30, charm: 30, luck: 40, desc: '高攻高防' },
+  { icon: '📖', label: '智者',   hp: 80,  attack: 8,  defense: 8,  intelligence: 70, charm: 40, luck: 40, desc: '高智力' },
+  { icon: '💄', label: '魅力型', hp: 90,  attack: 10, defense: 10, intelligence: 40, charm: 70, luck: 40, desc: '高魅力' },
+  { icon: '🍀', label: '幸运型', hp: 80,  attack: 10, defense: 10, intelligence: 40, charm: 40, luck: 70, desc: '高运气' },
+  { icon: '⚖️', label: '均衡型', hp: 100, attack: 12, defense: 12, intelligence: 45, charm: 45, luck: 45, desc: '属性平均' },
+  { icon: '🔥', label: '挑战型', hp: 70,  attack: 8,  defense: 8,  intelligence: 50, charm: 50, luck: 50, desc: '低起点高成长' },
 ];
 
 const TRAITS = [
@@ -80,6 +80,7 @@ export default function PlayerSettingsPage() {
   const [rolled, setRolled] = useState<RolledAttrs | null>(null);
   const [phase, setPhase] = useState<'name' | 'spin'>('name');
   const [spinning, setSpinning] = useState(false);
+  const [pointerRot, setPointerRot] = useState(0);
   const [randomRate] = useState(50);
   const [deathRate] = useState(30);
 
@@ -96,7 +97,10 @@ export default function PlayerSettingsPage() {
 
   const doSpin = () => {
     setSpinning(true);
-    const template = TEMPLATES[Math.floor(Math.random() * TEMPLATES.length)];
+    const idx = Math.floor(Math.random() * TEMPLATES.length);
+    const template = TEMPLATES[idx];
+    // 指针旋转：当前角度 + 3-5圈 + 目标扇区
+    setPointerRot(prev => prev + 1080 + Math.random() * 720 + idx * 60);
     const variance = () => rand(-5, 5);
     const hasTrait = Math.random() < 0.3;
     const trait = hasTrait ? TRAITS[Math.floor(Math.random() * TRAITS.length)] : undefined;
@@ -203,14 +207,7 @@ export default function PlayerSettingsPage() {
               {/* 转盘 — 静态可读 */}
               <div className="flex flex-col items-center gap-2">
                 <div className="relative size-72">
-                  {/* 旋转跑马灯效果 */}
-                  {spinning && (
-                    <div className="absolute -inset-2 rounded-full animate-spin" style={{ animationDuration: '0.6s' }}>
-                      <div className="w-full h-full rounded-full bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
-                    </div>
-                  )}
-
-                  {/* 轮盘主体（始终静止，图标永远朝上） */}
+                  {/* 轮盘主体（始终静止） */}
                   <div className="w-full h-full rounded-full border-2 border-border bg-card overflow-hidden">
                     <svg viewBox="0 0 200 200" className="w-full h-full">
                       {TEMPLATES.map((t, i) => {
@@ -226,10 +223,10 @@ export default function PlayerSettingsPage() {
                               fill={colors[i]} stroke="white" strokeWidth="1.5"
                             />
                             <text
-                              x={100 + 42 * Math.cos(midAngle)}
-                              y={100 + 42 * Math.sin(midAngle)}
+                              x={100 + 40 * Math.cos(midAngle)}
+                              y={100 + 40 * Math.sin(midAngle)}
                               textAnchor="middle" dominantBaseline="central"
-                              fontSize="26"
+                              fontSize="22"
                             >
                               {t.icon}
                             </text>
@@ -239,24 +236,29 @@ export default function PlayerSettingsPage() {
                     </svg>
                   </div>
 
-                  {/* 顶部指针 */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10">
-                    <div className="w-0 h-0 border-l-[12px] border-r-[12px] border-t-[18px] border-l-transparent border-r-transparent border-t-foreground" />
+                  {/* 旋转指针 */}
+                  <div
+                    className="absolute inset-0 transition-transform duration-[1500ms] ease-out"
+                    style={{ transform: `rotate(${pointerRot}deg)` }}
+                  >
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
+                      <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[16px] border-l-transparent border-r-transparent border-t-foreground" />
+                    </div>
                   </div>
 
-                  {/* 中心骰子 — 点击可重新抽奖 */}
+                  {/* 中心圆 */}
                   <div className="absolute inset-0 flex items-center justify-center">
                     <button
                       type="button"
                       onClick={doSpin}
                       disabled={spinning}
-                      className="size-14 rounded-full bg-background border-[3px] border-border hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      className="size-12 rounded-full bg-background border-2 border-border hover:scale-110 active:scale-95 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer z-10"
                       title={spinning ? '抽奖中...' : '点击抽奖'}
                     >
                       {spinning ? (
-                        <Loader2Icon className="size-6 text-muted-foreground animate-spin" />
+                        <Loader2Icon className="size-5 text-muted-foreground animate-spin" />
                       ) : (
-                        <span className="text-2xl">🎲</span>
+                        <span className="text-xl">🎲</span>
                       )}
                     </button>
                   </div>
