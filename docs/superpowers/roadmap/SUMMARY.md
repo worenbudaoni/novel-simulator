@@ -19,7 +19,27 @@
 
 ## 当前阶段
 
-**当前阶段：** P3 核心玩法 🔄
+**当前阶段：** P3 核心玩法 🔄 → 待执行 P3-C（LLM 深度参与）
+
+### 当前参考文档
+
+| 文档 | 说明 |
+|------|------|
+| `docs/superpowers/specs/2026-06-18-novel-interactive-story-simulator-design.md` | 总设计文档，§6 Chain 设计已更新 |
+| `docs/superpowers/roadmap/P3-核心玩法.md` | P3 任务清单，已完成/待完成标记清晰 |
+| `docs/superpowers/gameplay/llm-deep-participation.md` | **下一步待执行：** StoryChain/EventChain 接入 LLM |
+| `docs/superpowers/gameplay/gameplay-mechanics-design.md` | 玩法机制设计（角色创建、属性驱动等） |
+| `docs/superpowers/gameplay/gameplay-logic.md` | 当前完整流程定义 |
+| `docs/superpowers/plans/2026-06-25-P3-A-player-basics.md` | P3-A 实施计划（已完成） |
+| `docs/superpowers/plans/2026-06-25-P3-B-core-gameplay.md` | P3-B 实施计划（已完成） |
+
+### 最新提交
+
+```bash
+# 最后一次提交（文档更新）
+git log -1 --oneline
+# 需要执行的下一个任务：按 llm-deep-participation.md 改造 StoryChain + EventChain
+```
 
 ## P1 完成情况
 
