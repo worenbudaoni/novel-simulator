@@ -5,6 +5,9 @@ import { Badge } from 'src/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from 'src/components/ui/dialog';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from 'src/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/components/ui/select';
 import { Switch } from 'src/components/ui/switch';
 import { toast } from 'sonner';
@@ -13,6 +16,14 @@ import {
   PlusIcon, Loader2Icon, Trash2Icon, SearchIcon,
   ChevronRightIcon, ChevronDownIcon,
 } from 'lucide-react';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getExpandedRowModel,
+  getFilteredRowModel,
+  createColumnHelper,
+  flexRender,
+} from '@tanstack/react-table';
 
 interface PermissionNode {
   id: number;
@@ -24,13 +35,15 @@ interface PermissionNode {
   status: number;
   sortOrder: number;
   children?: PermissionNode[];
+  subRows?: PermissionNode[];
 }
+
+const columnHelper = createColumnHelper<PermissionNode>();
 
 export default function AdminPermissionsPage() {
   const [tree, setTree] = useState<PermissionNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [showCreate, setShowCreate] = useState(false);
 
   // Form fields
@@ -49,7 +62,13 @@ export default function AdminPermissionsPage() {
     setLoading(true);
     try {
       const res = await api.get('/admin/permissions/tree');
-      if (res.data.code === 200) setTree(res.data.data || []);
+      if (res.data.code === 200) {
+        const data: PermissionNode[] = res.data.data || [];
+        // 给树形数据加上 subRows 别名（TanStack Table 用 subRows）
+        const addSubRows = (nodes: PermissionNode[]): PermissionNode[] =>
+          nodes.map(n => ({ ...n, subRows: n.children ? addSubRows(n.children) : undefined }));
+        setTree(addSubRows(data));
+      }
     } finally { setLoading(false); }
   };
 
@@ -66,26 +85,99 @@ export default function AdminPermissionsPage() {
     return flatten(tree);
   }, [tree]);
 
-  // Search filter
-  const filteredTree = useMemo(() => {
-    if (!search) return tree;
-    const filterNode = (nodes: PermissionNode[]): PermissionNode[] => {
-      return nodes.filter(n => {
-        const match = n.name.includes(search) || n.code.includes(search);
-        const filteredChildren = n.children ? filterNode(n.children) : [];
-        return match || filteredChildren.length > 0;
-      });
-    };
-    return filterNode(tree);
-  }, [tree, search]);
+  const columns = useMemo(() => [
+    columnHelper.display({
+      id: 'expander',
+      size: 32,
+      cell: ({ row }) => {
+        if (!row.getCanExpand()) return <span className="inline-block w-4" />;
+        return (
+          <button
+            type="button"
+            onClick={row.getToggleExpandedHandler()}
+            className="p-0.5 cursor-pointer"
+          >
+            {row.getIsExpanded()
+              ? <ChevronDownIcon className="size-3.5 text-muted-foreground" />
+              : <ChevronRightIcon className="size-3.5 text-muted-foreground" />
+            }
+          </button>
+        );
+      },
+    }),
+    columnHelper.accessor('name', {
+      header: '名称',
+      cell: ({ row, getValue }) => (
+        <span className={`font-medium ${row.original.type === 1 ? 'text-foreground' : 'text-muted-foreground'}`}>
+          {getValue()}
+        </span>
+      ),
+    }),
+    columnHelper.accessor('type', {
+      header: '类型',
+      size: 64,
+      cell: ({ getValue }) => getValue() === 1
+        ? <Badge variant="default" className="text-[10px]">菜单</Badge>
+        : <Badge variant="outline" className="text-[10px]">按钮</Badge>,
+    }),
+    columnHelper.accessor('code', {
+      header: '标识',
+      cell: ({ getValue }) => <code className="text-xs font-mono text-primary">{getValue()}</code>,
+    }),
+    columnHelper.accessor('route', {
+      header: '路由',
+      cell: ({ getValue }) => {
+        const v = getValue();
+        return v ? <span className="text-xs text-muted-foreground">{v}</span> : null;
+      },
+    }),
+    columnHelper.accessor('status', {
+      header: '状态',
+      size: 56,
+      cell: ({ getValue }) => (
+        <span className={`text-xs ${getValue() === 1 ? 'text-green-600' : 'text-red-500'}`}>
+          {getValue() === 1 ? '有效' : '无效'}
+        </span>
+      ),
+    }),
+    columnHelper.display({
+      id: 'actions',
+      size: 40,
+      cell: ({ row }) => (
+        <button
+          type="button"
+          onClick={() => handleDelete(row.original)}
+          className="p-1 hover:bg-destructive/10 rounded cursor-pointer opacity-0 hover:opacity-100 transition-opacity"
+        >
+          <Trash2Icon className="size-3.5 text-destructive" />
+        </button>
+      ),
+    }),
+  ], []);
 
-  const toggleExpand = (id: number) => {
-    setExpanded(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
+  const globalFilter = useMemo(() => {
+    if (!search) return undefined;
+    return search;
+  }, [search]);
+
+  const table = useReactTable({
+    data: tree,
+    columns,
+    getSubRows: (row) => row.subRows,
+    getCoreRowModel: getCoreRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    globalFilterFn: (row, _, filterValue) => {
+      const name = row.original.name?.toLowerCase() ?? '';
+      const code = row.original.code?.toLowerCase() ?? '';
+      const q = String(filterValue).toLowerCase();
+      return name.includes(q) || code.includes(q);
+    },
+    state: {
+      globalFilter,
+    },
+    filterFromLeafRows: true,
+  });
 
   const openCreate = () => {
     setFormName(''); setFormCode(''); setFormType('2');
@@ -117,38 +209,6 @@ export default function AdminPermissionsPage() {
     } catch { /* handled */ }
   };
 
-  const typeBadge = (t: number) => t === 1
-    ? <Badge variant="default" className="text-[10px]">菜单</Badge>
-    : <Badge variant="outline" className="text-[10px]">按钮</Badge>;
-
-  const renderNode = (node: PermissionNode, depth: number = 0) => {
-    const isExpanded = expanded.has(node.id);
-    const hasChildren = node.children && node.children.length > 0;
-    return (
-      <div key={node.id}>
-        <div
-          className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted/10 transition-colors"
-          style={{ paddingLeft: `${12 + depth * 20}px` }}
-        >
-          <button type="button" onClick={() => hasChildren && toggleExpand(node.id)} className={`p-0.5 ${hasChildren ? 'cursor-pointer' : 'invisible'}`}>
-            {isExpanded ? <ChevronDownIcon className="size-3.5 text-muted-foreground" /> : <ChevronRightIcon className="size-3.5 text-muted-foreground" />}
-          </button>
-          <span className={`font-medium ${node.type === 1 ? 'text-foreground' : 'text-muted-foreground'}`}>{node.name}</span>
-          {typeBadge(node.type)}
-          <code className="text-xs font-mono text-primary ml-2">{node.code}</code>
-          {node.route && <span className="text-xs text-muted-foreground ml-2">{node.route}</span>}
-          <span className={`ml-auto text-xs ${node.status === 1 ? 'text-green-600' : 'text-red-500'}`}>{node.status === 1 ? '有效' : '无效'}</span>
-          <button type="button" onClick={() => handleDelete(node)} className="p-1 hover:bg-destructive/10 rounded cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
-            <Trash2Icon className="size-3.5 text-destructive" />
-          </button>
-        </div>
-        {hasChildren && isExpanded && (
-          <div>{node.children!.map(child => renderNode(child, depth + 1))}</div>
-        )}
-      </div>
-    );
-  };
-
   if (loading) {
     return <div className="flex items-center justify-center py-12 text-muted-foreground"><Loader2Icon className="size-5 animate-spin mr-2" /> 加载中...</div>;
   }
@@ -163,13 +223,41 @@ export default function AdminPermissionsPage() {
         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
         <Input placeholder="搜索名称或标识..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
-      {filteredTree.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">暂无权限</div>
-      ) : (
-        <div className="rounded-lg border divide-y">{filteredTree.map(node => renderNode(node))}</div>
-      )}
 
-      {/* Create Dialog */}
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map(hg => (
+              <TableRow key={hg.id}>
+                {hg.headers.map(h => (
+                  <TableHead key={h.id} style={{ width: h.getSize() !== 150 ? h.getSize() : undefined }}>
+                    {flexRender(h.column.columnDef.header, h.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">暂无权限</TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows.map(row => {
+              const depth = row.depth;
+              return (
+                <TableRow key={row.id} className="hover:bg-muted/10">
+                  {row.getVisibleCells().map((cell, ci) => (
+                    <TableCell key={cell.id} className="py-2" style={{ paddingLeft: ci === 0 ? `${8 + depth * 20}px` : undefined }}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
       <Dialog open={showCreate} onOpenChange={o => { if (!o) setShowCreate(false); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
@@ -180,7 +268,7 @@ export default function AdminPermissionsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">类型</label>
-                <Select value={formType} onValueChange={setFormType}>
+                <Select value={formType} onValueChange={(v: any) => setFormType(v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">菜单</SelectItem>
@@ -198,7 +286,7 @@ export default function AdminPermissionsPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">父节点</label>
-              <Select value={formParentId} onValueChange={setFormParentId}>
+              <Select value={formParentId} onValueChange={(v: any) => setFormParentId(v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">根节点</SelectItem>
