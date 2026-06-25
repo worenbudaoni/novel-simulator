@@ -112,8 +112,8 @@ export default function PlayerStoryPage() {
       }
       // 关闭转盘，触发故事（带事件描述），事件标题会自然出现在故事中
       setShowWheel(false);
-      if (pendingSessionId) {
-        triggerStory(pendingSessionId, desc);
+      if (sessionId) {
+        triggerStory(sessionId, desc);
       }
     } catch { setPendingSpin(false); setActionDisabled(false); }
   };
