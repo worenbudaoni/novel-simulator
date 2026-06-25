@@ -264,8 +264,10 @@ export default function AdminPermissionsPage() {
       const q = String(filterValue).toLowerCase();
       return name.includes(q) || code.includes(q);
     },
-    state: { globalFilter },
+    state: { globalFilter, expanded: search ? true : undefined },
     filterFromLeafRows: true,
+    autoResetExpanded: false,
+    getRowCanExpand: (row) => !!(row.original.subRows && row.original.subRows.length > 0),
     defaultColumn: { minSize: 60, size: 100 },
   });
 
