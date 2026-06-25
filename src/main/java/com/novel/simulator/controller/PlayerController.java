@@ -218,7 +218,9 @@ public class PlayerController {
 
     @PostMapping("/session/restart")
     public Result<Map<String, Object>> restartSession(@RequestBody Map<String, String> request) {
-        UserSession session = sessionService.restart(request.get("sessionId"));
+        String sid = request.get("sessionId");
+        storyChain.clearHistory(sid);
+        UserSession session = sessionService.restart(sid);
         return Result.success(sessionService.getSessionState(session.getSessionId()));
     }
 
