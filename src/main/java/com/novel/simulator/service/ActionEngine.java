@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.novel.simulator.dto.ActionResult;
 import com.novel.simulator.entity.*;
 import com.novel.simulator.mapper.*;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class ActionEngine {
@@ -19,17 +21,20 @@ public class ActionEngine {
     private final UserCharacterMapper userCharacterMapper;
     private final EventChain eventChain;
     private final ObjectMapper objectMapper;
+    private final StringRedisTemplate redisTemplate;
 
     public ActionEngine(NodeMapper nodeMapper, NodeOptionMapper nodeOptionMapper,
                         UserSessionMapper userSessionMapper, UserCharacterMapper userCharacterMapper,
                         EventChain eventChain,
-                        ObjectMapper objectMapper) {
+                        ObjectMapper objectMapper,
+                        StringRedisTemplate redisTemplate) {
         this.nodeMapper = nodeMapper;
         this.nodeOptionMapper = nodeOptionMapper;
         this.userSessionMapper = userSessionMapper;
         this.userCharacterMapper = userCharacterMapper;
         this.eventChain = eventChain;
         this.objectMapper = objectMapper;
+        this.redisTemplate = redisTemplate;
     }
 
     @Transactional
@@ -91,10 +96,20 @@ public class ActionEngine {
         session.setUpdatedAt(LocalDateTime.now());
         userSessionMapper.updateById(session);
 
+        // 将事件内容缓存到 Redis（5分钟），供 SSE story/stream 读取，避免 URL 过长
+        String eventTitle = (String) eventData.get("title");
+        String eventContent = (String) eventData.get("content");
+        if (eventContent != null && !eventContent.isEmpty()) {
+            redisTemplate.opsForValue().set(
+                "cache:session:" + sessionId + ":pending_event",
+                eventTitle + "||" + eventContent,
+                5, TimeUnit.MINUTES);
+        }
+
         ActionResult result = new ActionResult();
         result.setActionType("spin");
-        result.setEventTitle((String) eventData.get("title"));
-        result.setEventDescription((String) eventData.get("content"));
+        result.setEventTitle(eventTitle);
+        result.setEventDescription(eventContent);
         result.setCharacter(character);
 
         // 返回属性变化供前端展示

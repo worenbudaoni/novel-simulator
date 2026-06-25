@@ -107,6 +107,16 @@ public class StoryChain {
 
     private String generateStoryWithLlm(UserSession session, Node currentNode,
                                         UserCharacter character, String actionDescription) {
+        // 如果 description 很短，尝试从 Redis 读取待处理事件（转盘生成的长内容）
+        if (actionDescription == null || actionDescription.length() < 20) {
+            String pendingEvent = redisTemplate.opsForValue().get(
+                REDIS_KEY_PREFIX + session.getSessionId() + ":pending_event");
+            if (pendingEvent != null && !pendingEvent.isEmpty()) {
+                actionDescription = pendingEvent;
+                redisTemplate.delete(REDIS_KEY_PREFIX + session.getSessionId() + ":pending_event");
+            }
+        }
+
         Novel novel = novelMapper.selectById(session.getNovelId());
         String worldView = novel != null ? novel.getWorldView() : "";
 

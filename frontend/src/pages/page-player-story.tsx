@@ -45,13 +45,15 @@ export default function PlayerStoryPage() {
   }, [currentNode?.isEnd, streaming]);
 
   // 触发 SSE 故事流
-  const triggerStory = useCallback((sid: string, desc?: string) => {
+  // displayDesc: 展示在故事区的文字（选择/事件的完整内容）
+  // sseDesc: 传给后端的简短标记（为空时后端从 Redis 读取事件内容）
+  const triggerStory = useCallback((sid: string, displayDesc?: string, sseDesc?: string) => {
     // 追加选择/事件描述到故事区，不覆盖已有内容
-    if (desc) {
-      setStoryText(prev => prev + '\n\n---\n\n' + desc + '\n\n');
+    if (displayDesc) {
+      setStoryText(prev => prev + '\n\n---\n\n' + displayDesc + '\n\n');
     }
     setPendingSessionId(sid);
-    setLastEventDesc(desc || '');
+    setLastEventDesc(displayDesc || '');
     connect(sid, {
       onStory: (text) => {
         // flushSync 强制立即渲染，避免 React 18 批处理合并 SSE 段落
@@ -72,7 +74,7 @@ export default function PlayerStoryPage() {
         }
       },
       onError: (msg) => { toast.error(msg); setActionDisabled(false); setPendingSpin(false); setShowWheel(false); setPendingSessionId(null); },
-    }, desc);
+    }, sseDesc);  // 传短的标记给 SSE URL
   }, [connect]);
 
   // 选择选项
@@ -94,8 +96,8 @@ export default function PlayerStoryPage() {
         } catch { /* ignore */ }
       }
 
-      // 先生成选择后的故事（转盘在故事完成后显示）
-      triggerStory(sessionId, choiceLabel);
+      // 先生成选择后的故事（选择描述同时用于展示和 SSE）
+      triggerStory(sessionId, choiceLabel, choiceLabel);
     } catch { setActionDisabled(false); }
   };
 
@@ -104,16 +106,14 @@ export default function PlayerStoryPage() {
     setPendingSpin(true);
     try {
       const result = await spinAction();
-      let desc = '';
-      if (result?.eventTitle) {
-        desc = result.eventTitle + '！' + (result.eventDescription || '');
-      } else if (result?.eventDescription) {
-        desc = result.eventDescription;
-      }
-      // 关闭转盘，触发故事（带事件描述），事件标题会自然出现在故事中
+      // displayDesc: 展示在故事区；sseDesc: 只传标题给 SSE，完整事件内容从 Redis 读取
+      const displayDesc = result?.eventTitle
+        ? result.eventTitle + '！' + (result.eventDescription || '')
+        : (result?.eventDescription || '');
+      const sseDesc = result?.eventTitle || '';
       setShowWheel(false);
       if (sessionId) {
-        triggerStory(sessionId, desc);
+        triggerStory(sessionId, displayDesc, sseDesc);
       }
     } catch { setPendingSpin(false); setActionDisabled(false); }
   };
