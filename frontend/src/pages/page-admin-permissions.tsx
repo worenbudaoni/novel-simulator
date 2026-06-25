@@ -155,7 +155,7 @@ export default function AdminPermissionsPage() {
       cell: ({ row }) => {
         if (!row.getCanExpand()) return <span className="inline-block w-4" />;
         return (
-          <button type="button" onClick={row.getToggleExpandedHandler()} className="p-0.5 cursor-pointer">
+          <button type="button" onClick={(e) => { e.stopPropagation(); row.getToggleExpandedHandler()(); }} className="p-0.5 cursor-pointer">
             {row.getIsExpanded()
               ? <ChevronDownIcon className="size-3.5 text-muted-foreground" />
               : <ChevronRightIcon className="size-3.5 text-muted-foreground" />
@@ -222,10 +222,10 @@ export default function AdminPermissionsPage() {
       size: 52,
       cell: ({ row }) => (
         <div className="flex gap-0.5">
-          <button type="button" onClick={() => openEdit(row.original)} className="p-1 hover:bg-muted rounded cursor-pointer" title="编辑">
+          <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(row.original); }} className="p-1 hover:bg-muted rounded cursor-pointer" title="编辑">
             <PencilIcon className="size-3.5 text-muted-foreground" />
           </button>
-          <button type="button" onClick={() => handleDelete(row.original)} className="p-1 hover:bg-destructive/10 rounded cursor-pointer" title="删除">
+          <button type="button" onClick={(e) => { e.stopPropagation(); handleDelete(row.original); }} className="p-1 hover:bg-destructive/10 rounded cursor-pointer" title="删除">
             <Trash2Icon className="size-3.5 text-destructive" />
           </button>
         </div>
@@ -289,7 +289,11 @@ export default function AdminPermissionsPage() {
             ) : table.getRowModel().rows.map(row => {
               const depth = row.depth;
               return (
-                <TableRow key={row.id} className="hover:bg-muted/10">
+                <TableRow
+                  key={row.id}
+                  className={`hover:bg-muted/10 ${row.getCanExpand() ? 'cursor-pointer' : ''}`}
+                  onClick={() => row.getCanExpand() && row.getToggleExpandedHandler()()}
+                >
                   {row.getVisibleCells().map((cell, ci) => (
                     <TableCell key={cell.id} className="py-1.5 text-xs" style={{ paddingLeft: ci === 0 ? `${8 + depth * 20}px` : undefined }}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
