@@ -30,8 +30,8 @@ export default function PlayerNovelsPage() {
 
   const typeLabel = (t: number) => ['小说', '动漫', '漫画'][t] || '未知';
 
-  const startGame = (novelId: number) => {
-    navigate(`/player/settings/${novelId}`);
+  const startGame = (novelId: number, novelTitle?: string) => {
+    navigate(`/player/settings/${novelId}`, { state: { novelTitle } });
   };
 
   if (loading) {
@@ -75,7 +75,7 @@ export default function PlayerNovelsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {novels.map(novel => (
-            <Card key={novel.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => startGame(novel.id)}>
+            <Card key={novel.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => startGame(novel.id, novel.title)}>
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-base">{novel.title}</CardTitle>

@@ -20,10 +20,20 @@ const breadcrumbMap: Record<string, string> = {
 };
 
 export function SiteHeader() {
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
 
   const buildBreadcrumb = () => {
     const path = pathname.replace(/\/$/, '');
+
+    // /player/settings/:novelId and /player/story/:sessionId — show novel name
+    const playerNovelMatch = path.match(/^\/player\/(settings|story)\/.+$/);
+    if (playerNovelMatch) {
+      const novelTitle = (state as any)?.novelTitle || playerNovelMatch[1];
+      return [
+        { label: '作品列表', href: '/player' },
+        { label: novelTitle, href: path },
+      ];
+    }
 
     // /admin/novel/:id/xxx
     const novelMatch = path.match(/^\/admin\/novel\/(\d+)\/(.+)$/);
