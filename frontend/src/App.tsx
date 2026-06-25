@@ -66,7 +66,7 @@ function PlayerPage() {
   const { user } = useAuth();
   return user ? (
     <DashboardLayout>
-      <SectionCards />
+      <PlayerNovelsPage />
     </DashboardLayout>
   ) : (
     <GuestPlayerPage />
