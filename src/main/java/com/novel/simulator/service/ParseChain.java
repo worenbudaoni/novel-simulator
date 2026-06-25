@@ -216,7 +216,7 @@ public class ParseChain {
                 .baseUrl(llmApiUrl)
                 .temperature(0.7)
                 .maxTokens(4096)
-                .timeout(java.time.Duration.ofSeconds(15))
+                .timeout(java.time.Duration.ofSeconds(120))
                 .build();
             r.rawResponse = model.generate(prompt);
             r.tokensUsed = r.rawResponse.length() / 2;
