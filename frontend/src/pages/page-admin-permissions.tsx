@@ -8,7 +8,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from 'src/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger } from 'src/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/components/ui/select';
 import { Switch } from 'src/components/ui/switch';
 import { toast } from 'sonner';
 import api from '@/hooks/useApi';
@@ -315,9 +315,9 @@ export default function AdminPermissionsPage() {
                 <label className="text-sm font-medium">类型</label>
                 <Select value={formType} onValueChange={(v) => v !== null && setFormType(v)}>
                   <SelectTrigger>
-                    <span className="flex flex-1 text-left text-sm">
-                      {formType === '1' ? '菜单' : '按钮'}
-                    </span>
+                    <SelectValue>
+                      {(v: any) => v === '1' ? '菜单' : v === '2' ? '按钮' : v}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">菜单</SelectItem>
@@ -337,9 +337,9 @@ export default function AdminPermissionsPage() {
               <label className="text-sm font-medium">父节点</label>
               <Select value={formParentId} onValueChange={(v) => v !== null && setFormParentId(v)}>
                 <SelectTrigger>
-                  <span className="flex flex-1 text-left text-sm">
-                    {formParentId === '0' ? '根节点' : allNodes.find(n => String(n.id) === formParentId)?.name || formParentId}
-                  </span>
+                  <SelectValue>
+                    {(v: any) => v === '0' ? '根节点' : allNodes.find(n => String(n.id) === v)?.name || v}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">根节点</SelectItem>
