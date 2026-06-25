@@ -1,3 +1,5 @@
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Button } from 'src/components/ui/button';
 import { Card, CardContent } from 'src/components/ui/card';
 import { RotateCcwIcon, HomeIcon, SparklesIcon } from 'lucide-react';
@@ -72,8 +74,10 @@ export default function EndingModal({
           {storyText && (
             <div className="bg-muted/20 rounded-lg p-3 max-h-40 overflow-y-auto">
               <h3 className="text-sm font-semibold mb-2">📖 完整故事</h3>
-              <div className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                {storyText}
+              <div className="prose prose-xs max-w-none dark:prose-invert text-xs">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {storyText}
+                </ReactMarkdown>
               </div>
             </div>
           )}

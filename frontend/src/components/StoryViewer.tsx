@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Card, CardContent } from 'src/components/ui/card';
 import { Loader2Icon } from 'lucide-react';
 
@@ -21,8 +23,10 @@ export default function StoryViewer({ text, streaming, placeholder }: StoryViewe
     <Card>
       <CardContent className="pt-4">
         {text ? (
-          <div className="prose prose-sm max-w-none">
-            <div className="whitespace-pre-wrap text-sm leading-relaxed">{text}</div>
+          <div className="prose prose-sm max-w-none dark:prose-invert">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {text}
+            </ReactMarkdown>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground text-center py-8">
