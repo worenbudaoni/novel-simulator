@@ -50,13 +50,19 @@ public class AuthFilter extends OncePerRequestFilter {
             return;
         }
 
+        // 优先从 Authorization header 取，其次从 token query param 取（支持 SSE）
+        String sessionId = null;
         String authHeader = request.getHeader("Authorization");
-        if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
+        if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
+            sessionId = authHeader.substring(7);
+        } else {
+            sessionId = request.getParameter("token");
+        }
+
+        if (sessionId == null || sessionId.isEmpty()) {
             writeUnauthorized(response, "Missing or invalid Authorization header");
             return;
         }
-
-        String sessionId = authHeader.substring(7);
         String sessionKey = SESSION_PREFIX + sessionId;
         String sessionJson = redisTemplate.opsForValue().get(sessionKey);
 

@@ -18,7 +18,8 @@ export function useSSE() {
     }
 
     optionsRef.current = options || {};
-    const url = `/api/player/story/stream/${sessionId}`;
+    const token = localStorage.getItem('sessionId');
+    const url = `/api/player/story/stream/${sessionId}?token=${token}`;
     const es = new EventSource(url);
     eventSourceRef.current = es;
     setConnected(true);
