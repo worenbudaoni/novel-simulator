@@ -314,7 +314,7 @@ export default function AdminPermissionsPage() {
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">类型</label>
                 <Select value={formType} onValueChange={(v) => v !== null && setFormType(v)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue>
                       {(v: any) => v === '1' ? '菜单' : v === '2' ? '按钮' : v}
                     </SelectValue>
@@ -336,7 +336,7 @@ export default function AdminPermissionsPage() {
             <div className="space-y-1.5">
               <label className="text-sm font-medium">父节点</label>
               <Select value={formParentId} onValueChange={(v) => v !== null && setFormParentId(v)}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue>
                     {(v: any) => v === '0' ? '根节点' : allNodes.find(n => String(n.id) === v)?.name || v}
                   </SelectValue>
