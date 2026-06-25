@@ -10,12 +10,12 @@ interface WheelOfFortuneProps {
 const COLORS = ['#a855f7', '#eab308', '#ef4444', '#22c55e', '#6366f1', '#06b6d4'];
 
 const SECTORS = [
-  { label: '奇遇', icon: '✨' },
-  { label: '宝箱', icon: '💎' },
-  { label: '战斗', icon: '⚔️' },
-  { label: '诅咒', icon: '💀' },
-  { label: '命运', icon: '🌀' },
-  { label: '邂逅', icon: '💕' },
+  { icon: '✨' },
+  { icon: '💎' },
+  { icon: '⚔️' },
+  { icon: '💀' },
+  { icon: '🌀' },
+  { icon: '💕' },
 ];
 
 export default function WheelOfFortune({ onSpin, disabled, spinning }: WheelOfFortuneProps) {
@@ -48,8 +48,7 @@ export default function WheelOfFortune({ onSpin, disabled, spinning }: WheelOfFo
               return (
                 <g key={i}>
                   <path d={`M100,100 L${100 + 85 * Math.cos(a1)},${100 + 85 * Math.sin(a1)} A85,85 0 0,1 ${100 + 85 * Math.cos(a2)},${100 + 85 * Math.sin(a2)} Z`} fill={COLORS[i]} stroke="white" strokeWidth="1.5" />
-                  <text x={100 + 40 * Math.cos(am)} y={100 + 40 * Math.sin(am)} textAnchor="middle" dominantBaseline="central" fontSize="24">{s.icon}</text>
-                  <text x={100 + 40 * Math.cos(am)} y={100 + 40 * Math.sin(am) + 18} textAnchor="middle" dominantBaseline="central" fontSize="9" fill="white" fontWeight="bold">{s.label}</text>
+                  <text x={100 + 40 * Math.cos(am)} y={100 + 40 * Math.sin(am)} textAnchor="middle" dominantBaseline="central" fontSize="28">{s.icon}</text>
                 </g>
               );
             })}
@@ -57,7 +56,7 @@ export default function WheelOfFortune({ onSpin, disabled, spinning }: WheelOfFo
         </div>
 
         {/* 旋转指针 */}
-        <div className="absolute inset-0 transition-transform duration-[2000ms] ease-out" style={{ transform: `rotate(${pointerRot}deg)` }}>
+        <div className="absolute inset-0 transition-transform duration-[1000ms] ease-out" style={{ transform: `rotate(${pointerRot}deg)` }}>
           <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
             <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[16px] border-l-transparent border-r-transparent border-t-foreground" />
           </div>

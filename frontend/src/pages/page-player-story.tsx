@@ -106,12 +106,11 @@ export default function PlayerStoryPage() {
       const result = await spinAction();
       let desc = '';
       if (result?.eventTitle) {
-        toast.info(result.eventTitle);
         desc = result.eventTitle + '！' + (result.eventDescription || '');
       } else if (result?.eventDescription) {
         desc = result.eventDescription;
       }
-      // 关闭转盘，触发故事（带事件描述）
+      // 关闭转盘，触发故事（带事件描述），事件标题会自然出现在故事中
       setShowWheel(false);
       if (pendingSessionId) {
         triggerStory(pendingSessionId, desc);
