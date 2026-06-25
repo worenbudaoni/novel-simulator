@@ -79,7 +79,7 @@ export function SiteHeader() {
         />
         <nav className="flex items-center gap-1 text-sm">
           {crumbs.map((crumb, i) => (
-            <span key={crumb.href} className="flex items-center gap-1">
+            <span key={i} className="flex items-center gap-1">
               {i > 0 && <ChevronRightIcon className="size-3.5 text-muted-foreground" />}
               {i < crumbs.length - 1 ? (
                 <Link to={crumb.href} className="text-muted-foreground hover:text-foreground transition-colors">
