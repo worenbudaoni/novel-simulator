@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { NavMain } from "src/components/nav-main"
 import { NavDocuments } from "src/components/nav-documents"
 import { NavSecondary } from "src/components/nav-secondary"
@@ -14,29 +14,34 @@ import {
   SidebarMenuItem,
 } from "src/components/ui/sidebar"
 import { useAuth } from '@/hooks/useAuth';
-import {
-  BookOpen,
-  Play,
-  History,
-  Heart,
-  Star,
-  LayoutDashboard,
-  Users,
-  Shield,
-  KeyRound,
-  FileCode,
-  CommandIcon,
-} from "lucide-react"
+import { useMenuTree } from '@/hooks/useMenuTree';
+import { BookOpen, LayoutDashboard, Users, Shield, KeyRound, CommandIcon } from "lucide-react"
+
+const routeIcons: Record<string, React.ReactNode> = {
+  '/admin': <LayoutDashboard className="size-4" />,
+  '/admin/users': <Users className="size-4" />,
+  '/admin/roles': <Shield className="size-4" />,
+  '/admin/permissions': <KeyRound className="size-4" />,
+};
+
+const defaultIcon = <LayoutDashboard className="size-4" />;
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, hasRole } = useAuth();
-  const { pathname } = useLocation();
+  const { user } = useAuth();
+  const { menuTree, loading } = useMenuTree();
 
-  const isActive = (url: string) => {
-    if (url === '/admin') return pathname === '/admin' || pathname.startsWith('/admin/novel/');
-    if (url === '/player') return pathname === '/player' || pathname === '/player/guest';
-    return pathname.startsWith(url);
-  };
+  const adminItems: { title: string; url: string; icon: React.ReactNode }[] = [];
+  if (!loading) {
+    const sysGroup = menuTree.find(n => n.code === 'menu:admin');
+    if (sysGroup && sysGroup.children) {
+      for (const child of sysGroup.children) {
+        if (child.type !== 1) continue;
+        const url = child.route || '/';
+        const icon = routeIcons[url] || defaultIcon;
+        adminItems.push({ title: child.name, url, icon });
+      }
+    }
+  }
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -57,23 +62,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {user ? (
           <>
             <NavMain items={[
-              { title: "作品列表", url: "/player", icon: <BookOpen />, isActive: isActive('/player') && !pathname.startsWith('/player/continue') && !pathname.startsWith('/player/history') },
-              { title: "继续游戏", url: "/player/continue", icon: <Play />, isActive: isActive('/player/continue') },
-              { title: "游戏历史", url: "/player/history", icon: <History />, isActive: isActive('/player/history') },
+              { title: "作品列表", url: "/player", icon: <BookOpen /> },
             ]} />
-            <NavDocuments items={[
-              { name: "我的收藏", url: "/player/favorites", icon: <Heart /> },
-              { name: "为你推荐", url: "/player/recommendations", icon: <Star /> },
-            ]} />
-            {hasRole('ADMIN') && (
-              <NavMain title="管理后台" items={[
-                { title: "作品管理", url: "/admin", icon: <LayoutDashboard />, isActive: pathname === '/admin' || pathname.startsWith('/admin/novel/') },
-                { title: "用户管理", url: "/admin/users", icon: <Users />, isActive: pathname === '/admin/users' },
-                { title: "角色管理", url: "/admin/roles", icon: <Shield />, isActive: pathname === '/admin/roles' },
-                { title: "权限管理", url: "/admin/permissions", icon: <KeyRound />, isActive: pathname === '/admin/permissions' },
-                { title: "Prompt 配置", url: "/admin", icon: <FileCode />, isActive: false },
-              ]} />
+            {adminItems.length > 0 && (
+              <NavMain title="管理后台" items={adminItems} />
             )}
+            <NavDocuments items={[]} />
           </>
         ) : (
           <NavMain items={[

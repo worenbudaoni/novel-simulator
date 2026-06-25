@@ -5,6 +5,8 @@ import { Badge } from 'src/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from 'src/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/components/ui/select';
+import { Switch } from 'src/components/ui/switch';
 import { toast } from 'sonner';
 import api from '@/hooks/useApi';
 import {
@@ -12,85 +14,139 @@ import {
   ChevronRightIcon, ChevronDownIcon,
 } from 'lucide-react';
 
-interface Permission {
+interface PermissionNode {
   id: number;
-  code: string;
+  parentId: number;
   name: string;
-  resource: string;
-  action: string;
+  code: string;
+  type: number;
+  route: string | null;
+  status: number;
+  sortOrder: number;
+  children?: PermissionNode[];
 }
 
 export default function AdminPermissionsPage() {
-  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [tree, setTree] = useState<PermissionNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(['novel', 'node', 'event', 'user', 'role', 'player']));
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [showCreate, setShowCreate] = useState(false);
-  const [newCode, setNewCode] = useState('');
-  const [newName, setNewName] = useState('');
-  const [newResource, setNewResource] = useState('');
-  const [newAction, setNewAction] = useState('');
+
+  // Form fields
+  const [formName, setFormName] = useState('');
+  const [formCode, setFormCode] = useState('');
+  const [formType, setFormType] = useState('2');
+  const [formParentId, setFormParentId] = useState('0');
+  const [formRoute, setFormRoute] = useState('');
+  const [formSortOrder, setFormSortOrder] = useState('0');
+  const [formStatus, setFormStatus] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  useEffect(() => { loadTree(); }, []);
+
+  const loadTree = async () => {
     setLoading(true);
-    api.get('/admin/role/permissions').then(res => {
-      if (res.data.code === 200) setPermissions(res.data.data);
-    }).finally(() => setLoading(false));
-  }, []);
+    try {
+      const res = await api.get('/admin/permissions/tree');
+      if (res.data.code === 200) setTree(res.data.data || []);
+    } finally { setLoading(false); }
+  };
 
-  const filtered = useMemo(() => {
-    if (!search) return permissions;
-    return permissions.filter(p =>
-      p.code.includes(search) || p.name.includes(search) || p.resource.includes(search)
-    );
-  }, [permissions, search]);
+  // Flatten tree for parent selector
+  const allNodes = useMemo(() => {
+    const flatten = (nodes: PermissionNode[]): PermissionNode[] => {
+      const result: PermissionNode[] = [];
+      for (const n of nodes) {
+        result.push(n);
+        if (n.children) result.push(...flatten(n.children));
+      }
+      return result;
+    };
+    return flatten(tree);
+  }, [tree]);
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, Permission[]>();
-    filtered.forEach(p => {
-      if (!map.has(p.resource)) map.set(p.resource, []);
-      map.get(p.resource)!.push(p);
-    });
-    return Array.from(map.entries())
-      .map(([resource, items]) => ({ resource, items }))
-      .sort((a, b) => a.resource.localeCompare(b.resource));
-  }, [filtered]);
+  // Search filter
+  const filteredTree = useMemo(() => {
+    if (!search) return tree;
+    const filterNode = (nodes: PermissionNode[]): PermissionNode[] => {
+      return nodes.filter(n => {
+        const match = n.name.includes(search) || n.code.includes(search);
+        const filteredChildren = n.children ? filterNode(n.children) : [];
+        return match || filteredChildren.length > 0;
+      });
+    };
+    return filterNode(tree);
+  }, [tree, search]);
 
-  const toggleGroup = (resource: string) => {
+  const toggleExpand = (id: number) => {
     setExpanded(prev => {
       const next = new Set(prev);
-      if (next.has(resource)) next.delete(resource); else next.add(resource);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
 
+  const openCreate = () => {
+    setFormName(''); setFormCode(''); setFormType('2');
+    setFormParentId('0'); setFormRoute(''); setFormSortOrder('0');
+    setFormStatus(true);
+    setShowCreate(true);
+  };
+
   const handleCreate = async () => {
-    if (!newCode.trim() || !newName.trim() || !newResource.trim() || !newAction.trim()) {
-      toast.error('请填写所有字段');
-      return;
-    }
+    if (!formName.trim()) { toast.error('请输入权限名称'); return; }
+    if (!formCode.trim()) { toast.error('请输入权限标识'); return; }
     setSaving(true);
     try {
-      await api.post('/admin/role/permissions', {
-        code: newCode.trim(), name: newName.trim(),
-        resource: newResource.trim(), action: newAction.trim(),
-      });
+      const body: any = { name: formName.trim(), code: formCode.trim(), type: Number(formType), parentId: Number(formParentId), sortOrder: Number(formSortOrder), status: formStatus ? 1 : 0 };
+      if (formType === '1' && formRoute.trim()) body.route = formRoute.trim();
+      await api.post('/admin/permissions', body);
       toast.success('权限已创建');
       setShowCreate(false);
-      setNewCode(''); setNewName(''); setNewResource(''); setNewAction('');
-      const res = await api.get('/admin/role/permissions');
-      if (res.data.code === 200) setPermissions(res.data.data);
+      await loadTree();
     } finally { setSaving(false); }
   };
 
-  const handleDelete = async (p: Permission) => {
-    if (!confirm(`确定删除权限「${p.name}」？`)) return;
+  const handleDelete = async (node: PermissionNode) => {
+    if (!confirm(`确定删除「${node.name}」？${node.children?.length ? ' 其子节点也将被删除。' : ''}`)) return;
     try {
-      await api.delete(`/admin/role/permissions/${p.id}`);
+      await api.delete(`/admin/permissions/${node.id}`);
       toast.success('已删除');
-      setPermissions(prev => prev.filter(x => x.id !== p.id));
+      await loadTree();
     } catch { /* handled */ }
+  };
+
+  const typeBadge = (t: number) => t === 1
+    ? <Badge variant="default" className="text-[10px]">菜单</Badge>
+    : <Badge variant="outline" className="text-[10px]">按钮</Badge>;
+
+  const renderNode = (node: PermissionNode, depth: number = 0) => {
+    const isExpanded = expanded.has(node.id);
+    const hasChildren = node.children && node.children.length > 0;
+    return (
+      <div key={node.id}>
+        <div
+          className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted/10 transition-colors"
+          style={{ paddingLeft: `${12 + depth * 20}px` }}
+        >
+          <button type="button" onClick={() => hasChildren && toggleExpand(node.id)} className={`p-0.5 ${hasChildren ? 'cursor-pointer' : 'invisible'}`}>
+            {isExpanded ? <ChevronDownIcon className="size-3.5 text-muted-foreground" /> : <ChevronRightIcon className="size-3.5 text-muted-foreground" />}
+          </button>
+          <span className={`font-medium ${node.type === 1 ? 'text-foreground' : 'text-muted-foreground'}`}>{node.name}</span>
+          {typeBadge(node.type)}
+          <code className="text-xs font-mono text-primary ml-2">{node.code}</code>
+          {node.route && <span className="text-xs text-muted-foreground ml-2">{node.route}</span>}
+          <span className={`ml-auto text-xs ${node.status === 1 ? 'text-green-600' : 'text-red-500'}`}>{node.status === 1 ? '有效' : '无效'}</span>
+          <button type="button" onClick={() => handleDelete(node)} className="p-1 hover:bg-destructive/10 rounded cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
+            <Trash2Icon className="size-3.5 text-destructive" />
+          </button>
+        </div>
+        {hasChildren && isExpanded && (
+          <div>{node.children!.map(child => renderNode(child, depth + 1))}</div>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -101,78 +157,74 @@ export default function AdminPermissionsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold">权限管理</h2>
-        <Button onClick={() => setShowCreate(true)}><PlusIcon className="size-4 mr-1" /> 新建权限</Button>
+        <Button onClick={openCreate}><PlusIcon className="size-4 mr-1" /> 新建权限</Button>
       </div>
-
       <div className="relative max-w-sm mb-6">
         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input placeholder="搜索权限编码或名称..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        <Input placeholder="搜索名称或标识..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
-
-      {grouped.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">暂无匹配权限</div>
+      {filteredTree.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">暂无权限</div>
       ) : (
-        <div className="rounded-lg border divide-y">
-          {grouped.map(({ resource, items }) => {
-            const isExpanded = expanded.has(resource);
-            return (
-              <div key={resource}>
-                {/* Group Header */}
-                <button
-                  type="button"
-                  onClick={() => toggleGroup(resource)}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted/30 transition-colors cursor-pointer text-left"
-                >
-                  {isExpanded ? <ChevronDownIcon className="size-4 shrink-0" /> : <ChevronRightIcon className="size-4 shrink-0" />}
-                  <Badge variant="outline" className="text-xs font-mono">{resource}</Badge>
-                  <span className="font-medium capitalize ml-1">{resource === 'novel' ? '作品' : resource === 'node' ? '节点' : resource === 'event' ? '事件' : resource === 'user' ? '用户' : resource === 'role' ? '角色' : resource === 'player' ? '玩家' : resource}</span>
-                  <span className="text-xs text-muted-foreground">({items.length})</span>
-                </button>
-
-                {/* Children */}
-                {isExpanded && (
-                  <div className="divide-y border-t bg-muted/5">
-                    {items.map(p => (
-                      <div key={p.id} className="flex items-center gap-3 px-4 py-2 pl-14 text-sm hover:bg-muted/10 transition-colors">
-                        <code className="text-xs font-mono text-primary min-w-[180px]">{p.code}</code>
-                        <span className="flex-1 text-muted-foreground">{p.name}</span>
-                        <button type="button" onClick={() => handleDelete(p)} className="p-1 hover:bg-destructive/10 rounded cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
-                          <Trash2Icon className="size-3.5 text-destructive" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        <div className="rounded-lg border divide-y">{filteredTree.map(node => renderNode(node))}</div>
       )}
 
+      {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={o => { if (!o) setShowCreate(false); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>新建权限</DialogTitle>
-            <DialogDescription>创建新的权限项</DialogDescription>
+            <DialogDescription>创建新的菜单或按钮权限</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">权限编码</label>
-              <Input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="如：novel:export" className="font-mono" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">权限名称</label>
-              <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="如：导出作品" />
-            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">资源</label>
-                <Input value={newResource} onChange={e => setNewResource(e.target.value)} placeholder="如：novel" className="font-mono" />
+                <label className="text-sm font-medium">类型</label>
+                <Select value={formType} onValueChange={setFormType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">菜单</SelectItem>
+                    <SelectItem value="2">按钮</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">操作</label>
-                <Input value={newAction} onChange={e => setNewAction(e.target.value)} placeholder="如：export" className="font-mono" />
+                <label className="text-sm font-medium">状态</label>
+                <div className="flex items-center h-9">
+                  <Switch checked={formStatus} onCheckedChange={setFormStatus} />
+                  <span className="ml-2 text-sm text-muted-foreground">{formStatus ? '有效' : '无效'}</span>
+                </div>
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">父节点</label>
+              <Select value={formParentId} onValueChange={setFormParentId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">根节点</SelectItem>
+                  {allNodes.filter(n => n.type === 1).map(n => (
+                    <SelectItem key={n.id} value={String(n.id)}>{n.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">名称</label>
+              <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="如：导出作品" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">权限标识</label>
+              <Input value={formCode} onChange={e => setFormCode(e.target.value)} placeholder="如：novel:export" className="font-mono" />
+            </div>
+            {formType === '1' && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">路由路径</label>
+                <Input value={formRoute} onChange={e => setFormRoute(e.target.value)} placeholder="如：/admin/settings" className="font-mono" />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">排序</label>
+              <Input type="number" value={formSortOrder} onChange={e => setFormSortOrder(e.target.value)} />
             </div>
           </div>
           <DialogFooter>

@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner';
 import api from '@/hooks/useApi';
 import { PlusIcon, Loader2Icon, PencilIcon, Trash2Icon, ShieldCheckIcon, BookOpenIcon } from 'lucide-react';
+import PermissionTree from 'src/components/PermissionTree';
 
 interface RoleItem {
   id: number;
@@ -24,6 +25,7 @@ interface RoleItem {
 export default function AdminRolesPage() {
   const [roles, setRoles] = useState<RoleItem[]>([]);
   const [permissions, setPermissions] = useState<{id: number; code: string; name: string; resource: string}[]>([]);
+  const [permTree, setPermTree] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   // Create/Edit
   const [showEditor, setShowEditor] = useState(false);
@@ -52,9 +54,11 @@ export default function AdminRolesPage() {
     Promise.all([
       api.get('/admin/role/list'),
       api.get('/admin/role/permissions'),
-    ]).then(([rRes, pRes]) => {
+      api.get('/admin/permissions/tree'),
+    ]).then(([rRes, pRes, tRes]) => {
       if (rRes.data.code === 200) setRoles(rRes.data.data);
-      if (pRes.data.code === 200) setPermissions(pRes.data.data);
+      if (pRes.data.code === 200) setPermissions(pRes.data.data || []);
+      if (tRes.data.code === 200) setPermTree(tRes.data.data || []);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -251,29 +255,16 @@ export default function AdminRolesPage() {
             <DialogTitle>权限配置</DialogTitle>
             <DialogDescription>为角色「{permRole?.name}」分配权限</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            {Object.entries(groupedPerms).map(([resource, perms]) => (
-              <div key={resource}>
-                <h4 className="text-sm font-medium text-muted-foreground mb-2 capitalize">{resource}</h4>
-                <div className="flex flex-wrap gap-2">
-                  {perms.map(p => {
-                    const selected = permIds.includes(p.id);
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => setPermIds(prev => selected ? prev.filter(id => id !== p.id) : [...prev, p.id])}
-                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors cursor-pointer ${
-                          selected ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-background border-input text-muted-foreground hover:bg-muted/30'
-                        }`}
-                      >
-                        {selected ? '✓ ' : ''}{p.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+          <div className="py-2">
+            {permTree.length > 0 ? (
+              <PermissionTree
+                data={permTree}
+                selectedIds={permIds}
+                onSelectChange={setPermIds}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">加载中...</p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPermRole(null)}>取消</Button>

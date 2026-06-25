@@ -15,6 +15,7 @@ import AdminEventPoolPage from 'src/pages/page-admin-event-pool';
 import AdminUsersPage from 'src/pages/page-admin-users';
 import AdminRolesPage from 'src/pages/page-admin-roles';
 import AdminPermissionsPage from 'src/pages/page-admin-permissions';
+import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from '@/hooks/useAuth';
 import { BookOpen, CommandIcon } from 'lucide-react';
 
@@ -85,23 +86,6 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ProtectedAdmin({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) return null;
-  if (!user || !user.roles?.includes('ADMIN')) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-        <div className="text-center max-w-sm">
-          <h2 className="text-xl font-bold mb-2">需要管理员权限</h2>
-          <p className="text-muted-foreground mb-4">请使用管理员账号登录</p>
-          <Link to="/login"><Button>登录</Button></Link>
-        </div>
-      </div>
-    );
-  }
-  return <>{children}</>;
-}
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -117,53 +101,53 @@ export default function App() {
             </DashboardLayout>
           } />
           <Route path="/admin" element={
-            <ProtectedAdmin>
+            <ProtectedRoute code="menu:novels">
               <DashboardLayout>
                 <AdminNovelsPage />
               </DashboardLayout>
-            </ProtectedAdmin>
+            </ProtectedRoute>
           } />
           <Route path="/admin/novel/:novelId/import" element={
-            <ProtectedAdmin>
+            <ProtectedRoute code="menu:novels">
               <DashboardLayout>
                 <AdminNovelImportPage />
               </DashboardLayout>
-            </ProtectedAdmin>
+            </ProtectedRoute>
           } />
           <Route path="/admin/novel/:novelId/nodes" element={
-            <ProtectedAdmin>
+            <ProtectedRoute code="menu:novels">
               <DashboardLayout>
                 <AdminNodeEditorPage />
               </DashboardLayout>
-            </ProtectedAdmin>
+            </ProtectedRoute>
           } />
           <Route path="/admin/novel/:novelId/events" element={
-            <ProtectedAdmin>
+            <ProtectedRoute code="menu:novels">
               <DashboardLayout>
                 <AdminEventPoolPage />
               </DashboardLayout>
-            </ProtectedAdmin>
+            </ProtectedRoute>
           } />
           <Route path="/admin/users" element={
-            <ProtectedAdmin>
+            <ProtectedRoute code="menu:users">
               <DashboardLayout>
                 <AdminUsersPage />
               </DashboardLayout>
-            </ProtectedAdmin>
+            </ProtectedRoute>
           } />
           <Route path="/admin/roles" element={
-            <ProtectedAdmin>
+            <ProtectedRoute code="menu:roles">
               <DashboardLayout>
                 <AdminRolesPage />
               </DashboardLayout>
-            </ProtectedAdmin>
+            </ProtectedRoute>
           } />
           <Route path="/admin/permissions" element={
-            <ProtectedAdmin>
+            <ProtectedRoute code="menu:permissions">
               <DashboardLayout>
                 <AdminPermissionsPage />
               </DashboardLayout>
-            </ProtectedAdmin>
+            </ProtectedRoute>
           } />
           <Route path="/" element={<Navigate to="/player" replace />} />
           <Route path="*" element={<Navigate to="/player" replace />} />

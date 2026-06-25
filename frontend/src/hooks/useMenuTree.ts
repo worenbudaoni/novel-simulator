@@ -7,6 +7,7 @@ export interface MenuItem {
   name: string;
   code: string;
   route?: string;
+  type?: number;
   children?: MenuItem[];
 }
 
