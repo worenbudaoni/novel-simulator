@@ -99,9 +99,15 @@ export default function PlayerSettingsPage() {
     setSpinning(true);
     const idx = Math.floor(Math.random() * TEMPLATES.length);
     const template = TEMPLATES[idx];
-    // 指针旋转：3-5整圈 + 目标扇区中心
-    const fullRotations = (3 + Math.floor(Math.random() * 3)) * 360;
-    setPointerRot(prev => prev + fullRotations + idx * 60 + 30);
+    // 指针旋转：从当前位置加上 3-5 整圈 + 目标扇区
+    // 最终角度 mod 360 必须精确等于 idx*60+30，和累加历史无关
+    setPointerRot(prev => {
+      const turns = (3 + Math.floor(Math.random() * 3)) * 360;
+      const target = idx * 60 + 30;
+      let total = turns + target;
+      while (total <= prev) total += 360;
+      return total;
+    });
     const variance = () => rand(-5, 5);
     const hasTrait = Math.random() < 0.3;
     const trait = hasTrait ? TRAITS[Math.floor(Math.random() * TRAITS.length)] : undefined;
