@@ -1,13 +1,11 @@
 package com.novel.simulator.controller;
 
 import com.novel.simulator.common.Result;
-import com.novel.simulator.dto.CreateSessionRequest;
-import com.novel.simulator.dto.PlayerNovelVO;
-import com.novel.simulator.dto.SaveSettingsRequest;
+import com.novel.simulator.dto.*;
 import com.novel.simulator.entity.*;
 import com.novel.simulator.mapper.*;
-import com.novel.simulator.service.NovelService;
-import com.novel.simulator.service.SessionService;
+import com.novel.simulator.service.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +25,11 @@ public class PlayerController {
     private final NodeEdgeMapper nodeEdgeMapper;
     private final NodeOptionMapper nodeOptionMapper;
     private final SessionService sessionService;
+    private final ActionEngine actionEngine;
+    private final StoryChain storyChain;
+    private final EventChain eventChain;
+    private final UserCharacterMapper userCharacterMapper;
+    private final UserSessionMapper userSessionMapper;
 
     public PlayerController(NovelService novelService,
                             NovelRoleVisibilityMapper novelRoleVisibilityMapper,
@@ -34,7 +37,12 @@ public class PlayerController {
                             NodeMapper nodeMapper,
                             NodeEdgeMapper nodeEdgeMapper,
                             NodeOptionMapper nodeOptionMapper,
-                            SessionService sessionService) {
+                            SessionService sessionService,
+                            ActionEngine actionEngine,
+                            StoryChain storyChain,
+                            EventChain eventChain,
+                            UserCharacterMapper userCharacterMapper,
+                            UserSessionMapper userSessionMapper) {
         this.novelService = novelService;
         this.novelRoleVisibilityMapper = novelRoleVisibilityMapper;
         this.roleMapper = roleMapper;
@@ -42,6 +50,11 @@ public class PlayerController {
         this.nodeEdgeMapper = nodeEdgeMapper;
         this.nodeOptionMapper = nodeOptionMapper;
         this.sessionService = sessionService;
+        this.actionEngine = actionEngine;
+        this.storyChain = storyChain;
+        this.eventChain = eventChain;
+        this.userCharacterMapper = userCharacterMapper;
+        this.userSessionMapper = userSessionMapper;
     }
 
     /**
@@ -177,5 +190,60 @@ public class PlayerController {
     public Result<Void> saveSettings(@RequestBody SaveSettingsRequest request) {
         sessionService.saveSettings(request.getSessionId(), request.getSettings());
         return Result.success();
+    }
+
+    @PostMapping("/action/choose")
+    @PreAuthorize("hasAuthority('player:play')")
+    public Result<ActionResult> choose(@RequestBody ChooseActionRequest request) {
+        ActionResult result = actionEngine.choose(request.getSessionId(), request.getOptionId());
+        return Result.success(result);
+    }
+
+    @PostMapping("/action/spin")
+    @PreAuthorize("hasAuthority('player:play')")
+    public Result<ActionResult> spin(@RequestBody SpinActionRequest request) {
+        ActionResult result = actionEngine.spin(request.getSessionId(), request.getNodeId());
+        return Result.success(result);
+    }
+
+    @GetMapping("/story/stream/{sessionId}")
+    @PreAuthorize("hasAuthority('player:play')")
+    public SseEmitter streamStory(@PathVariable String sessionId) {
+        SseEmitter emitter = new SseEmitter(300_000L);
+        try {
+            UserSession session = sessionService.getBySessionId(sessionId);
+            Node currentNode = nodeMapper.selectById(session.getCurrentNodeId());
+            UserCharacter character = userCharacterMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<UserCharacter>()
+                    .eq(UserCharacter::getSessionId, sessionId));
+
+            if (currentNode == null) {
+                emitter.send(SseEmitter.event().name("error").data("当前节点不存在"));
+                emitter.complete();
+                return emitter;
+            }
+
+            String story = storyChain.generateStory(session, currentNode, character, "");
+            String[] paragraphs = story.split("\n\n");
+            for (String para : paragraphs) {
+                emitter.send(SseEmitter.event().name("story").data(para));
+                Thread.sleep(50);
+            }
+            emitter.send(SseEmitter.event().name("done").data(""));
+
+            String existingStory = session.getStoryText() != null ? session.getStoryText() : "";
+            session.setStoryText(existingStory + "\n\n" + story);
+            session.setStorySummary(storyChain.generateSummary(session.getStoryText()));
+            session.setUpdatedAt(java.time.LocalDateTime.now());
+            userSessionMapper.updateById(session);
+
+            emitter.complete();
+        } catch (Exception e) {
+            try {
+                emitter.send(SseEmitter.event().name("error").data("生成故事失败: " + e.getMessage()));
+            } catch (Exception ignored) {}
+            emitter.completeWithError(e);
+        }
+        return emitter;
     }
 }
