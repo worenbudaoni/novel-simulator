@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
-import { ChevronRightIcon, ChevronDownIcon } from 'lucide-react';
+import { useState, useCallback, useMemo } from 'react';
+import { ChevronRightIcon, ChevronDownIcon, SearchIcon } from 'lucide-react';
+import { Input } from 'src/components/ui/input';
 
 interface TreeNode {
   id: number;
@@ -115,6 +116,7 @@ function TreeNodeItemInner({
 }
 
 export default function PermissionTree({ data, selectedIds, onSelectChange }: PermissionTreeProps) {
+  const [search, setSearch] = useState('');
   const [expandedIds, setExpandedIds] = useState<Set<number>>(() => {
     const ids = new Set<number>();
     const collect = (nodes: TreeNode[]) => {
@@ -135,19 +137,52 @@ export default function PermissionTree({ data, selectedIds, onSelectChange }: Pe
     });
   }, []);
 
+  // 搜索过滤：父节点匹配时保留全部子节点
+  const filteredData = useMemo(() => {
+    if (!search) return data;
+    const q = search.toLowerCase();
+    const filterTree = (nodes: TreeNode[]): TreeNode[] => {
+      const result: TreeNode[] = [];
+      for (const node of nodes) {
+        const selfMatch = node.name.toLowerCase().includes(q) || node.code.toLowerCase().includes(q);
+        const filteredChildren = node.children ? filterTree(node.children) : [];
+        if (selfMatch) {
+          result.push(node);
+        } else if (filteredChildren.length > 0) {
+          result.push({ ...node, children: filteredChildren });
+        }
+      }
+      return result;
+    };
+    return filterTree(data);
+  }, [data, search]);
+
   return (
-    <div className="space-y-0.5">
-      {data.map(node => (
-        <TreeNodeItemInner
-          key={node.id}
-          node={node}
-          depth={0}
-          selectedIds={selectedIds}
-          onSelectChange={onSelectChange}
-          expandedIds={expandedIds}
-          onToggleExpand={toggleExpand}
+    <div className="space-y-2">
+      <div className="relative">
+        <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+        <Input
+          placeholder="搜索权限..."
+          value={search}
+          onChange={e => { setSearch(e.target.value); setExpandedIds(new Set(data.flatMap(collectAllIds))); }}
+          className="pl-8 h-8 text-sm"
         />
-      ))}
+      </div>
+      <div className="space-y-0.5">
+        {filteredData.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">无匹配权限</p>
+        ) : filteredData.map(node => (
+          <TreeNodeItemInner
+            key={node.id}
+            node={node}
+            depth={0}
+            selectedIds={selectedIds}
+            onSelectChange={onSelectChange}
+            expandedIds={expandedIds}
+            onToggleExpand={toggleExpand}
+          />
+        ))}
+      </div>
     </div>
   );
 }
