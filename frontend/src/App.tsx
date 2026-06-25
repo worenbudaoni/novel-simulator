@@ -3,7 +3,6 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SidebarProvider, SidebarInset } from 'src/components/ui/sidebar';
 import { AppSidebar } from 'src/components/app-sidebar';
 import { SiteHeader } from 'src/components/site-header';
-import { SectionCards } from 'src/components/section-cards';
 import { Button } from 'src/components/ui/button';
 import { Toaster } from 'src/components/ui/sonner';
 import { LoginForm } from 'src/components/login-form';
@@ -34,42 +33,11 @@ function DashboardLayout({ children }: { children?: React.ReactNode }) {
   );
 }
 
-function GuestPlayerPage() {
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/30 px-4">
-      <div className="text-center max-w-sm">
-        <div className="flex justify-center mb-6">
-          <div className="p-4 rounded-full bg-primary/10">
-            <BookOpen className="h-12 w-12 text-primary" />
-          </div>
-        </div>
-        <h1 className="text-2xl font-bold mb-2">Novel Simulator</h1>
-        <p className="text-muted-foreground mb-6">开始你的故事之旅</p>
-        <div className="flex flex-col gap-3">
-          <Link to="/login">
-            <Button size="lg" className="w-full">登录</Button>
-          </Link>
-          <Link to="/player/guest">
-            <Button variant="outline" size="lg" className="w-full">游客进入</Button>
-          </Link>
-        </div>
-        <p className="text-sm text-muted-foreground mt-3">
-          还没有账号？{' '}
-          <Link to="/register" className="text-primary underline underline-offset-4">注册</Link>
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function PlayerPage() {
-  const { user } = useAuth();
-  return user ? (
+  return (
     <DashboardLayout>
       <PlayerNovelsPage />
     </DashboardLayout>
-  ) : (
-    <GuestPlayerPage />
   );
 }
 
@@ -103,11 +71,6 @@ export default function App() {
           } />
           <Route path="/player/story/:sessionId" element={
             <DashboardLayout><PlayerStoryPage /></DashboardLayout>
-          } />
-          <Route path="/player/guest" element={
-            <DashboardLayout>
-              <SectionCards />
-            </DashboardLayout>
           } />
           {/* 有侧边栏路由组 — 防止导航时重新挂载 */}
           <Route element={<DashboardLayout><Outlet /></DashboardLayout>}>
