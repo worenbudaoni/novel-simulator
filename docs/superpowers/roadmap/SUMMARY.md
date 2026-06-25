@@ -13,13 +13,13 @@
 | **P1 基础架构** | ✅ **已完成** | **代码 100% / 数据库待执行** | 后端代码 + 前端脚手架全部完成，需建表后联调 |
 | **P2 内容管理** | ✅ **已完成** | **后端 100% / 前端 100%** | Novel CRUD, Node/Event CRUD, LLM导入(名称+TXT), Admin页面完整 |
 | **RBAC 权限树重构** | ✅ **已完成** | **后端 100% / 前端 100%** | 树形权限表、动态侧边栏、声明式权限控制、树形角色权限分配、TanStack Table 权限管理 |
-| P3 核心玩法 | ⏳ 待开始 | 0% | - |
+| P3 核心玩法 | 🔄 **进行中** | **P3-A/B 已完成，P3-C/D 待开始** | 作品列表、会话管理、ActionEngine、EventChain、SSE故事流、转盘抽奖、角色创建、选项按属性过滤、存档管理、结局弹窗 |
 | P4 叙事与评分 | ⏳ 待开始 | 0% | - |
 | P5 管理完善与移动端 | ⏳ 待开始 | 0% | - |
 
 ## 当前阶段
 
-**当前阶段：** RBAC 权限树重构 ✅ → P3 核心玩法 ⏳
+**当前阶段：** P3 核心玩法 🔄
 
 ## P1 完成情况
 
@@ -112,6 +112,44 @@
 - 设计: `docs/superpowers/specs/2026-06-25-rbac-permission-tree-design.md`
 - 实施计划: `docs/superpowers/plans/2026-06-25-rbac-permission-tree.md`
 
+## P3 核心玩法完成情况
+
+### P3-A Player 基础（已完成）
+| 任务 | 说明 |
+|------|------|
+| PlayerController | novel/list, novel/full, node, session CRUD, action/choose, action/spin, story/stream |
+| SessionService | 会话创建/获取/存档/读档/重新开始，角色属性创建 |
+| useStory hook | 管理游戏状态、动作 dispatch |
+| 作品选择页 | 卡片网格，按角色可见性过滤 |
+| 角色创建页 | 名称输入 + 属性抽奖转盘 + 6种角色模板 + 词条系统 |
+| 故事主界面 | 节点展示、故事阅读区、选项面板、角色属性面板 |
+| 存档管理 | 存档列表 + 读档弹窗 |
+| 结局弹窗 | 结局展示 + 完整故事回顾 + 再来一次/返回 |
+
+### P3-B 核心玩法循环（已完成）
+| 任务 | 说明 |
+|------|------|
+| ActionEngine | 选择导航节点 + 属性微增，转盘 LLM 事件 + 多维属性变化 |
+| EventChain | 6扇区（奇遇/宝箱/战斗/诅咒/命运/邂逅），属性变化 + 事件描述 |
+| StoryChain | 基于节点、角色属性、事件描述的上下文故事生成 |
+| SSE 流式 | 逐段推送故事，支持 description 参数传递事件内容 |
+| WheelOfFortune | 静态转盘 + 旋转指针，6扇区，点击中心抽奖 |
+| ChoicePanel | 3-4个选项，按属性解锁，属性不足显示提示 |
+| 选项过滤 | 智力/魅力不足的选项置灰 |
+| 转盘概率触发 | 选择后按 randomRate 概率弹出转盘 |
+
+### P3-C 待完成
+- 死亡判定 + DeathModal
+- LLM 深度参与（StoryChain/EventChain 调用真实 LLM）
+- 移动端适配
+
+### 设计文档
+- 玩法机制: `docs/superpowers/gameplay/gameplay-mechanics-design.md`
+- 玩法逻辑: `docs/superpowers/gameplay/gameplay-logic.md`
+- LLM 深度参与: `docs/superpowers/gameplay/llm-deep-participation.md`
+- P3-A 计划: `docs/superpowers/plans/2026-06-25-P3-A-player-basics.md`
+- P3-B 计划: `docs/superpowers/plans/2026-06-25-P3-B-core-gameplay.md`
+
 ## 阶段完成记录
 
 | 日期 | 阶段 | 完成内容 |
@@ -119,6 +157,8 @@
 | 2026-06-18 | P1 基础架构 | 全部代码编写完成（待数据库建表后联调） |
 | 2026-06-24 | P2 内容管理 | Novel/Node/Event CRUD, LLM导入(TXT+名称), Admin前端页面完整 |
 | 2026-06-25 | RBAC 权限树重构 | 树形权限表、动态侧边栏、权限组件、树形角色权限分配、TanStack Table、表单校验、可搜索 Select |
+| 2026-06-25 | P3-A 基础 | 作品列表、会话管理、角色创建、故事主界面骨架 |
+| 2026-06-25 | P3-B 核心循环 | ActionEngine、EventChain、StoryChain、SSE流式、转盘、选项过滤、存档、结局 |
 
 ## 快速导航
 
@@ -129,3 +169,6 @@
 - [P5 管理完善与移动端](P5-管理完善与移动端.md)
 - [RBAC 权限树设计](../specs/2026-06-25-rbac-permission-tree-design.md)
 - [RBAC 权限树实施计划](../plans/2026-06-25-rbac-permission-tree.md)
+- [玩法机制设计](../gameplay/gameplay-mechanics-design.md)
+- [玩法逻辑流程](../gameplay/gameplay-logic.md)
+- [LLM 深度参与方案](../gameplay/llm-deep-participation.md)
