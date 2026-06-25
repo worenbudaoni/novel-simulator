@@ -103,7 +103,8 @@ public class AuthService {
 
         List<String> permissionCodes;
         if (roleCodes.contains("ADMIN")) {
-            permissionCodes = permissionMapper.selectList(null)
+            permissionCodes = permissionMapper.selectList(
+                new LambdaQueryWrapper<Permission>().eq(Permission::getStatus, 1))
                 .stream().map(Permission::getCode).collect(Collectors.toList());
         } else {
             permissionCodes = permissionMapper.selectBatchIds(permissionIds)
