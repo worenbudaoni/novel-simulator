@@ -1,5 +1,6 @@
 package com.novel.simulator.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.novel.simulator.entity.*;
 import com.novel.simulator.mapper.NovelMapper;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -8,17 +9,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class EventChain {
     private static final Logger log = LoggerFactory.getLogger(EventChain.class);
+    private static final String HISTORY_KEY_PREFIX = "cache:session:";
+    private static final String HISTORY_KEY_SUFFIX = ":chat_history";
 
     private final NovelMapper novelMapper;
     private final ObjectMapper objectMapper;
+    private final StringRedisTemplate redisTemplate;
 
     @Value("${llm.api-url:}")
     private String llmApiUrl;
@@ -29,9 +35,10 @@ public class EventChain {
     @Value("${llm.model-name:gpt-3.5-turbo}")
     private String llmModelName;
 
-    public EventChain(NovelMapper novelMapper, ObjectMapper objectMapper) {
+    public EventChain(NovelMapper novelMapper, ObjectMapper objectMapper, StringRedisTemplate redisTemplate) {
         this.novelMapper = novelMapper;
         this.objectMapper = objectMapper;
+        this.redisTemplate = redisTemplate;
     }
 
     private static class LlmResult {
@@ -96,6 +103,31 @@ public class EventChain {
         String worldView = novel != null ? novel.getWorldView() : "";
         String novelTitle = novel != null ? novel.getTitle() : "";
 
+        // 读取共享的对话历史（与 StoryChain 同源），取最近一条 assistant 消息作为上下文
+        String storyContext = "";
+        try {
+            String historyJson = redisTemplate.opsForValue().get(
+                HISTORY_KEY_PREFIX + session.getSessionId() + HISTORY_KEY_SUFFIX);
+            if (historyJson != null && !historyJson.isEmpty()) {
+                List<Map<String, String>> history = objectMapper.readValue(
+                    historyJson, new TypeReference<List<Map<String, String>>>() {});
+                // 从后往前找最近一条 assistant 消息
+                for (int i = history.size() - 1; i >= 0; i--) {
+                    if ("assistant".equals(history.get(i).get("role"))) {
+                        String content = history.get(i).get("content");
+                        if (content != null && !content.isEmpty()) {
+                            storyContext = content.length() > 300
+                                ? content.substring(content.length() - 300)
+                                : content;
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to read chat history for event context: {}", e.getMessage());
+        }
+
         // Null-safe defaults for character stats
         int hp = character.getHp() != null ? character.getHp() : 100;
         int atk = character.getAttack() != null ? character.getAttack() : 10;
@@ -117,6 +149,9 @@ public class EventChain {
             + "HP=" + hp + ", 攻击=" + atk + ", 防御=" + def + "\n"
             + "悟性=" + inte + ", 魅力=" + cha + ", 气运=" + luk + "\n\n"
             + "【扇区类型】\n" + sectorName + "\n\n"
+            + (!storyContext.isEmpty()
+                ? "【最近的故事进展（以此为基础继续，不要脱离当前叙事）】\n" + storyContext + "\n\n"
+                : "")
             + "请生成一个严格符合该作品世界观的事件，严格返回以下 JSON 格式（不要 markdown 代码块标记，不要额外内容）：\n\n"
             + "{\n"
             + "  \"title\": \"事件标题\",\n"
