@@ -35,6 +35,7 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [tempStatus, setTempStatus] = useState('');
   const [roleFilter, setRoleFilter] = useState<number[]>([]);
+  const comboboxAnchor = useComboboxAnchor();
   const [roles, setRoles] = useState<{id: number; code: string; name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState<UserItem | null>(null);
@@ -132,7 +133,7 @@ export default function AdminUsersPage() {
             value={roleFilter}
             onValueChange={v => setRoleFilter(v as number[])}
           >
-            <ComboboxChips ref={useComboboxAnchor()} className="w-72 min-h-9">
+            <ComboboxChips ref={comboboxAnchor} className="w-72 min-h-9">
               <ComboboxValue>
                 {(values: any) => values.length > 0 ? (
                   values.map((v: any) => {
@@ -145,7 +146,7 @@ export default function AdminUsersPage() {
               </ComboboxValue>
               <ComboboxChipsInput placeholder="搜索角色..." />
             </ComboboxChips>
-            <ComboboxContent anchor={useComboboxAnchor()}>
+            <ComboboxContent anchor={comboboxAnchor}>
               <ComboboxEmpty>未找到匹配角色</ComboboxEmpty>
               <ComboboxList>
                 {(item: any) => (
