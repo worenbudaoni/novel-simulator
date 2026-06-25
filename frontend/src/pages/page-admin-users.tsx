@@ -11,6 +11,10 @@ import { toast } from 'sonner';
 import api from '@/hooks/useApi';
 import { Input } from 'src/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'src/components/ui/select';
+import {
+  Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput, ComboboxContent, ComboboxEmpty,
+  ComboboxItem, ComboboxList, ComboboxValue, useComboboxAnchor,
+} from 'src/components/ui/combobox';
 import { SearchIcon, Loader2Icon, ShieldIcon } from 'lucide-react';
 
 interface UserItem {
@@ -119,55 +123,39 @@ export default function AdminUsersPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="relative">
+        <div>
           <label className="text-xs text-muted-foreground font-medium block mb-1">角色</label>
-          <div className="flex flex-wrap gap-1.5 min-h-9 w-72 rounded-md border border-input bg-background px-2 py-1.5 text-sm cursor-pointer" onClick={e => {
-            const menu = e.currentTarget.nextElementSibling;
-            if (menu) menu.classList.toggle('hidden');
-          }}>
-            {roleFilter.length === 0 ? (
-              <span className="text-muted-foreground px-1 py-0.5">全部角色</span>
-            ) : roleFilter.map(rid => {
-              const role = roles.find(r => r.id === rid);
-              return role ? (
-                <span key={rid} className="inline-flex items-center gap-1 rounded-md bg-primary/10 text-primary text-xs px-2 py-0.5">
-                  {role.name}
-                  <button type="button" onClick={e => { e.stopPropagation(); setRoleFilter(prev => prev.filter(id => id !== rid)); }} className="hover:text-primary/70">×</button>
-                </span>
-              ) : null;
-            })}
-          </div>
-          <div className="hidden absolute top-full left-0 right-0 z-10 mt-1 rounded-md border bg-popover shadow-md p-1">
-            <input
-              type="text"
-              placeholder="搜索角色..."
-              className="w-full rounded-md border-0 bg-transparent px-2 py-1.5 text-sm outline-none focus:ring-0"
-              onInput={e => {
-                const val = (e.target as HTMLInputElement).value.toLowerCase();
-                const items = (e.target as HTMLInputElement).nextElementSibling;
-                if (items) items.querySelectorAll('[data-role-id]').forEach(el => {
-                  const text = el.textContent?.toLowerCase() || '';
-                  el.classList.toggle('hidden', !text.includes(val));
-                });
-              }}
-            />
-            <div className="max-h-48 overflow-y-auto space-y-0.5 mt-1">
-              {roles.filter(r => r.code !== 'ADMIN').map(r => {
-                const selected = roleFilter.includes(r.id);
-                return (
-                  <div key={r.id} data-role-id
-                    className={`flex items-center gap-2 px-2 py-1.5 text-sm rounded-md cursor-pointer ${selected ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'}`}
-                    onClick={() => setRoleFilter(prev => selected ? prev.filter(id => id !== r.id) : [...prev, r.id])}
-                  >
-                    <div className={`size-4 rounded border flex items-center justify-center ${selected ? 'bg-primary border-primary' : 'border-input'}`}>
-                      {selected && <span className="text-primary-foreground text-xs">✓</span>}
-                    </div>
-                    {r.name}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <Combobox
+            multiple
+            autoHighlight
+            items={roles.filter(r => r.code !== 'ADMIN').map(r => ({ id: r.id, name: r.name }))}
+            value={roleFilter}
+            onValueChange={v => setRoleFilter(v as number[])}
+          >
+            <ComboboxChips ref={useComboboxAnchor()} className="w-72 min-h-9">
+              <ComboboxValue>
+                {(values: any) => values.length > 0 ? (
+                  values.map((v: any) => {
+                    const role = roles.find(r => r.id === v);
+                    return role ? <ComboboxChip key={v}>{role.name}</ComboboxChip> : null;
+                  })
+                ) : (
+                  <span className="text-muted-foreground px-1">全部角色</span>
+                )}
+              </ComboboxValue>
+              <ComboboxChipsInput placeholder="搜索角色..." />
+            </ComboboxChips>
+            <ComboboxContent anchor={useComboboxAnchor()}>
+              <ComboboxEmpty>未找到匹配角色</ComboboxEmpty>
+              <ComboboxList>
+                {(item: any) => (
+                  <ComboboxItem key={item.id} value={item.id}>
+                    {item.name}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
         </div>
         <div className="flex items-end gap-2">
           <Button variant="outline" onClick={() => { setKeyword(searchInput); setStatusFilter(tempStatus); setPage(1); }}>
