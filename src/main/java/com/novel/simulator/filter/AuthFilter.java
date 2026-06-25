@@ -45,14 +45,12 @@ public class AuthFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Player API 放行（游客可不带 token 访问，Controller 自行处理角色）
+        // Player API：有 token 则鉴权，无 token 也放行（按 GUEST 处理）
         if (path.startsWith("/api/player/")) {
-            String token = request.getParameter("token");
-            if (token != null && !token.isEmpty()) {
-                // 有 token 则正常鉴权
+            String token = extractSessionId(request);
+            if (token != null) {
                 processAuth(request, response, filterChain, token);
             } else {
-                // 无 token 也放行，Controller 按 GUEST 处理
                 filterChain.doFilter(request, response);
             }
             return;
@@ -63,16 +61,8 @@ public class AuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 优先从 Authorization header 取，其次从 token query param 取（支持 SSE）
-        String sessionId = null;
-        String authHeader = request.getHeader("Authorization");
-        if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
-            sessionId = authHeader.substring(7);
-        } else {
-            sessionId = request.getParameter("token");
-        }
-
-        if (sessionId == null || sessionId.isEmpty()) {
+        String sessionId = extractSessionId(request);
+        if (sessionId == null) {
             writeUnauthorized(response, "Missing or invalid Authorization header");
             return;
         }
@@ -109,6 +99,14 @@ public class AuthFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             writeUnauthorized(response, "Invalid session data");
         }
+    }
+
+    private String extractSessionId(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        return request.getParameter("token");
     }
 
     private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
