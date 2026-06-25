@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from 'src/components/ui/button';
 import { useStory } from '@/hooks/useStory';
@@ -7,7 +7,7 @@ import ChoicePanel from 'src/components/ChoicePanel';
 import StoryViewer from 'src/components/StoryViewer';
 import WheelOfFortune from 'src/components/WheelOfFortune';
 import CharacterPanel from 'src/components/CharacterPanel';
-import { Loader2Icon, ArrowLeftIcon, SaveIcon, RotateCcwIcon, MapIcon } from 'lucide-react';
+import { Loader2Icon, ArrowLeftIcon, SaveIcon, RotateCcwIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function PlayerStoryPage() {
@@ -17,7 +17,9 @@ export default function PlayerStoryPage() {
   const { streaming, connect } = useSSE();
   const [storyText, setStoryText] = useState('');
   const [actionDisabled, setActionDisabled] = useState(false);
-  const [spinning, setSpinning] = useState(false);
+  const [showWheel, setShowWheel] = useState(false);
+  const [pendingSpin, setPendingSpin] = useState(false);
+  const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (sessionId) loadSession(sessionId);
@@ -27,38 +29,65 @@ export default function PlayerStoryPage() {
     if (session?.storyText) setStoryText(session.storyText);
   }, [session?.storyText]);
 
+  // 触发 SSE 故事流
+  const triggerStory = useCallback((sid: string) => {
+    setStoryText('');
+    setPendingSessionId(sid);
+    connect(sid, {
+      onStory: (text) => setStoryText(prev => prev + text + '\n\n'),
+      onDone: () => { setActionDisabled(false); setPendingSpin(false); setShowWheel(false); setPendingSessionId(null); },
+      onError: (msg) => { toast.error(msg); setActionDisabled(false); setPendingSpin(false); setShowWheel(false); setPendingSessionId(null); },
+    });
+  }, [connect]);
+
+  // 选择选项
   const handleChoose = async (optionId: number) => {
     setActionDisabled(true);
     try {
       await chooseAction(optionId);
-      if (sessionId) {
-        setStoryText('');
-        connect(sessionId, {
-          onStory: (text) => setStoryText(prev => prev + text + '\n\n'),
-          onDone: () => { setActionDisabled(false); setSpinning(false); },
-          onError: (msg) => { toast.error(msg); setActionDisabled(false); setSpinning(false); },
-        });
+      if (!sessionId) return;
+
+      // 解析设置，判断是否触发转盘
+      let shouldSpin = false;
+      if (session?.settingsJson) {
+        try {
+          const settings = JSON.parse(session.settingsJson);
+          const rate = settings.randomRate || 0;
+          shouldSpin = Math.random() * 100 < rate;
+        } catch { /* ignore */ }
+      }
+
+      if (shouldSpin) {
+        setShowWheel(true);
+        setPendingSessionId(sessionId);
+      } else {
+        triggerStory(sessionId);
       }
     } catch { setActionDisabled(false); }
   };
 
+  // 转盘抽奖
   const handleSpin = async () => {
-    setActionDisabled(true);
-    setSpinning(true);
+    setPendingSpin(true);
     try {
       const result = await spinAction();
       if (result?.triggeredEvent) {
         toast.info(`触发事件：${result.triggeredEvent.title}`);
       }
-      if (sessionId) {
-        setStoryText('');
-        connect(sessionId, {
-          onStory: (text) => setStoryText(prev => prev + text + '\n\n'),
-          onDone: () => { setActionDisabled(false); setSpinning(false); },
-          onError: (msg) => { toast.error(msg); setActionDisabled(false); setSpinning(false); },
-        });
+      // 关闭转盘，触发故事
+      setShowWheel(false);
+      if (pendingSessionId) {
+        triggerStory(pendingSessionId);
       }
-    } catch { setActionDisabled(false); setSpinning(false); }
+    } catch { setPendingSpin(false); setActionDisabled(false); }
+  };
+
+  // 取消转盘（跳过）
+  const handleSkipWheel = () => {
+    setShowWheel(false);
+    if (pendingSessionId) {
+      triggerStory(pendingSessionId);
+    }
   };
 
   const handleSave = async () => {
@@ -107,22 +136,39 @@ export default function PlayerStoryPage() {
             placeholder={session.storyText ? '继续你的冒险...' : '故事即将开始...'}
           />
 
-          {!streaming && currentOptions.length > 0 && (
+          {!streaming && currentOptions.length > 0 && !showWheel && (
             <ChoicePanel
-              options={currentOptions.map(o => ({ id: o.id, label: o.label, riskHint: o.riskHint, minIntelligence: o.minIntelligence, minCharm: o.minCharm }))}
+              options={currentOptions.map(o => ({
+                id: o.id,
+                label: o.label,
+                minIntelligence: o.minIntelligence,
+                minCharm: o.minCharm,
+              }))}
               disabled={actionDisabled}
               onChoose={handleChoose}
               character={character}
             />
           )}
-
-          <WheelOfFortune onSpin={handleSpin} disabled={actionDisabled} spinning={spinning} />
         </div>
 
         <div className="space-y-3">
           <CharacterPanel character={character} loading={loading} />
         </div>
       </div>
+
+      {/* 转盘弹窗 */}
+      {showWheel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="max-w-sm w-full mx-4">
+            <WheelOfFortune onSpin={handleSpin} disabled={pendingSpin} spinning={pendingSpin} />
+            <div className="flex justify-center mt-3">
+              <Button variant="ghost" size="sm" onClick={handleSkipWheel} className="text-white/70 hover:text-white">
+                跳过（直接继续剧情）
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
