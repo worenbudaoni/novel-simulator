@@ -250,14 +250,12 @@ export default function AdminRolesPage() {
 
       {/* Permission Dialog */}
       <Dialog open={permRole !== null} onOpenChange={o => { if (!o) setPermRole(null); }}>
-        <DialogContent className="sm:max-w-md flex flex-col max-h-[80vh] p-0 gap-0">
-          <div className="px-6 pt-6">
-            <DialogHeader className="px-0">
-              <DialogTitle>权限配置</DialogTitle>
-              <DialogDescription>为角色「{permRole?.name}」分配权限</DialogDescription>
-            </DialogHeader>
+        <DialogContent className="sm:max-w-md flex flex-col max-h-[80vh] gap-0 p-0 overflow-hidden">
+          <div className="px-6 pt-5 pb-3">
+            <DialogTitle>权限配置</DialogTitle>
+            <DialogDescription className="mt-1">为角色「{permRole?.name}」分配权限</DialogDescription>
           </div>
-          <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+          <div className="flex-1 overflow-y-auto px-6 py-2 min-h-0 border-y">
             {permTree.length > 0 ? (
               <PermissionTree
                 data={permTree}
@@ -268,10 +266,10 @@ export default function AdminRolesPage() {
               <p className="text-sm text-muted-foreground text-center py-4">加载中...</p>
             )}
           </div>
-          <DialogFooter className="px-6 py-4 border-t shrink-0">
+          <div className="flex items-center justify-end gap-2 px-6 py-3 shrink-0">
             <Button variant="outline" onClick={() => setPermRole(null)}>取消</Button>
             <Button onClick={savePerm} disabled={permSaving}>{permSaving ? '保存中...' : '保存'}</Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
