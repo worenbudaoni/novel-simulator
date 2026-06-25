@@ -96,8 +96,13 @@ public class ParseChain {
             + "6. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n"
             + "7. summary: 作品简介（100字以内）\n"
             + "8. author: 原作者\n\n"
-            + "请确保生成" + nodeCount + "个核心节点"
-            + (eventCount > 0 ? "和" + eventCount + "个随机事件" : "") + "。\n\n"
+            + "重要结构要求：\n"
+            + "- 生成" + nodeCount + "个核心节点，形成多分支网状结构，而非线性\n"
+            + "- 每个节点有3-4个选项，指向不同的后续节点\n"
+            + "- 至少包含2-3个结局节点（isEnd=true），分布在故事末尾分支\n"
+            + "- 不同选择导向不同分支，最终走向不同结局\n"
+            + "- 选项不能全部指向同一个节点，必须分流\n"
+            + "- 确保故事有至少3条不同的结局路径\n\n"
             + "如果你不确定或不了解这部作品，请严格返回以下JSON（不要多余内容）：\n"
             + "{\"exists\": false}\n\n"
             + "作品名称：《" + name + "》";
@@ -157,7 +162,14 @@ public class ParseChain {
             + "8. author: 原作者（如知道）\n\n"
             + "请确保生成" + nodeCount + "个核心节点"
             + (eventCount > 0 ? "和" + eventCount + "个随机事件" : "")
-            + "，覆盖故事的主要情节阶段（开始、发展、高潮、结局）。";
+            + "，覆盖故事的主要情节阶段（开始、发展、高潮、结局）。\n\n"
+            + "重要结构要求：\n"
+            + "- 形成多分支网状结构，而非线性\n"
+            + "- 每个节点有3-4个选项，指向不同的后续节点\n"
+            + "- 至少包含2-3个结局节点（isEnd=true），分布在故事末尾分支\n"
+            + "- 不同选择导向不同分支，最终走向不同结局\n"
+            + "- 选项不能全部指向同一个节点，必须分流\n"
+            + "- 确保故事有至少3条不同的结局路径";
 
         String cacheKey = "gen:" + promptType + ":" + nodeCount + ":" + eventCount + ":" + Integer.toHexString(name.hashCode());
         LlmCache existing = llmCacheMapper.selectOne(
@@ -240,7 +252,12 @@ public class ParseChain {
             + "4. options: 节点选项数组，每个选项有 nodeIndex(int), label, targetNodeIndex(int), triggerEvent(boolean), riskHint\n"
             + "5. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
             + "6. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n\n"
-            + "请确保至少解析出3-5个核心节点。\n\n"
+            + "重要结构要求：\n"
+            + "- 形成多分支网状结构，而非线性\n"
+            + "- 每个节点有3-4个选项，指向不同的后续节点\n"
+            + "- 至少包含2-3个结局节点（isEnd=true），分布在故事末尾\n"
+            + "- 不同选择导向不同分支，最终走向不同结局\n"
+            + "- 确保故事有至少3条不同的结局路径\n\n"
             + "小说内容：\n" + truncated;
     }
 
