@@ -115,9 +115,7 @@ export default function PlayerStoryPage() {
             />
           )}
 
-          {!streaming && (
-            <WheelOfFortune onSpin={handleSpin} disabled={actionDisabled} spinning={spinning} />
-          )}
+          <WheelOfFortune onSpin={handleSpin} disabled={actionDisabled} spinning={spinning} />
         </div>
 
         <div className="space-y-3">

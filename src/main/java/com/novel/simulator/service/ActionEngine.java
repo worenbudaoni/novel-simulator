@@ -52,17 +52,6 @@ public class ActionEngine {
             session.setCurrentNodeId(targetNode.getId());
         }
 
-        RandomEvent triggeredEvent = null;
-        boolean eventTriggered = false;
-        if (Boolean.TRUE.equals(option.getTriggerEvent())) {
-            triggeredEvent = eventEngine.drawEvent(session.getNovelId(), option.getNodeId());
-            if (triggeredEvent != null) {
-                eventTriggered = true;
-                applyEventEffects(character, triggeredEvent);
-                character.setEventsTriggered(character.getEventsTriggered() != null ? character.getEventsTriggered() + 1 : 1);
-            }
-        }
-
         character.setUpdatedAt(LocalDateTime.now());
         userCharacterMapper.updateById(character);
         session.setUpdatedAt(LocalDateTime.now());
@@ -72,7 +61,6 @@ public class ActionEngine {
         result.setActionType("choose");
         result.setChosenOption(option);
         result.setTargetNode(targetNode);
-        result.setTriggeredEvent(eventTriggered ? triggeredEvent : null);
         result.setCharacter(character);
         return result;
     }
