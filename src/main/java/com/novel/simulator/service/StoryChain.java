@@ -5,20 +5,27 @@ import com.novel.simulator.entity.Novel;
 import com.novel.simulator.entity.UserCharacter;
 import com.novel.simulator.entity.UserSession;
 import com.novel.simulator.mapper.NovelMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class StoryChain {
     private static final Logger log = LoggerFactory.getLogger(StoryChain.class);
+    private static final String REDIS_KEY_PREFIX = "cache:session:";
+    private static final long REDIS_TTL = 24;
 
     private final NovelMapper novelMapper;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     @Value("${llm.api-url:}")
     private String llmApiUrl;
@@ -29,8 +36,10 @@ public class StoryChain {
     @Value("${llm.model-name:gpt-3.5-turbo}")
     private String llmModelName;
 
-    public StoryChain(NovelMapper novelMapper) {
+    public StoryChain(NovelMapper novelMapper, StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
         this.novelMapper = novelMapper;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
     }
 
     private static class LlmResult {
@@ -66,12 +75,34 @@ public class StoryChain {
                                 UserCharacter character, String actionDescription) {
         if (llmApiKey != null && !llmApiKey.isEmpty()) {
             try {
-                return generateStoryWithLlm(session, currentNode, character, actionDescription);
+                String result = generateStoryWithLlm(session, currentNode, character, actionDescription);
+                // 生成成功后缓存上下文到 Redis
+                cacheStoryContext(session.getSessionId(), result);
+                return result;
             } catch (Exception e) {
                 log.warn("LLM story generation failed, falling back to stub: {}", e.getMessage());
             }
         }
         return generateStoryStub(currentNode, character, actionDescription);
+    }
+
+    /** 从 Redis 获取前文缓存，不存在则回退到 MySQL */
+    private String getCachedContext(String sessionId) {
+        String context = redisTemplate.opsForValue().get(REDIS_KEY_PREFIX + sessionId + ":story_context");
+        if (context != null && !context.isEmpty()) return context;
+        return null;
+    }
+
+    /** 生成后将最近故事缓存到 Redis，用于下次续写上下文 */
+    private void cacheStoryContext(String sessionId, String storyText) {
+        if (storyText == null || storyText.isEmpty()) return;
+        String tail = storyText.length() > 500 ? storyText.substring(storyText.length() - 500) : storyText;
+        redisTemplate.opsForValue().set(
+            REDIS_KEY_PREFIX + sessionId + ":story_context",
+            tail,
+            REDIS_TTL,
+            TimeUnit.HOURS
+        );
     }
 
     private String generateStoryWithLlm(UserSession session, Node currentNode,
@@ -85,49 +116,58 @@ public class StoryChain {
         int inte = character.getIntelligence() != null ? character.getIntelligence() : 50;
         int cha = character.getCharm() != null ? character.getCharm() : 50;
         int luk = character.getLuck() != null ? character.getLuck() : 50;
-        int choices = character.getChoicesMade() != null ? character.getChoicesMade() : 0;
 
-        // 前情提要：取最近一段故事作为上下文
-        String storyContext = "";
-        if (session.getStorySummary() != null && !session.getStorySummary().isEmpty()) {
-            storyContext = session.getStorySummary();
-        } else if (session.getStoryText() != null && session.getStoryText().length() > 100) {
-            String full = session.getStoryText();
-            storyContext = full.substring(Math.max(0, full.length() - 300));
+        // 优先从 Redis 获取上下文，回退到 MySQL
+        String storyContext = getCachedContext(session.getSessionId());
+        if (storyContext == null) {
+            if (session.getStorySummary() != null && !session.getStorySummary().isEmpty()) {
+                storyContext = session.getStorySummary();
+            } else if (session.getStoryText() != null && session.getStoryText().length() > 100) {
+                String full = session.getStoryText();
+                storyContext = full.substring(Math.max(0, full.length() - 300));
+            }
         }
 
-        String prompt = "你是一个顶级互动叙事作家，正在创作一部沉浸式互动故事。\n\n"
-            + "## 世界观设定\n"
-            + (worldView != null ? worldView : "未知") + "\n\n"
-            + "## 当前场景\n"
-            + "地点：" + (currentNode.getTitle() != null ? currentNode.getTitle() : "未知") + "\n"
-            + "描述：" + (currentNode.getDescription() != null ? currentNode.getDescription() : "") + "\n\n"
-            + "## 角色当前状态\n"
-            + "气血：" + hp + "/100　攻击：" + atk + "　防御：" + def + "\n"
-            + "悟性：" + inte + "　魅力：" + cha + "　气运：" + luk + "\n"
-            + "已做出选择：" + choices + " 次\n\n"
-            + (!storyContext.isEmpty()
-                ? "## 前情提要\n" + storyContext + "\n\n"
-                : "")
-            + (actionDescription != null && !actionDescription.isEmpty()
-                ? "## 当前行动\n" + actionDescription + "\n\n"
-                : "")
-            + "---\n\n"
-            + "请以上述内容为基础，写一段 300-500 字的故事。要求：\n\n"
-            + "1. **以第二人称\"你\"叙述**，让玩家身临其境\n"
-            + "2. **以前情提要为基础续写**，保持情节连贯，不能断裂或重复\n"
-            + "3. **融入世界观细节**：使用世界观中的地名、人物、势力、规则，让玩家感觉这是一个真实的世界\n"
-            + "4. **角色属性影响叙述**：\n"
-            + "   - 气血低 → 伤势沉重、步履维艰\n"
-            + "   - 悟性高 → 洞察秋毫、发现隐藏线索\n"
-            + "   - 魅力高 → 言语动人、他人态度友善\n"
-            + "   - 气运高 → 机缘巧合、绝处逢生\n"
-            + "5. **【当前行动】存在时**：以当前行动为故事核心展开，如果是事件描述则将其无缝融入叙事\n"
-            + "6. **语言生动精彩**：善用比喻、感官描写（视觉/听觉/触觉），避免平铺直叙\n"
-            + "7. **结尾留下余韵**：自然过渡到下一步，让玩家有继续探索的欲望\n"
-            + "8. **禁止**：出现\"你做出了选择\"\"你决定\"等元描述";
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("你正在用中文写一篇互动小说。请续写以下内容，只输出小说正文，不要任何标题、注释或说明。\n\n");
 
-        LlmResult llmResult = callLlm(prompt);
+        // 背景：融入式描述，不用标题
+        prompt.append("【故事背景】").append("\n");
+        if (worldView != null && !worldView.isEmpty()) {
+            prompt.append(worldView).append("\n");
+        }
+        prompt.append("当前所在地：").append(currentNode.getTitle() != null ? currentNode.getTitle() : "未知").append("\n");
+        if (currentNode.getDescription() != null && !currentNode.getDescription().isEmpty()) {
+            prompt.append(currentNode.getDescription()).append("\n");
+        }
+
+        // 角色状态：告诉 LLM 但不让它直接引用数字
+        prompt.append("\n【角色状态（仅供你参考，无需在正文中提及具体数值）】").append("\n");
+        prompt.append("生命值：").append(hp).append("/100，攻击：").append(atk).append("，防御：").append(def).append("\n");
+        prompt.append("智力：").append(inte).append("，魅力：").append(cha).append("，气运：").append(luk).append("\n");
+
+        // 前文：续写的关键上下文
+        if (storyContext != null && !storyContext.isEmpty()) {
+            prompt.append("\n【已有故事（请以此为基础上续写，不要重复前文内容）】").append("\n");
+            prompt.append(storyContext).append("\n");
+        }
+
+        // 当前行动
+        if (actionDescription != null && !actionDescription.isEmpty()) {
+            prompt.append("\n【接下来发生的事件（请将其自然地融入续写中）】").append("\n");
+            prompt.append(actionDescription).append("\n");
+        }
+
+        prompt.append("\n【写作要求】").append("\n");
+        prompt.append("- 用第二人称「你」叙述，让读者沉浸其中。").append("\n");
+        prompt.append("- 只输出正文，不要标题、不要「你选择了」「你决定」等引导语。").append("\n");
+        prompt.append("- 属性影响行为，但不直接提及数值：「他注意到角落的符文」而不是「你的智力高所以你注意到了」。").append("\n");
+        prompt.append("- 用具体的场景、动作、对话、感官细节来推进故事，而非抽象描述。").append("\n");
+        prompt.append("- 前面发生的事件要作为已经发生的来承接，不能重复描述。").append("\n");
+        prompt.append("- 结尾留下悬念或期待，让故事有继续推进的动力。").append("\n");
+        prompt.append("- 写一段 300-500 字的连续性叙述。");
+
+        LlmResult llmResult = callLlm(prompt.toString());
         if (llmResult.error != null) {
             throw new RuntimeException(llmResult.error);
         }
