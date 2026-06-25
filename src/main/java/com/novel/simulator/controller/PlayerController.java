@@ -128,16 +128,52 @@ public class PlayerController {
      * 获取节点详情 + 选项
      */
     @GetMapping("/node/{nodeId}")
-    public Result<Map<String, Object>> getNode(@PathVariable Long nodeId) {
+    public Result<Map<String, Object>> getNode(@PathVariable Long nodeId,
+                                                @RequestParam(required = false) String sessionId) {
         Node node = nodeMapper.selectById(nodeId);
         if (node == null) return Result.error(404, "节点不存在");
 
         List<NodeOption> options = nodeOptionMapper.selectList(
             new LambdaQueryWrapper<NodeOption>().eq(NodeOption::getNodeId, nodeId));
 
+        // Build target node requirement map (optionId -> {minIntelligence, minCharm})
+        Map<String, Map<String, Object>> targetReqs = new HashMap<>();
+        for (NodeOption opt : options) {
+            if (opt.getTargetNodeId() != null) {
+                Node target = nodeMapper.selectById(opt.getTargetNodeId());
+                if (target != null && (target.getMinIntelligence() != null && target.getMinIntelligence() > 0
+                    || target.getMinCharm() != null && target.getMinCharm() > 0)) {
+                    Map<String, Object> reqs = new HashMap<>();
+                    reqs.put("minIntelligence", target.getMinIntelligence());
+                    reqs.put("minCharm", target.getMinCharm());
+                    targetReqs.put(String.valueOf(opt.getId()), reqs);
+                }
+            }
+        }
+
+        // Get character attributes if sessionId is provided
+        Map<String, Object> character = null;
+        if (sessionId != null && !sessionId.isEmpty()) {
+            UserCharacter c = userCharacterMapper.selectOne(
+                new LambdaQueryWrapper<UserCharacter>()
+                    .eq(UserCharacter::getSessionId, sessionId));
+            if (c != null) {
+                character = new HashMap<>();
+                character.put("hp", c.getHp());
+                character.put("attack", c.getAttack());
+                character.put("defense", c.getDefense());
+                character.put("intelligence", c.getIntelligence());
+                character.put("charm", c.getCharm());
+                character.put("luck", c.getLuck());
+                character.put("currentTitle", c.getCurrentTitle());
+            }
+        }
+
         Map<String, Object> result = new HashMap<>();
         result.put("node", node);
         result.put("options", options);
+        result.put("targetRequirements", targetReqs);
+        result.put("character", character);
         return Result.success(result);
     }
 

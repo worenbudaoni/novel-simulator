@@ -109,9 +109,10 @@ export default function PlayerStoryPage() {
 
           {!streaming && currentOptions.length > 0 && (
             <ChoicePanel
-              options={currentOptions.map(o => ({ id: o.id, label: o.label, riskHint: o.riskHint }))}
+              options={currentOptions.map(o => ({ id: o.id, label: o.label, riskHint: o.riskHint, minIntelligence: o.minIntelligence, minCharm: o.minCharm }))}
               disabled={actionDisabled}
               onChoose={handleChoose}
+              character={character}
             />
           )}
 

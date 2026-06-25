@@ -19,6 +19,8 @@ export interface NodeOption {
   targetNodeId?: number;
   triggerEvent: boolean;
   riskHint?: string;
+  minIntelligence?: number;
+  minCharm?: number;
 }
 
 export interface CharacterData {
@@ -83,12 +85,23 @@ export function useStory() {
   }, []);
 
   const loadNode = useCallback(async (nodeId: number) => {
-    const res = await api.get(`/player/node/${nodeId}`);
+    const sid = session?.sessionId;
+    const res = await api.get(`/player/node/${nodeId}${sid ? `?sessionId=${sid}` : ''}`);
     if (res.data.code === 200) {
       setCurrentNode(res.data.data.node);
-      setCurrentOptions(res.data.data.options || []);
+      const options = (res.data.data.options || []).map((opt: any) => {
+        const req = res.data.data.targetRequirements?.[String(opt.id)];
+        if (req) {
+          return { ...opt, minIntelligence: req.minIntelligence, minCharm: req.minCharm };
+        }
+        return opt;
+      });
+      setCurrentOptions(options);
+      if (res.data.data.character) {
+        setCharacter(res.data.data.character);
+      }
     }
-  }, []);
+  }, [session]);
 
   const saveSession = useCallback(async () => {
     if (!session?.sessionId) return;
