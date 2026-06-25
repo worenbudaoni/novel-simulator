@@ -106,6 +106,8 @@ export default function PlayerStoryPage() {
     setPendingSpin(true);
     try {
       const result = await spinAction();
+      // 等转盘动画播完（CSS transition 1s + 留白），再关闭转盘、触发故事
+      await new Promise(r => setTimeout(r, 1500));
       // displayDesc: 展示在故事区；sseDesc: 只传标题给 SSE，完整事件内容从 Redis 读取
       const displayDesc = result?.eventTitle
         ? result.eventTitle + '！' + (result.eventDescription || '')
