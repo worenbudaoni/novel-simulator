@@ -95,7 +95,7 @@ export default function AdminNovelsPage() {
     setPreviewResult(null);
     setTxtPreviewResult(null);
     setTxtParsedNovelId(null);
-    setNodeCount(5);
+    setNodeCount(12);
     setEventCount(8);
   };
 
@@ -456,9 +456,9 @@ export default function AdminNovelsPage() {
                   className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>最少 3</span>
-                  <span>默认 5</span>
-                  <span>最多 20</span>
+                  <span>10</span>
+                  <span>默认 12</span>
+                  <span>30</span>
                 </div>
               </div>
 
@@ -477,9 +477,9 @@ export default function AdminNovelsPage() {
                   className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>最少 5</span>
+                  <span>5</span>
                   <span>默认 {eventCount}</span>
-                  <span>最多 15</span>
+                  <span>15</span>
                 </div>
               </div>
 
@@ -671,13 +671,13 @@ export default function AdminNovelsPage() {
                       <span className="text-sm font-mono text-primary font-bold tabular-nums">{nodeCount}</span>
                     </div>
                     <input
-                      type="range" min={3} max={20} value={nodeCount}
+                      type="range" min={10} max={30} value={nodeCount}
                       onChange={e => setNodeCount(Number(e.target.value))}
                       disabled={actionLoading}
                       className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
                     />
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>最少 3</span><span>默认 5</span><span>最多 20</span>
+                      <span>10</span><span>默认 12</span><span>30</span>
                     </div>
                   </div>
                   <div className="space-y-1.5">
@@ -692,7 +692,7 @@ export default function AdminNovelsPage() {
                       className="w-full h-2 rounded-full appearance-none cursor-pointer bg-muted accent-primary"
                     />
                     <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>最少 5</span><span>默认 8</span><span>最多 15</span>
+                      <span>5</span><span>默认 8</span><span>15</span>
                     </div>
                   </div>
                 </div>
