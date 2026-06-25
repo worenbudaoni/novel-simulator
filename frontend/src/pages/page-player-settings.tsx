@@ -203,11 +203,15 @@ export default function PlayerSettingsPage() {
               {/* 转盘 — 静态可读 */}
               <div className="flex flex-col items-center gap-2">
                 <div className="relative size-72">
-                  {/* 旋转边框动画 */}
-                  <div className={`absolute -inset-2 rounded-full ${spinning ? 'animate-spin' : ''} border-4 border-transparent border-t-primary/40 border-r-primary/20 duration-1000`} style={{ animationDuration: '0.8s' }} />
+                  {/* 旋转跑马灯效果 */}
+                  {spinning && (
+                    <div className="absolute -inset-2 rounded-full animate-spin" style={{ animationDuration: '0.6s' }}>
+                      <div className="w-full h-full rounded-full bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+                    </div>
+                  )}
 
                   {/* 轮盘主体（始终静止，图标永远朝上） */}
-                  <div className="w-full h-full rounded-full border-[5px] border-border bg-card shadow-xl overflow-hidden">
+                  <div className="w-full h-full rounded-full border-2 border-border bg-card overflow-hidden">
                     <svg viewBox="0 0 200 200" className="w-full h-full">
                       {TEMPLATES.map((t, i) => {
                         const angle = (360 / TEMPLATES.length) * i - 90;
@@ -237,7 +241,7 @@ export default function PlayerSettingsPage() {
 
                   {/* 顶部指针 */}
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10">
-                    <div className="w-0 h-0 border-l-[12px] border-r-[12px] border-t-[18px] border-l-transparent border-r-transparent border-t-foreground drop-shadow-lg" />
+                    <div className="w-0 h-0 border-l-[12px] border-r-[12px] border-t-[18px] border-l-transparent border-r-transparent border-t-foreground" />
                   </div>
 
                   {/* 中心骰子 — 点击可重新抽奖 */}
@@ -246,7 +250,7 @@ export default function PlayerSettingsPage() {
                       type="button"
                       onClick={doSpin}
                       disabled={spinning}
-                      className="size-14 rounded-full bg-background border-[3px] border-border shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      className="size-14 rounded-full bg-background border-[3px] border-border hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       title={spinning ? '抽奖中...' : '点击抽奖'}
                     >
                       {spinning ? (
