@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('sessionId');
     localStorage.removeItem('userInfo');
     setUser(null);
+    window.location.href = '/';
   }, []);
 
   const hasPermission = useCallback((permission: string): boolean => {

@@ -27,7 +27,7 @@ public class AuthFilter extends OncePerRequestFilter {
 
     private static final String SESSION_PREFIX = "auth:sessions:";
     private static final long SESSION_TTL = 24;
-    private static final List<String> WHITE_LIST = Arrays.asList("/api/auth/login", "/api/auth/register", "/api/auth/menus");
+    private static final List<String> WHITE_LIST = Arrays.asList("/api/auth/login", "/api/auth/register");
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -45,8 +45,8 @@ public class AuthFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // Player API：有 token 则鉴权，无 token 也放行（按 GUEST 处理）
-        if (path.startsWith("/api/player/")) {
+        // Player API + menus：有 token 则鉴权，无 token 也放行（按 GUEST 处理）
+        if (path.startsWith("/api/player/") || path.equals("/api/auth/menus")) {
             String token = extractSessionId(request);
             if (token != null) {
                 processAuth(request, response, filterChain, token);
