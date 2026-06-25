@@ -1,32 +1,179 @@
 package com.novel.simulator.service;
 
 import com.novel.simulator.entity.*;
+import com.novel.simulator.mapper.NovelMapper;
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.openai.OpenAiChatModel;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.*;
 
 @Service
 public class EventChain {
     private static final Logger log = LoggerFactory.getLogger(EventChain.class);
 
+    private final NovelMapper novelMapper;
+    private final ObjectMapper objectMapper;
+
+    @Value("${llm.api-url:}")
+    private String llmApiUrl;
+
+    @Value("${llm.api-key:}")
+    private String llmApiKey;
+
+    @Value("${llm.model-name:gpt-3.5-turbo}")
+    private String llmModelName;
+
+    public EventChain(NovelMapper novelMapper, ObjectMapper objectMapper) {
+        this.novelMapper = novelMapper;
+        this.objectMapper = objectMapper;
+    }
+
+    private static class LlmResult {
+        String text;
+        String error;
+
+        static LlmResult success(String text) { LlmResult r = new LlmResult(); r.text = text; return r; }
+        static LlmResult error(String msg) { LlmResult r = new LlmResult(); r.error = msg; return r; }
+    }
+
+    private LlmResult callLlm(String prompt) {
+        if (llmApiKey == null || llmApiKey.isEmpty()) {
+            return LlmResult.error("LLM API Key 未配置");
+        }
+        try {
+            ChatLanguageModel model = OpenAiChatModel.builder()
+                .apiKey(llmApiKey)
+                .modelName(llmModelName)
+                .baseUrl(llmApiUrl)
+                .temperature(0.5)
+                .maxTokens(2048)
+                .timeout(Duration.ofSeconds(60))
+                .build();
+            String response = model.generate(prompt);
+            return LlmResult.success(response);
+        } catch (Exception e) {
+            log.warn("LLM call failed: {}", e.getMessage());
+            return LlmResult.error(e.getMessage());
+        }
+    }
+
+    private String extractJson(String text) {
+        text = text.trim();
+        if (text.startsWith("```")) {
+            int start = text.indexOf('\n');
+            int end = text.lastIndexOf("```");
+            if (start > 0 && end > start) {
+                text = text.substring(start, end).trim();
+            }
+        }
+        return text;
+    }
+
     public Map<String, Object> generateEvent(UserSession session, Node currentNode,
                                               UserCharacter character, String eventType) {
+        // 1. 先试 LLM
+        if (llmApiKey != null && !llmApiKey.isEmpty()) {
+            try {
+                return generateEventWithLlm(session, currentNode, character, eventType);
+            } catch (Exception e) {
+                log.warn("LLM event generation failed, falling back to stub: {}", e.getMessage());
+            }
+        }
+        // 2. LLM 不可用或失败 → 回退 stub
+        return generateEventStub(character, eventType);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> generateEventWithLlm(UserSession session, Node currentNode,
+                                                      UserCharacter character, String eventType) {
+        Novel novel = novelMapper.selectById(session.getNovelId());
+        String worldView = novel != null ? novel.getWorldView() : "";
+        int sector = new Random().nextInt(6);
+        String[] sectorNames = {"奇遇", "宝箱", "战斗", "诅咒", "命运", "邂逅"};
+        String sectorName = sectorNames[sector];
+
+        String prompt = "你是一个互动故事的事件生成器，正在为以下世界观生成随机事件。\n\n"
+            + "【世界观】\n" + (worldView != null ? worldView : "未知") + "\n\n"
+            + "【当前场景】\n" + currentNode.getTitle() + " — " + currentNode.getDescription() + "\n\n"
+            + "【角色状态】\n"
+            + "HP=" + character.getHp() + ", 攻击=" + character.getAttack()
+            + ", 防御=" + character.getDefense() + "\n"
+            + "悟性=" + character.getIntelligence() + ", 魅力=" + character.getCharm()
+            + ", 气运=" + character.getLuck() + "\n\n"
+            + "【扇区类型】\n" + sectorName + "\n\n"
+            + "请生成一个符合世界观、有沉浸感的事件，严格返回以下 JSON 格式（不要 markdown 代码块标记，不要额外内容）：\n\n"
+            + "{\n"
+            + "  \"title\": \"事件标题\",\n"
+            + "  \"content\": \"事件描述\",\n"
+            + "  \"hpChange\": 整数,\n"
+            + "  \"attackChange\": 整数,\n"
+            + "  \"defenseChange\": 整数,\n"
+            + "  \"intelligenceChange\": 整数,\n"
+            + "  \"charmChange\": 整数,\n"
+            + "  \"luckChange\": 整数\n"
+            + "}\n\n"
+            + "各扇区基调：\n"
+            + "- 奇遇 → 惊喜、机缘、发现\n"
+            + "- 宝箱 → 收获、资源、装备\n"
+            + "- 战斗 → 激烈、危险、搏斗\n"
+            + "- 诅咒 → 压抑、负面、阴影\n"
+            + "- 命运 → 玄妙、转折、因果\n"
+            + "- 邂逅 → 温暖、相遇、羁绊\n\n"
+            + "要求：\n"
+            + "- title：带情绪/氛围的标题（如「暗影突袭」「天降机缘」「古道遇险」）\n"
+            + "- content：500-1000 字，像小说段落一样丰富，有场景描写、氛围渲染、细节刻画\n"
+            + "- HP 变化范围 -30 到 +30，其他属性 -5 到 +5\n"
+            + "- 正面扇区属性变化多为正，负面多为负\n"
+            + "- 当前 HP 低时伤害相应减小（避免秒杀）\n"
+            + "- 数值合理，符合世界观逻辑";
+
+        LlmResult llmResult = callLlm(prompt);
+        if (llmResult.error != null) {
+            throw new RuntimeException(llmResult.error);
+        }
+
+        String json = extractJson(llmResult.text);
+        Map<String, Object> parsed = objectMapper.readValue(json, Map.class);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("title", parsed.getOrDefault("title", sectorName + "事件"));
+        result.put("content", parsed.getOrDefault("content", "发生了未知事件。"));
+        result.put("hpChange", getInt(parsed.get("hpChange")));
+        result.put("atkChange", getInt(parsed.get("attackChange")));
+        result.put("defChange", getInt(parsed.get("defenseChange")));
+        result.put("intChange", getInt(parsed.get("intelligenceChange")));
+        result.put("chaChange", getInt(parsed.get("charmChange")));
+        result.put("lukChange", getInt(parsed.get("luckChange")));
+        return result;
+    }
+
+    private int getInt(Object value) {
+        if (value instanceof Number) return ((Number) value).intValue();
+        return 0;
+    }
+
+    @SuppressWarnings("unused")
+    public Map<String, Object> generateEventStub(UserCharacter character, String eventType) {
         int sector = new Random().nextInt(6);
         Map<String, Object> result = new HashMap<>();
         String title, content;
         int hp=0, atk=0, def=0, inte=0, cha=0, luk=0;
 
         switch (sector) {
-            case 0: // 奇遇
+            case 0:
                 title = "✨ 奇遇";
                 content = "命运的齿轮悄然转动，你在一处不经意的地方发现了一段古老的铭文。"
                     + "虽然无法完全理解，但你的悟性似乎得到了启发。";
                 inte = 1 + new Random().nextInt(3);
                 luk = 1 + new Random().nextInt(3);
                 break;
-            case 1: // 宝箱
+            case 1:
                 title = "💎 宝箱";
                 content = "你发现了一个被遗忘的宝箱！打开后，里面有一些珍贵的物资和装备。"
                     + "这让你在接下来的旅程中更有底气。";
@@ -34,7 +181,7 @@ public class EventChain {
                 def = 1 + new Random().nextInt(3);
                 luk = 1;
                 break;
-            case 2: // 战斗
+            case 2:
                 title = "⚔️ 战斗";
                 content = "一阵腥风扑面而来，你遭到了袭击！经过一番激烈的搏斗，"
                     + "你虽然受了伤，但也从战斗中积累了宝贵的经验。";
@@ -42,7 +189,7 @@ public class EventChain {
                 atk = 1 + new Random().nextInt(2);
                 def = 1;
                 break;
-            case 3: // 诅咒
+            case 3:
                 title = "💀 诅咒";
                 content = "你触碰了不该碰的东西——一股阴冷的能量沿着手臂蔓延。"
                     + "你感到自己的气运在流逝，必须尽快找到化解之法。";
@@ -50,14 +197,14 @@ public class EventChain {
                 inte = -(1 + new Random().nextInt(3));
                 luk = -(1 + new Random().nextInt(3));
                 break;
-            case 4: // 命运
+            case 4:
                 title = "🌀 命运";
                 content = "一位神秘的占卜师出现在你面前，她凝视着你，目光仿佛穿透了时空。"
                     + "「你的命运……正在改变。」她留下这句话后便消失了。";
                 luk = 2 + new Random().nextInt(4);
                 inte = 1;
                 break;
-            default: // 邂逅
+            default:
                 title = "💕 邂逅";
                 content = "你遇到了一位友善的旅人。你们相谈甚欢，临别时他/她送给你一些补给，"
                     + "并为你指了一条更安全的路。";
