@@ -64,8 +64,15 @@ public class PlayerController {
     public Result<List<PlayerNovelVO>> listNovels(HttpServletRequest request) {
         @SuppressWarnings("unchecked")
         Map<String, Object> currentUser = (Map<String, Object>) request.getAttribute("currentUser");
-        List<String> roles = currentUser != null ? (List<String>) currentUser.get("roles") : Collections.singletonList("GUEST");
-        if (roles == null || roles.isEmpty()) roles = Collections.singletonList("GUEST");
+        List<String> roles = currentUser != null ? (List<String>) currentUser.get("roles") : new ArrayList<>();
+        if (roles == null) roles = new ArrayList<>();
+        // 未登录用户只能看 GUEST 可见作品；已登录用户同时看自己角色+GUEST 可见作品
+        if (currentUser == null) {
+            roles = Collections.singletonList("GUEST");
+        } else if (!roles.contains("GUEST")) {
+            roles = new ArrayList<>(roles);
+            roles.add("GUEST");
+        }
 
         List<Long> roleIds = roleMapper.selectList(
             new LambdaQueryWrapper<Role>().in(Role::getCode, roles)
