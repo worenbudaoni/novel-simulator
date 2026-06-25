@@ -58,8 +58,8 @@ function AttrBar({ label, value, max }: { label: string; value: number; max: num
   const color = pct >= 70 ? 'bg-green-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500';
   return (
     <div className="flex items-center gap-2 text-sm">
-      <span className="w-16 shrink-0 text-muted-foreground">{label}</span>
-      <div className="flex-1 h-2.5 bg-muted rounded-full overflow-hidden">
+      <span className="w-14 shrink-0 text-muted-foreground">{label}</span>
+      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
       </div>
       <span className="w-8 text-right font-medium tabular-nums">{value}</span>
@@ -78,8 +78,8 @@ export default function PlayerSettingsPage() {
   const [starting, setStarting] = useState(false);
   const [name, setName] = useState('');
   const [rolled, setRolled] = useState<RolledAttrs | null>(null);
-  const [phase, setPhase] = useState<'name' | 'spin' | 'ready'>('name');
-  const [rotation, setRotation] = useState(0);
+  const [phase, setPhase] = useState<'name' | 'spin'>('name');
+  const [spinning, setSpinning] = useState(false);
   const [randomRate] = useState(50);
   const [deathRate] = useState(30);
 
@@ -91,16 +91,13 @@ export default function PlayerSettingsPage() {
   }, [novelId]);
 
   const randomName = () => {
-    const n = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
-    setName(n);
+    setName(RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)]);
   };
 
-  // 属性抽奖
-  const handleSpin = () => {
+  const doSpin = () => {
+    setSpinning(true);
     const template = TEMPLATES[Math.floor(Math.random() * TEMPLATES.length)];
-    // 在模板基础上加 ±5 随机波动
     const variance = () => rand(-5, 5);
-    // 随机词条（30% 概率）
     const hasTrait = Math.random() < 0.3;
     const trait = hasTrait ? TRAITS[Math.floor(Math.random() * TRAITS.length)] : undefined;
 
@@ -117,7 +114,6 @@ export default function PlayerSettingsPage() {
       trait,
     };
 
-    // 应用词条加成
     if (trait) {
       if (trait.hp) attrs.hp += trait.hp;
       if (trait.attack) attrs.attack += trait.attack;
@@ -127,8 +123,12 @@ export default function PlayerSettingsPage() {
       if (trait.luck) attrs.luck += trait.luck;
     }
 
-    setRolled(attrs);
-    setRotation(prev => prev + 1800 + Math.random() * 720);
+    // 模拟转盘旋转动画
+    setTimeout(() => {
+      setRolled(attrs);
+      setSpinning(false);
+    }, 1200);
+
     if (phase === 'name') setPhase('spin');
   };
 
@@ -146,11 +146,6 @@ export default function PlayerSettingsPage() {
       }
     } catch { /* handled */ }
     setStarting(false);
-  };
-
-  const handleToSpin = () => {
-    if (!name.trim()) return;
-    handleSpin();
   };
 
   if (loading) {
@@ -173,7 +168,7 @@ export default function PlayerSettingsPage() {
         <CardHeader>
           <CardTitle>{novel?.title || '开始冒险'}</CardTitle>
           <CardDescription>
-            {phase === 'name' ? '创建你的角色' : phase === 'spin' ? '抽取初始属性' : '确认角色'}
+            {phase === 'name' ? '创建你的角色' : '抽取初始属性，不满意可重新抽奖'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -196,22 +191,23 @@ export default function PlayerSettingsPage() {
                   </Button>
                 </div>
               </div>
-              <Button onClick={handleToSpin} disabled={!name.trim()} className="w-full" size="lg">
+              <Button onClick={doSpin} disabled={!name.trim()} className="w-full" size="lg">
                 抽取初始属性
               </Button>
             </div>
           )}
 
-          {/* 阶段二/三：属性抽奖 */}
-          {(phase === 'spin' || phase === 'ready') && (
+          {/* 阶段二：属性抽奖 */}
+          {phase === 'spin' && (
             <div className="space-y-5">
-              {/* 转盘 */}
-              <div className="flex flex-col items-center gap-3">
+              {/* 转盘 — 静态可读 */}
+              <div className="flex flex-col items-center gap-2">
                 <div className="relative size-72">
-                  <div
-                    className="w-full h-full rounded-full border-[5px] border-border shadow-xl overflow-hidden transition-transform duration-[2500ms] ease-out"
-                    style={{ transform: `rotate(${rotation}deg)` }}
-                  >
+                  {/* 旋转边框动画 */}
+                  <div className={`absolute -inset-2 rounded-full ${spinning ? 'animate-spin' : ''} border-4 border-transparent border-t-primary/40 border-r-primary/20 duration-1000`} style={{ animationDuration: '0.8s' }} />
+
+                  {/* 轮盘主体（始终静止，图标永远朝上） */}
+                  <div className="w-full h-full rounded-full border-[5px] border-border bg-card shadow-xl overflow-hidden">
                     <svg viewBox="0 0 200 200" className="w-full h-full">
                       {TEMPLATES.map((t, i) => {
                         const angle = (360 / TEMPLATES.length) * i - 90;
@@ -226,10 +222,10 @@ export default function PlayerSettingsPage() {
                               fill={colors[i]} stroke="white" strokeWidth="1.5"
                             />
                             <text
-                              x={100 + 44 * Math.cos(midAngle)}
-                              y={100 + 44 * Math.sin(midAngle)}
+                              x={100 + 42 * Math.cos(midAngle)}
+                              y={100 + 42 * Math.sin(midAngle)}
                               textAnchor="middle" dominantBaseline="central"
-                              fontSize="28"
+                              fontSize="26"
                             >
                               {t.icon}
                             </text>
@@ -238,59 +234,70 @@ export default function PlayerSettingsPage() {
                       })}
                     </svg>
                   </div>
-                  {/* 指针 */}
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1.5 z-10">
-                    <div className="w-0 h-0 border-l-[14px] border-r-[14px] border-t-[20px] border-l-transparent border-r-transparent border-t-foreground drop-shadow-lg" />
+
+                  {/* 顶部指针 */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10">
+                    <div className="w-0 h-0 border-l-[12px] border-r-[12px] border-t-[18px] border-l-transparent border-r-transparent border-t-foreground drop-shadow-lg" />
                   </div>
-                  {/* 中心 */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="size-12 rounded-full bg-background border-[3px] border-border shadow-inner flex items-center justify-center">
-                      <span className="text-xl">🎲</span>
-                    </div>
+
+                  {/* 中心骰子 — 点击可重新抽奖 */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={doSpin}
+                      disabled={spinning}
+                      className="size-14 rounded-full bg-background border-[3px] border-border shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      title={spinning ? '抽奖中...' : '点击抽奖'}
+                    >
+                      {spinning ? (
+                        <Loader2Icon className="size-6 text-muted-foreground animate-spin" />
+                      ) : (
+                        <span className="text-2xl">🎲</span>
+                      )}
+                    </button>
                   </div>
                 </div>
 
-                <Button onClick={handleSpin} variant="outline" className="gap-2">
-                  <RefreshCwIcon className="size-4" /> 重新抽奖
-                </Button>
+                <p className="text-xs text-muted-foreground">点击中心骰子抽奖，不满意可重复抽取</p>
               </div>
 
-              {/* 结果 */}
-              {rolled && (
-                <div className="bg-muted/30 rounded-lg p-4 space-y-3">
-                  <div className="text-center space-y-1">
-                    <span className="text-3xl">{rolled.icon}</span>
-                    <div>
-                      <span className="text-lg font-semibold">{rolled.label}</span>
-                      <span className="text-xs text-muted-foreground ml-2">{rolled.desc}</span>
+              {/* 结果展示 */}
+              {rolled && !spinning && (
+                <>
+                  <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                    <div className="text-center space-y-1">
+                      <span className="text-4xl">{rolled.icon}</span>
+                      <div>
+                        <span className="text-lg font-semibold">{rolled.label}</span>
+                        <span className="text-xs text-muted-foreground ml-2">{rolled.desc}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <AttrBar label="❤️ 气血" value={rolled.hp} max={120} />
-                    <AttrBar label="⚔️ 攻击" value={rolled.attack} max={30} />
-                    <AttrBar label="🛡 防御" value={rolled.defense} max={30} />
-                    <AttrBar label="🧠 悟性" value={rolled.intelligence} max={80} />
-                    <AttrBar label="✨ 魅力" value={rolled.charm} max={80} />
-                    <AttrBar label="🍀 气运" value={rolled.luck} max={80} />
-                  </div>
-                  {/* 词条 */}
-                  {rolled.trait && (
-                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2 text-sm flex items-center gap-2">
-                      <SparklesIcon className="size-4 text-amber-500 shrink-0" />
-                      <span className="font-medium text-amber-700 dark:text-amber-400">{rolled.trait.label}</span>
-                      <span className="text-xs text-amber-500 ml-auto">{rolled.trait.effect}</span>
+                    <div className="space-y-1.5">
+                      <AttrBar label="❤️ 气血" value={rolled.hp} max={120} />
+                      <AttrBar label="⚔️ 攻击" value={rolled.attack} max={30} />
+                      <AttrBar label="🛡 防御" value={rolled.defense} max={30} />
+                      <AttrBar label="🧠 悟性" value={rolled.intelligence} max={80} />
+                      <AttrBar label="✨ 魅力" value={rolled.charm} max={80} />
+                      <AttrBar label="🍀 气运" value={rolled.luck} max={80} />
                     </div>
-                  )}
-                </div>
-              )}
+                    {rolled.trait && (
+                      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2 text-sm flex items-center gap-2">
+                        <SparklesIcon className="size-4 text-amber-500 shrink-0" />
+                        <span className="font-medium text-amber-700 dark:text-amber-400">{rolled.trait.label}</span>
+                        <span className="text-xs text-amber-500 ml-auto">{rolled.trait.effect}</span>
+                      </div>
+                    )}
+                  </div>
 
-              <Button onClick={handleConfirm} disabled={starting || !rolled} className="w-full" size="lg">
-                {starting ? (
-                  <><Loader2Icon className="size-4 animate-spin mr-2" /> 创建中...</>
-                ) : (
-                  <><CheckIcon className="size-4 mr-2" /> 接受并开始冒险</>
-                )}
-              </Button>
+                  <Button onClick={handleConfirm} disabled={starting} className="w-full" size="lg">
+                    {starting ? (
+                      <><Loader2Icon className="size-4 animate-spin mr-2" /> 创建中...</>
+                    ) : (
+                      <><CheckIcon className="size-4 mr-2" /> 接受并开始冒险</>
+                    )}
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </CardContent>
