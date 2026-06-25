@@ -129,6 +129,8 @@ public class ParseChain {
         try {
             result = objectMapper.readValue(llmResult.json, Map.class);
         } catch (Exception e) {
+            log.warn("LLM JSON parse failed, raw response preview: {}",
+                llmResult.rawResponse.substring(0, Math.min(200, llmResult.rawResponse.length())));
             Map<String, Object> err = new HashMap<>();
             err.put("error", "LLM 返回格式错误");
             return err;
@@ -227,7 +229,7 @@ public class ParseChain {
                 .modelName(llmModelName)
                 .baseUrl(llmApiUrl)
                 .temperature(0.7)
-                .maxTokens(4096)
+                .maxTokens(8192)
                 .timeout(java.time.Duration.ofSeconds(120))
                 .build();
             r.rawResponse = model.generate(prompt);
