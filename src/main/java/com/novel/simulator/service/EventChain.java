@@ -94,18 +94,26 @@ public class EventChain {
                                                       UserCharacter character, String eventType) {
         Novel novel = novelMapper.selectById(session.getNovelId());
         String worldView = novel != null ? novel.getWorldView() : "";
+
+        // Null-safe defaults for character stats
+        int hp = character.getHp() != null ? character.getHp() : 100;
+        int atk = character.getAttack() != null ? character.getAttack() : 10;
+        int def = character.getDefense() != null ? character.getDefense() : 10;
+        int inte = character.getIntelligence() != null ? character.getIntelligence() : 50;
+        int cha = character.getCharm() != null ? character.getCharm() : 50;
+        int luk = character.getLuck() != null ? character.getLuck() : 50;
+
         int sector = new Random().nextInt(6);
         String[] sectorNames = {"奇遇", "宝箱", "战斗", "诅咒", "命运", "邂逅"};
         String sectorName = sectorNames[sector];
 
         String prompt = "你是一个互动故事的事件生成器，正在为以下世界观生成随机事件。\n\n"
             + "【世界观】\n" + (worldView != null ? worldView : "未知") + "\n\n"
-            + "【当前场景】\n" + currentNode.getTitle() + " — " + currentNode.getDescription() + "\n\n"
+            + "【当前场景】\n" + (currentNode.getTitle() != null ? currentNode.getTitle() : "未知")
+            + " — " + (currentNode.getDescription() != null ? currentNode.getDescription() : "") + "\n\n"
             + "【角色状态】\n"
-            + "HP=" + character.getHp() + ", 攻击=" + character.getAttack()
-            + ", 防御=" + character.getDefense() + "\n"
-            + "悟性=" + character.getIntelligence() + ", 魅力=" + character.getCharm()
-            + ", 气运=" + character.getLuck() + "\n\n"
+            + "HP=" + hp + ", 攻击=" + atk + ", 防御=" + def + "\n"
+            + "悟性=" + inte + ", 魅力=" + cha + ", 气运=" + luk + "\n\n"
             + "【扇区类型】\n" + sectorName + "\n\n"
             + "请生成一个符合世界观、有沉浸感的事件，严格返回以下 JSON 格式（不要 markdown 代码块标记，不要额外内容）：\n\n"
             + "{\n"
@@ -158,7 +166,6 @@ public class EventChain {
         return 0;
     }
 
-    @SuppressWarnings("unused")
     public Map<String, Object> generateEventStub(UserCharacter character, String eventType) {
         int sector = new Random().nextInt(6);
         Map<String, Object> result = new HashMap<>();
