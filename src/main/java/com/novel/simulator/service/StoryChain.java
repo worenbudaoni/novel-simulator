@@ -87,30 +87,45 @@ public class StoryChain {
         int luk = character.getLuck() != null ? character.getLuck() : 50;
         int choices = character.getChoicesMade() != null ? character.getChoicesMade() : 0;
 
-        String prompt = "你是一个互动叙事大师，正在创作一部根据以下世界观改编的互动故事。\n\n"
-            + "【世界观】\n" + (worldView != null ? worldView : "未知") + "\n\n"
-            + "【当前场景】\n"
-            + "节点：" + (currentNode.getTitle() != null ? currentNode.getTitle() : "未知") + "\n"
+        // 前情提要：取最近一段故事作为上下文
+        String storyContext = "";
+        if (session.getStorySummary() != null && !session.getStorySummary().isEmpty()) {
+            storyContext = session.getStorySummary();
+        } else if (session.getStoryText() != null && session.getStoryText().length() > 100) {
+            String full = session.getStoryText();
+            storyContext = full.substring(Math.max(0, full.length() - 300));
+        }
+
+        String prompt = "你是一个顶级互动叙事作家，正在创作一部沉浸式互动故事。\n\n"
+            + "## 世界观设定\n"
+            + (worldView != null ? worldView : "未知") + "\n\n"
+            + "## 当前场景\n"
+            + "地点：" + (currentNode.getTitle() != null ? currentNode.getTitle() : "未知") + "\n"
             + "描述：" + (currentNode.getDescription() != null ? currentNode.getDescription() : "") + "\n\n"
-            + "【角色状态】\n"
-            + "气血(" + hp + "/100) | 攻击(" + atk + ") | 防御(" + def + ")\n"
-            + "悟性(" + inte + ") | 魅力(" + cha + ") | 气运(" + luk + ")\n"
-            + "已做出 " + choices + " 次选择\n\n"
-            + (actionDescription != null && !actionDescription.isEmpty()
-                ? "【事件】\n" + actionDescription + "\n\n"
+            + "## 角色当前状态\n"
+            + "气血：" + hp + "/100　攻击：" + atk + "　防御：" + def + "\n"
+            + "悟性：" + inte + "　魅力：" + cha + "　气运：" + luk + "\n"
+            + "已做出选择：" + choices + " 次\n\n"
+            + (!storyContext.isEmpty()
+                ? "## 前情提要\n" + storyContext + "\n\n"
                 : "")
-            + "请根据以上信息，写一段 300-500 字的故事叙述。要求：\n"
-            + "1. 以第二人称\"你\"叙述，代入感强\n"
-            + "2. 融入世界观设定，让玩家感觉身临其境\n"
-            + "3. 角色属性值影响叙述方向：\n"
-            + "   - HP 低 → 描写伤势、疲惫、艰难前行\n"
-            + "   - 悟性高 → 描写洞察、思考、发现线索\n"
-            + "   - 魅力高 → 描写人际互动、他人反应\n"
-            + "   - 气运高 → 描写机缘巧合、好运\n"
-            + "4. 语言精彩生动，善用比喻和细节描写，避免平淡叙述\n"
-            + "5. 不要出现\"你做出了选择\"这类元描述\n"
-            + "6. 【事件】存在时，以事件描述为基础展开叙述，将事件结果自然地融入故事中\n"
-            + "7. 结尾要有余韵和期待感，自然过渡到下一步";
+            + (actionDescription != null && !actionDescription.isEmpty()
+                ? "## 当前行动\n" + actionDescription + "\n\n"
+                : "")
+            + "---\n\n"
+            + "请以上述内容为基础，写一段 300-500 字的故事。要求：\n\n"
+            + "1. **以第二人称\"你\"叙述**，让玩家身临其境\n"
+            + "2. **以前情提要为基础续写**，保持情节连贯，不能断裂或重复\n"
+            + "3. **融入世界观细节**：使用世界观中的地名、人物、势力、规则，让玩家感觉这是一个真实的世界\n"
+            + "4. **角色属性影响叙述**：\n"
+            + "   - 气血低 → 伤势沉重、步履维艰\n"
+            + "   - 悟性高 → 洞察秋毫、发现隐藏线索\n"
+            + "   - 魅力高 → 言语动人、他人态度友善\n"
+            + "   - 气运高 → 机缘巧合、绝处逢生\n"
+            + "5. **【当前行动】存在时**：以当前行动为故事核心展开，如果是事件描述则将其无缝融入叙事\n"
+            + "6. **语言生动精彩**：善用比喻、感官描写（视觉/听觉/触觉），避免平铺直叙\n"
+            + "7. **结尾留下余韵**：自然过渡到下一步，让玩家有继续探索的欲望\n"
+            + "8. **禁止**：出现\"你做出了选择\"\"你决定\"等元描述";
 
         LlmResult llmResult = callLlm(prompt);
         if (llmResult.error != null) {

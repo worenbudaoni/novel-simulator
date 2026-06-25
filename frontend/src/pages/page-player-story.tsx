@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from 'src/components/ui/button';
@@ -26,6 +26,7 @@ export default function PlayerStoryPage() {
   const [showEnding, setShowEnding] = useState(false);
   const [showSaveLoad, setShowSaveLoad] = useState(false);
   const [lastEventDesc, setLastEventDesc] = useState('');
+  const pendingWheelRef = useRef(false);
 
   useEffect(() => {
     if (sessionId) loadSession(sessionId);
@@ -45,7 +46,7 @@ export default function PlayerStoryPage() {
 
   // 触发 SSE 故事流
   const triggerStory = useCallback((sid: string, desc?: string) => {
-    // 追加选择描述到故事区，不覆盖已有内容
+    // 追加选择/事件描述到故事区，不覆盖已有内容
     if (desc) {
       setStoryText(prev => prev + '\n\n---\n\n' + desc + '\n\n');
     }
@@ -58,7 +59,18 @@ export default function PlayerStoryPage() {
           setStoryText(prev => prev + text + '\n\n');
         });
       },
-      onDone: () => { setActionDisabled(false); setPendingSpin(false); setShowWheel(false); setPendingSessionId(null); },
+      onDone: () => {
+        setPendingSessionId(null);
+        setPendingSpin(false);
+        setShowWheel(false);
+        // 如果等待转盘，故事完成后显示转盘
+        if (pendingWheelRef.current) {
+          pendingWheelRef.current = false;
+          setShowWheel(true);
+        } else {
+          setActionDisabled(false);
+        }
+      },
       onError: (msg) => { toast.error(msg); setActionDisabled(false); setPendingSpin(false); setShowWheel(false); setPendingSessionId(null); },
     }, desc);
   }, [connect]);
@@ -73,22 +85,17 @@ export default function PlayerStoryPage() {
       // 用户可见的选择描述
       const choiceLabel = result?.chosenOption?.label || '做出了选择';
 
-      // 解析设置，判断是否触发转盘
-      let shouldSpin = false;
+      // 解析设置，判断转盘是否在本轮选择后触发
       if (session?.settingsJson) {
         try {
           const settings = JSON.parse(session.settingsJson);
           const rate = settings.randomRate || 0;
-          shouldSpin = Math.random() * 100 < rate;
+          pendingWheelRef.current = Math.random() * 100 < rate;
         } catch { /* ignore */ }
       }
 
-      if (shouldSpin) {
-        setShowWheel(true);
-        setPendingSessionId(sessionId);
-      } else {
-        triggerStory(sessionId, choiceLabel);
-      }
+      // 先生成选择后的故事（转盘在故事完成后显示）
+      triggerStory(sessionId, choiceLabel);
     } catch { setActionDisabled(false); }
   };
 
