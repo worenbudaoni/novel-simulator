@@ -134,7 +134,7 @@ export default function AdminUsersPage() {
             value={tempRoleFilter}
             onValueChange={v => setTempRoleFilter(v as number[])}
           >
-            <ComboboxChips ref={comboboxAnchor} className="w-72 min-h-9">
+            <ComboboxChips ref={comboboxAnchor} className="w-72">
               <ComboboxValue>
                 {(values: any) => values.length > 0 ? (
                   values.map((v: any) => {
@@ -142,7 +142,7 @@ export default function AdminUsersPage() {
                     return role ? <ComboboxChip key={v}>{role.name}</ComboboxChip> : null;
                   })
                 ) : (
-                  <span className="text-muted-foreground px-1">全部角色</span>
+                  <span className="text-muted-foreground px-1">全部</span>
                 )}
               </ComboboxValue>
               <ComboboxChipsInput placeholder="搜索角色..." />
