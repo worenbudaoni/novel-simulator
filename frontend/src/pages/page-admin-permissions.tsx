@@ -29,6 +29,7 @@ import {
   getFilteredRowModel,
   createColumnHelper,
   flexRender,
+  type ExpandedState,
 } from '@tanstack/react-table';
 
 const formSchema = z.object({
@@ -76,6 +77,7 @@ export default function AdminPermissionsPage() {
   const [editNode, setEditNode] = useState<PermissionNode | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PermissionNode | null>(null);
   const [saving, setSaving] = useState(false);
+  const [expanded, setExpanded] = useState<ExpandedState>({});
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -264,7 +266,8 @@ export default function AdminPermissionsPage() {
       const q = String(filterValue).toLowerCase();
       return name.includes(q) || code.includes(q);
     },
-    state: { globalFilter, expanded: search ? true : undefined },
+    state: { globalFilter, expanded: search ? true : expanded },
+    onExpandedChange: (updater) => { if (!search) setExpanded(updater); },
     filterFromLeafRows: true,
     autoResetExpanded: false,
     getRowCanExpand: (row) => !!(row.original.subRows && row.original.subRows.length > 0),
