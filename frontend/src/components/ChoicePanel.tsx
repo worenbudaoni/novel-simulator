@@ -1,10 +1,8 @@
 import { Button } from 'src/components/ui/button';
-import { Badge } from 'src/components/ui/badge';
 
 export interface OptionItem {
   id: number;
   label: string;
-  riskHint?: string;
 }
 
 interface ChoicePanelProps {
@@ -28,9 +26,6 @@ export default function ChoicePanel({ options, disabled, onChoose }: ChoicePanel
           className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-accent hover:text-accent-foreground transition-colors"
         >
           <span className="text-sm">{opt.label}</span>
-          {opt.riskHint && (
-            <Badge variant="destructive" className="ml-auto text-[10px] shrink-0">{opt.riskHint}</Badge>
-          )}
         </Button>
       ))}
     </div>

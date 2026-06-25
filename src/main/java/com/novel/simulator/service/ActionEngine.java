@@ -17,20 +17,18 @@ public class ActionEngine {
     private final NodeOptionMapper nodeOptionMapper;
     private final UserSessionMapper userSessionMapper;
     private final UserCharacterMapper userCharacterMapper;
-    private final RandomEventMapper randomEventMapper;
-    private final EventEngine eventEngine;
+    private final EventChain eventChain;
     private final ObjectMapper objectMapper;
 
     public ActionEngine(NodeMapper nodeMapper, NodeOptionMapper nodeOptionMapper,
                         UserSessionMapper userSessionMapper, UserCharacterMapper userCharacterMapper,
-                        RandomEventMapper randomEventMapper, EventEngine eventEngine,
+                        EventChain eventChain,
                         ObjectMapper objectMapper) {
         this.nodeMapper = nodeMapper;
         this.nodeOptionMapper = nodeOptionMapper;
         this.userSessionMapper = userSessionMapper;
         this.userCharacterMapper = userCharacterMapper;
-        this.randomEventMapper = randomEventMapper;
-        this.eventEngine = eventEngine;
+        this.eventChain = eventChain;
         this.objectMapper = objectMapper;
     }
 
@@ -70,15 +68,13 @@ public class ActionEngine {
         UserSession session = getSession(sessionId);
         UserCharacter character = getCharacter(sessionId);
 
-        RandomEvent event = eventEngine.drawEvent(session.getNovelId(), nodeId);
-        if (event == null) {
-            ActionResult result = new ActionResult();
-            result.setActionType("spin");
-            result.setCharacter(character);
-            return result;
-        }
+        // 用 EventChain（LLM）生成事件，而非从池子随机抽取
+        Node currentNode = nodeMapper.selectById(nodeId);
+        Map<String, Object> eventData = eventChain.generateEvent(session, currentNode, character, null);
 
-        applyEventEffects(character, event);
+        // 应用属性变化
+        int hpChange = (int) eventData.getOrDefault("hpChange", 0);
+        character.setHp(character.getHp() + hpChange);
         character.setEventsTriggered(character.getEventsTriggered() != null ? character.getEventsTriggered() + 1 : 1);
         character.setUpdatedAt(LocalDateTime.now());
         userCharacterMapper.updateById(character);
@@ -87,7 +83,7 @@ public class ActionEngine {
 
         ActionResult result = new ActionResult();
         result.setActionType("spin");
-        result.setTriggeredEvent(event);
+        result.setEventDescription((String) eventData.get("content"));
         result.setCharacter(character);
         return result;
     }
