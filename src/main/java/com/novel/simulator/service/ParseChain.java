@@ -95,9 +95,12 @@ public class ParseChain {
             + "5. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
             + "6. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n"
             + "7. summary: 作品简介（100字以内）\n"
-            + "8. author: 原作者\n\n"
+            + "8. author: 原作者（如知道）\n\n"
+            + "请确保生成" + nodeCount + "个核心节点"
+            + (eventCount > 0 ? "和" + eventCount + "个随机事件" : "")
+            + "，覆盖故事的主要情节阶段（开始、发展、高潮、结局）。\n\n"
             + "重要结构要求：\n"
-            + "- 生成" + nodeCount + "个核心节点，形成多分支网状结构，而非线性\n"
+            + "- 形成多分支网状结构，而非线性\n"
             + "- 每个节点有3-4个选项，指向不同的后续节点\n"
             + "- 至少包含2-3个结局节点（isEnd=true），分布在故事末尾分支\n"
             + "- 不同选择导向不同分支，最终走向不同结局\n"
@@ -147,6 +150,7 @@ public class ParseChain {
 
     /**
      * Generate and create novel from name. Saves parse record if novelId provided.
+     * First checks if preview cache exists (from /import/preview), skips LLM if found.
      */
     public Map<String, Object> generateFromName(String name, Integer contentType, Long novelId, String promptType, int nodeCount, int eventCount) {
         String typeName = contentType == null || contentType == 0 ? "小说" :
@@ -181,6 +185,23 @@ public class ParseChain {
                 return objectMapper.readValue(existing.getResultText(), Map.class);
             } catch (Exception e) {
                 log.warn("Cache deserialize failed, re-generating", e);
+            }
+        }
+
+        // Check preview cache (from /import/preview) to avoid calling LLM twice
+        String previewCacheKey = "preview:" + contentType + ":" + nodeCount + ":" + eventCount + ":" + Integer.toHexString(name.hashCode());
+        LlmCache previewCache = llmCacheMapper.selectOne(
+            new LambdaQueryWrapper<LlmCache>().eq(LlmCache::getCacheKey, previewCacheKey));
+        if (previewCache != null) {
+            log.info("Found preview cache for '{}', skipping LLM call", name);
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> cachedResult = objectMapper.readValue(previewCache.getResultText(), Map.class);
+                // Migrate preview cache to gen cache so next time it hits directly
+                saveCache(cacheKey, "parse", previewCache.getResultText());
+                return cachedResult;
+            } catch (Exception e) {
+                log.warn("Preview cache deserialize failed, falling through to LLM", e);
             }
         }
 

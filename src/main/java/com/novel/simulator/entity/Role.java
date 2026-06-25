@@ -1,6 +1,7 @@
 package com.novel.simulator.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 
 @TableName("role")
@@ -11,7 +12,7 @@ public class Role {
     private String name;
     private String description;
     @TableField("is_system")
-    private Boolean system;
+    private Boolean isSystem;
     private LocalDateTime createdAt;
 
     public Long getId() { return id; }
@@ -22,8 +23,9 @@ public class Role {
     public void setName(String name) { this.name = name; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-    public Boolean getSystem() { return system; }
-    public void setSystem(Boolean system) { this.system = system; }
+    @JsonProperty("system")
+    public Boolean getIsSystem() { return isSystem; }
+    public void setIsSystem(Boolean isSystem) { this.isSystem = isSystem; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

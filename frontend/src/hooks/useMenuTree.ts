@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '@/hooks/useApi';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface MenuItem {
   id: number;
@@ -11,30 +12,30 @@ export interface MenuItem {
   children?: MenuItem[];
 }
 
-// 模块级缓存，所有组件共享，只请求一次
-let cachedTree: MenuItem[] | null = null;
-let cachedLoading = true;
+// 模块级缓存，按用户 sessionId 缓存，用户变化时自动失效
+const menuCache: Map<string, MenuItem[]> = new Map();
 
 export function useMenuTree() {
-  const [menuTree, setMenuTree] = useState<MenuItem[]>(cachedTree ?? []);
-  const [loading, setLoading] = useState(cachedLoading);
+  const { user } = useAuth();
+  const userKey = user?.sessionId || 'guest';
+  const [menuTree, setMenuTree] = useState<MenuItem[]>(menuCache.get(userKey) ?? []);
+  const [loading, setLoading] = useState(!menuCache.has(userKey));
 
   useEffect(() => {
-    if (cachedTree !== null) {
+    if (menuCache.has(userKey)) {
       setLoading(false);
       return;
     }
     api.get('/auth/menus').then(res => {
       if (res.data.code === 200) {
         const data: MenuItem[] = res.data.data || [];
-        cachedTree = data;
+        menuCache.set(userKey, data);
         setMenuTree(data);
       }
     }).finally(() => {
-      cachedLoading = false;
       setLoading(false);
     });
-  }, []);
+  }, [userKey]);
 
   return { menuTree, loading };
 }

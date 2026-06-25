@@ -70,7 +70,7 @@ public class RoleController {
     @PreAuthorize("hasAuthority('role:manage')")
     public Result<Role> create(@RequestBody Role role) {
         role.setCreatedAt(LocalDateTime.now());
-        role.setSystem(false);
+        role.setIsSystem(false);
         roleMapper.insert(role);
         return Result.success(role);
     }
@@ -80,7 +80,7 @@ public class RoleController {
     public Result<Void> update(@PathVariable Long id, @RequestBody Role role) {
         Role existing = roleMapper.selectById(id);
         if (existing == null) return Result.error(404, "角色不存在");
-        if (existing.getSystem()) return Result.error(400, "系统预设角色不可修改");
+        if (existing.getIsSystem()) return Result.error(400, "系统预设角色不可修改");
         role.setId(id);
         roleMapper.updateById(role);
         return Result.success();
@@ -91,7 +91,7 @@ public class RoleController {
     public Result<Void> delete(@PathVariable Long id) {
         Role existing = roleMapper.selectById(id);
         if (existing == null) return Result.error(404, "角色不存在");
-        if (existing.getSystem()) return Result.error(400, "系统预设角色不可删除");
+        if (existing.getIsSystem()) return Result.error(400, "系统预设角色不可删除");
         rolePermissionMapper.delete(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<RolePermission>()
             .eq(RolePermission::getRoleId, id));
         roleMapper.deleteById(id);
