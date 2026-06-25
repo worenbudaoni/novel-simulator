@@ -147,7 +147,12 @@ public class EventChain {
         }
 
         String json = extractJson(llmResult.text);
-        Map<String, Object> parsed = objectMapper.readValue(json, Map.class);
+        Map<String, Object> parsed;
+        try {
+            parsed = objectMapper.readValue(json, Map.class);
+        } catch (Exception e) {
+            throw new RuntimeException("JSON parse failed: " + e.getMessage());
+        }
 
         Map<String, Object> result = new HashMap<>();
         result.put("title", parsed.getOrDefault("title", sectorName + "事件"));
