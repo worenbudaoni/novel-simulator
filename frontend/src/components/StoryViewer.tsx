@@ -23,22 +23,24 @@ export default function StoryViewer({ text, streaming, placeholder }: StoryViewe
     <Card>
       <CardContent className="pt-4">
         {text ? (
-          <div className="prose prose-sm max-w-none dark:prose-invert">
+          <div className="prose prose-sm max-w-none dark:prose-invert h-96 overflow-y-auto border border-border rounded-lg p-4">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {text}
             </ReactMarkdown>
+            {streaming && (
+              <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                <Loader2Icon className="size-3 animate-spin" /> 生成中...
+              </div>
+            )}
+            <div ref={bottomRef} />
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            {placeholder || '故事即将开始...'}
-          </p>
-        )}
-        {streaming && (
-          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-            <Loader2Icon className="size-3 animate-spin" /> 生成中...
+          <div className="h-48 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground text-center py-8">
+              {placeholder || '故事即将开始...'}
+            </p>
           </div>
         )}
-        <div ref={bottomRef} />
       </CardContent>
     </Card>
   );

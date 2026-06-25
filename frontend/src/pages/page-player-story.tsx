@@ -44,7 +44,10 @@ export default function PlayerStoryPage() {
 
   // 触发 SSE 故事流
   const triggerStory = useCallback((sid: string, desc?: string) => {
-    setStoryText('');
+    // 追加选择描述到故事区，不覆盖已有内容
+    if (desc) {
+      setStoryText(prev => prev + '\n\n---\n\n' + desc + '\n\n');
+    }
     setPendingSessionId(sid);
     setLastEventDesc(desc || '');
     connect(sid, {
