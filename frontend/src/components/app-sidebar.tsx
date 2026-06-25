@@ -72,17 +72,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <NavMain items={[
               { title: "作品列表", url: "/player", icon: <BookOpen /> },
             ]} />
+            <NavDocuments items={[]} />
+            <div className="flex-1" />
             {adminItems.length > 0 && (
               <NavMain title="管理后台" items={adminItems} />
             )}
-            <NavDocuments items={[]} />
           </>
         ) : (
           <NavMain items={[
             { title: "公开作品", url: "/player", icon: <BookOpen />, isActive: true },
           ]} />
         )}
-        <NavSecondary items={[]} className="mt-auto" />
+        <NavSecondary items={[]} />
       </SidebarContent>
       <SidebarFooter>
         {user ? <NavUser /> : (
