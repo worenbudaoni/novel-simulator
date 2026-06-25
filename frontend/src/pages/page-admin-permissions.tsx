@@ -13,7 +13,7 @@ import { Switch } from 'src/components/ui/switch';
 import { toast } from 'sonner';
 import api from '@/hooks/useApi';
 import {
-  PlusIcon, Loader2Icon, Trash2Icon, SearchIcon,
+  PlusIcon, Loader2Icon, Trash2Icon, PencilIcon, SearchIcon,
   ChevronRightIcon, ChevronDownIcon,
 } from 'lucide-react';
 import {
@@ -54,7 +54,8 @@ export default function AdminPermissionsPage() {
   const [tree, setTree] = useState<PermissionNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [showCreate, setShowCreate] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editNode, setEditNode] = useState<PermissionNode | null>(null);
 
   // Form fields
   const [formName, setFormName] = useState('');
@@ -74,7 +75,6 @@ export default function AdminPermissionsPage() {
       const res = await api.get('/admin/permissions/tree');
       if (res.data.code === 200) {
         const data: PermissionNode[] = res.data.data || [];
-        // 给树形数据加上 subRows 别名（TanStack Table 用 subRows）
         const addSubRows = (nodes: PermissionNode[]): PermissionNode[] =>
           nodes.map(n => ({ ...n, subRows: n.children ? addSubRows(n.children) : undefined }));
         setTree(addSubRows(data));
@@ -82,7 +82,7 @@ export default function AdminPermissionsPage() {
     } finally { setLoading(false); }
   };
 
-  // Flatten tree for parent selector
+  // 所有节点展平（用于父节点选择器）
   const allNodes = useMemo(() => {
     const flatten = (nodes: PermissionNode[]): PermissionNode[] => {
       const result: PermissionNode[] = [];
@@ -95,18 +95,67 @@ export default function AdminPermissionsPage() {
     return flatten(tree);
   }, [tree]);
 
+  // --- 新建 / 编辑 ---
+
+  const openCreate = () => {
+    setEditNode(null);
+    setFormName(''); setFormCode(''); setFormType('2');
+    setFormParentId('0'); setFormRoute(''); setFormSortOrder('0');
+    setFormStatus(true);
+    setShowDialog(true);
+  };
+
+  const openEdit = (node: PermissionNode) => {
+    setEditNode(node);
+    setFormName(node.name);
+    setFormCode(node.code);
+    setFormType(String(node.type));
+    setFormParentId(String(node.parentId));
+    setFormRoute(node.route || '');
+    setFormSortOrder(String(node.sortOrder));
+    setFormStatus(node.status === 1);
+    setShowDialog(true);
+  };
+
+  const handleSave = async () => {
+    if (!formName.trim()) { toast.error('请输入权限名称'); return; }
+    if (!formCode.trim()) { toast.error('请输入权限标识'); return; }
+    setSaving(true);
+    try {
+      const body: any = { name: formName.trim(), code: formCode.trim(), type: Number(formType), parentId: Number(formParentId), sortOrder: Number(formSortOrder), status: formStatus ? 1 : 0 };
+      if (formType === '1' && formRoute.trim()) body.route = formRoute.trim();
+
+      if (editNode) {
+        await api.put(`/admin/permissions/${editNode.id}`, body);
+        toast.success('权限已更新');
+      } else {
+        await api.post('/admin/permissions', body);
+        toast.success('权限已创建');
+      }
+      setShowDialog(false);
+      await loadTree();
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (node: PermissionNode) => {
+    if (!confirm(`确定删除「${node.name}」？${node.children?.length ? ' 其子节点也将被删除。' : ''}`)) return;
+    try {
+      await api.delete(`/admin/permissions/${node.id}`);
+      toast.success('已删除');
+      await loadTree();
+    } catch { /* handled */ }
+  };
+
+  // --- 列定义 ---
+
   const columns = useMemo(() => [
     columnHelper.display({
       id: 'expander',
-      size: 32,
+      size: 28,
       cell: ({ row }) => {
         if (!row.getCanExpand()) return <span className="inline-block w-4" />;
         return (
-          <button
-            type="button"
-            onClick={row.getToggleExpandedHandler()}
-            className="p-0.5 cursor-pointer"
-          >
+          <button type="button" onClick={row.getToggleExpandedHandler()} className="p-0.5 cursor-pointer">
             {row.getIsExpanded()
               ? <ChevronDownIcon className="size-3.5 text-muted-foreground" />
               : <ChevronRightIcon className="size-3.5 text-muted-foreground" />
@@ -125,25 +174,27 @@ export default function AdminPermissionsPage() {
     }),
     columnHelper.accessor('type', {
       header: '类型',
-      size: 64,
+      size: 56,
       cell: ({ getValue }) => getValue() === 1
         ? <Badge variant="default" className="text-[10px]">菜单</Badge>
         : <Badge variant="outline" className="text-[10px]">按钮</Badge>,
     }),
     columnHelper.accessor('code', {
       header: '标识',
+      minSize: 120,
       cell: ({ getValue }) => <code className="text-xs font-mono text-primary">{getValue()}</code>,
     }),
     columnHelper.accessor('route', {
       header: '路由',
+      minSize: 100,
       cell: ({ getValue }) => {
         const v = getValue();
-        return v ? <span className="text-xs text-muted-foreground">{v}</span> : null;
+        return v ? <span className="text-xs text-muted-foreground">{v}</span> : <span className="text-xs text-muted-foreground/40">—</span>;
       },
     }),
     columnHelper.accessor('status', {
       header: '状态',
-      size: 56,
+      size: 48,
       cell: ({ getValue }) => (
         <span className={`text-xs ${getValue() === 1 ? 'text-green-600' : 'text-red-500'}`}>
           {getValue() === 1 ? '有效' : '无效'}
@@ -152,39 +203,37 @@ export default function AdminPermissionsPage() {
     }),
     columnHelper.accessor('createdAt', {
       header: '创建时间',
-      size: 140,
+      size: 120,
       cell: ({ getValue }) => {
         const v = getValue();
-        return v ? <span className="text-xs text-muted-foreground">{formatTime(v)}</span> : null;
+        return v ? <span className="text-xs text-muted-foreground whitespace-nowrap">{formatTime(v)}</span> : null;
       },
     }),
     columnHelper.accessor('updatedAt', {
       header: '修改时间',
-      size: 140,
+      size: 120,
       cell: ({ getValue }) => {
         const v = getValue();
-        return v ? <span className="text-xs text-muted-foreground">{formatTime(v)}</span> : null;
+        return v ? <span className="text-xs text-muted-foreground whitespace-nowrap">{formatTime(v)}</span> : null;
       },
     }),
     columnHelper.display({
       id: 'actions',
-      size: 40,
+      size: 52,
       cell: ({ row }) => (
-        <button
-          type="button"
-          onClick={() => handleDelete(row.original)}
-          className="p-1 hover:bg-destructive/10 rounded cursor-pointer opacity-0 hover:opacity-100 transition-opacity"
-        >
-          <Trash2Icon className="size-3.5 text-destructive" />
-        </button>
+        <div className="flex gap-0.5">
+          <button type="button" onClick={() => openEdit(row.original)} className="p-1 hover:bg-muted rounded cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
+            <PencilIcon className="size-3.5 text-muted-foreground" />
+          </button>
+          <button type="button" onClick={() => handleDelete(row.original)} className="p-1 hover:bg-destructive/10 rounded cursor-pointer opacity-0 hover:opacity-100 transition-opacity">
+            <Trash2Icon className="size-3.5 text-destructive" />
+          </button>
+        </div>
       ),
     }),
   ], []);
 
-  const globalFilter = useMemo(() => {
-    if (!search) return undefined;
-    return search;
-  }, [search]);
+  const globalFilter = useMemo(() => search || undefined, [search]);
 
   const table = useReactTable({
     data: tree,
@@ -199,41 +248,10 @@ export default function AdminPermissionsPage() {
       const q = String(filterValue).toLowerCase();
       return name.includes(q) || code.includes(q);
     },
-    state: {
-      globalFilter,
-    },
+    state: { globalFilter },
     filterFromLeafRows: true,
+    defaultColumn: { minSize: 60, size: 100 },
   });
-
-  const openCreate = () => {
-    setFormName(''); setFormCode(''); setFormType('2');
-    setFormParentId('0'); setFormRoute(''); setFormSortOrder('0');
-    setFormStatus(true);
-    setShowCreate(true);
-  };
-
-  const handleCreate = async () => {
-    if (!formName.trim()) { toast.error('请输入权限名称'); return; }
-    if (!formCode.trim()) { toast.error('请输入权限标识'); return; }
-    setSaving(true);
-    try {
-      const body: any = { name: formName.trim(), code: formCode.trim(), type: Number(formType), parentId: Number(formParentId), sortOrder: Number(formSortOrder), status: formStatus ? 1 : 0 };
-      if (formType === '1' && formRoute.trim()) body.route = formRoute.trim();
-      await api.post('/admin/permissions', body);
-      toast.success('权限已创建');
-      setShowCreate(false);
-      await loadTree();
-    } finally { setSaving(false); }
-  };
-
-  const handleDelete = async (node: PermissionNode) => {
-    if (!confirm(`确定删除「${node.name}」？${node.children?.length ? ' 其子节点也将被删除。' : ''}`)) return;
-    try {
-      await api.delete(`/admin/permissions/${node.id}`);
-      toast.success('已删除');
-      await loadTree();
-    } catch { /* handled */ }
-  };
 
   if (loading) {
     return <div className="flex items-center justify-center py-12 text-muted-foreground"><Loader2Icon className="size-5 animate-spin mr-2" /> 加载中...</div>;
@@ -250,13 +268,13 @@ export default function AdminPermissionsPage() {
         <Input placeholder="搜索名称或标识..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
 
-      <div className="rounded-lg border">
-        <Table>
+      <div className="rounded-lg border overflow-x-auto">
+        <Table className="table-fixed w-full">
           <TableHeader>
             {table.getHeaderGroups().map(hg => (
               <TableRow key={hg.id}>
                 {hg.headers.map(h => (
-                  <TableHead key={h.id} style={{ width: h.getSize() !== 150 ? h.getSize() : undefined }}>
+                  <TableHead key={h.id} style={{ width: h.getSize() }} className="text-xs">
                     {flexRender(h.column.columnDef.header, h.getContext())}
                   </TableHead>
                 ))}
@@ -273,7 +291,7 @@ export default function AdminPermissionsPage() {
               return (
                 <TableRow key={row.id} className="hover:bg-muted/10">
                   {row.getVisibleCells().map((cell, ci) => (
-                    <TableCell key={cell.id} className="py-2" style={{ paddingLeft: ci === 0 ? `${8 + depth * 20}px` : undefined }}>
+                    <TableCell key={cell.id} className="py-1.5 text-xs" style={{ paddingLeft: ci === 0 ? `${8 + depth * 20}px` : undefined }}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -284,11 +302,12 @@ export default function AdminPermissionsPage() {
         </Table>
       </div>
 
-      <Dialog open={showCreate} onOpenChange={o => { if (!o) setShowCreate(false); }}>
+      {/* 新建 / 编辑 Dialog */}
+      <Dialog open={showDialog} onOpenChange={o => { if (!o) { setShowDialog(false); setEditNode(null); } }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>新建权限</DialogTitle>
-            <DialogDescription>创建新的菜单或按钮权限</DialogDescription>
+            <DialogTitle>{editNode ? '编辑权限' : '新建权限'}</DialogTitle>
+            <DialogDescription>{editNode ? '修改权限信息' : '创建新的菜单或按钮权限'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-3">
@@ -316,7 +335,7 @@ export default function AdminPermissionsPage() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">根节点</SelectItem>
-                  {allNodes.filter(n => n.type === 1).map(n => (
+                  {allNodes.filter(n => n.type === 1 && n.id !== editNode?.id).map(n => (
                     <SelectItem key={n.id} value={String(n.id)}>{n.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -342,8 +361,8 @@ export default function AdminPermissionsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
-            <Button onClick={handleCreate} disabled={saving}>{saving ? '创建中...' : '创建'}</Button>
+            <Button variant="outline" onClick={() => { setShowDialog(false); setEditNode(null); }}>取消</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? '保存中...' : editNode ? '保存修改' : '创建'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
