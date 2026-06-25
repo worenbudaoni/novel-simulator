@@ -28,12 +28,20 @@ CREATE TABLE role (
 -- 3. 权限表
 CREATE TABLE permission (
     id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    code        VARCHAR(100) UNIQUE NOT NULL COMMENT '权限编码: novel:create',
-    name        VARCHAR(100) NOT NULL,
-    resource    VARCHAR(50) NOT NULL COMMENT '所属资源: novel/user/node/event/player/role',
-    action      VARCHAR(50) NOT NULL COMMENT '操作: create/read/update/delete/manage',
-    created_at  DATETIME
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    parent_id   BIGINT DEFAULT 0 NOT NULL COMMENT '父级ID，0=根节点',
+    name        VARCHAR(100) NOT NULL COMMENT '显示名称',
+    code        VARCHAR(100) NOT NULL COMMENT '权限标识，全局唯一',
+    resource    VARCHAR(50) DEFAULT NULL COMMENT '所属资源（渐变迁移中）',
+    action      VARCHAR(50) DEFAULT NULL COMMENT '操作（渐变迁移中）',
+    type        TINYINT NOT NULL DEFAULT 1 COMMENT '1=菜单 2=按钮',
+    route       VARCHAR(200) DEFAULT NULL COMMENT '前端路由（仅菜单）',
+    status      TINYINT DEFAULT 1 COMMENT '1=有效 0=无效',
+    sort_order  INT DEFAULT 0 COMMENT '排序号',
+    created_by  BIGINT DEFAULT 0 NOT NULL COMMENT '创建人（逻辑外键）',
+    created_at  DATETIME COMMENT '创建时间',
+    updated_at  DATETIME COMMENT '修改时间',
+    UNIQUE KEY uk_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='权限表（树形RBAC）';
 
 -- 4. 用户-角色关联表
 CREATE TABLE user_role (

@@ -12,66 +12,62 @@ INSERT INTO role (code, name, description, is_system, created_at) VALUES
 ('GUEST',  '游客',     '未登录用户，仅限公开作品',              TRUE,  NOW());
 
 -- ---- 2. 预设权限 ----
-INSERT INTO permission (code, name, resource, action, created_at) VALUES
--- novel
-('novel:create',          '新建作品',         'novel', 'create', NOW()),
-('novel:read',            '读取作品',         'novel', 'read',   NOW()),
-('novel:update',          '修改作品',         'novel', 'update', NOW()),
-('novel:delete',          '删除作品',         'novel', 'delete', NOW()),
-('novel:set_visibility',  '设置作品可见角色',  'novel', 'manage', NOW()),
--- node
-('node:read',             '查看节点',         'node',  'read',   NOW()),
-('node:create',           '新建节点',         'node',  'create', NOW()),
-('node:update',           '编辑节点',         'node',  'update', NOW()),
-('node:delete',           '删除节点',         'node',  'delete', NOW()),
--- event
-('event:read',            '查看事件',         'event', 'read',   NOW()),
-('event:create',          '新建事件',         'event', 'create', NOW()),
-('event:update',          '编辑事件',         'event', 'update', NOW()),
-('event:delete',          '删除事件',         'event', 'delete', NOW()),
--- user
-('user:read',             '查看用户列表',     'user',  'read',   NOW()),
-('user:update_role',      '修改用户角色',     'user',  'update', NOW()),
-('user:disable',          '启用/禁用用户',    'user',  'manage', NOW()),
--- role
-('role:read',             '查看角色列表',     'role',  'read',   NOW()),
-('role:manage',           '管理角色',         'role',  'manage', NOW()),
--- player
-('player:play',           '游玩作品',         'player','read',   NOW()),
-('player:save',           '存档读档',         'player','create', NOW()),
-('player:spin',           '转盘抽奖',         'player','create', NOW());
+
+-- 清空旧数据（注意外键顺序）
+DELETE FROM role_permission;
+DELETE FROM permission;
+
+-- 插入菜单节点（type=1）
+INSERT INTO permission (parent_id, name, code, type, route, sort_order, created_by, created_at) VALUES
+(0, '系统管理',   'menu:admin',       1, '/admin',          1, 1, NOW()),
+(1, '作品管理',   'menu:novels',      1, '/admin',          2, 1, NOW()),
+(1, '用户管理',   'menu:users',       1, '/admin/users',    3, 1, NOW()),
+(1, '角色管理',   'menu:roles',       1, '/admin/roles',    4, 1, NOW()),
+(1, '权限管理',   'menu:permissions', 1, '/admin/permissions', 5, 1, NOW()),
+(1, 'Prompt 配置', 'menu:prompts',    1, '/admin',          6, 1, NOW()),
+(0, '游玩端',     'menu:player',      1, '/player',         7, 1, NOW());
+
+-- 用变量记录菜单ID
+SET @menu_admin = (SELECT id FROM permission WHERE code = 'menu:admin');
+SET @menu_novels = (SELECT id FROM permission WHERE code = 'menu:novels');
+SET @menu_users = (SELECT id FROM permission WHERE code = 'menu:users');
+SET @menu_roles = (SELECT id FROM permission WHERE code = 'menu:roles');
+SET @menu_permissions = (SELECT id FROM permission WHERE code = 'menu:permissions');
+SET @menu_prompts = (SELECT id FROM permission WHERE code = 'menu:prompts');
+SET @menu_player = (SELECT id FROM permission WHERE code = 'menu:player');
+
+-- 更新"作品管理"的子节点 parent_id
+UPDATE permission SET parent_id = @menu_novels WHERE code IN (
+    'novel:create', 'novel:read', 'novel:update', 'novel:delete', 'novel:set_visibility',
+    'node:read', 'node:create', 'node:update', 'node:delete',
+    'event:read', 'event:create', 'event:update', 'event:delete'
+);
+
+-- 更新"用户管理"的子节点
+UPDATE permission SET parent_id = @menu_users, type = 2 WHERE code IN (
+    'user:read', 'user:update_role', 'user:disable'
+);
+
+-- 更新"角色管理"的子节点
+UPDATE permission SET parent_id = @menu_roles, type = 2 WHERE code IN (
+    'role:read', 'role:manage'
+);
+
+-- 更新"游玩端"的子节点
+UPDATE permission SET parent_id = @menu_player, type = 2 WHERE code IN (
+    'player:play', 'player:save', 'player:spin'
+);
+
+-- 其他按钮权限（作品管理下的）type 也设为 2
+UPDATE permission SET type = 2 WHERE code IN (
+    'novel:create', 'novel:read', 'novel:update', 'novel:delete', 'novel:set_visibility',
+    'node:read', 'node:create', 'node:update', 'node:delete',
+    'event:read', 'event:create', 'event:update', 'event:delete'
+);
+
+-- 保留的旧字段 resource/action 不动
 
 -- ---- 3. 角色-权限映射 ----
-
--- ADMIN: 全部权限（通过编码配符匹配，实际开发中直接加载全部）
-INSERT INTO role_permission (role_id, permission_id)
-SELECT (SELECT id FROM role WHERE code = 'ADMIN'), id FROM permission;
-
--- EDITOR: novel:read, novel:update, node:*, event:*, role:read
-INSERT INTO role_permission (role_id, permission_id)
-SELECT (SELECT id FROM role WHERE code = 'EDITOR'), id FROM permission
-WHERE code IN (
-    'novel:read', 'novel:update',
-    'node:read', 'node:create', 'node:update', 'node:delete',
-    'event:read', 'event:create', 'event:update', 'event:delete',
-    'role:read'
-);
-
--- USER: novel:read, node:read, event:read, player:play, player:save, player:spin
-INSERT INTO role_permission (role_id, permission_id)
-SELECT (SELECT id FROM role WHERE code = 'USER'), id FROM permission
-WHERE code IN (
-    'novel:read', 'node:read', 'event:read',
-    'player:play', 'player:save', 'player:spin'
-);
-
--- GUEST: novel:read, node:read, event:read, player:play, player:save, player:spin
-INSERT INTO role_permission (role_id, permission_id)
-SELECT (SELECT id FROM role WHERE code = 'GUEST'), id FROM permission
-WHERE code IN (
-    'novel:read', 'node:read', 'event:read',
-    'player:play', 'player:save', 'player:spin'
-);
 
 -- ---- 4. 默认管理员账号 ----
 -- 密码: admin123（BCrypt 加密）
