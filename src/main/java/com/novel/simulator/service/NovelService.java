@@ -6,8 +6,7 @@ import com.novel.simulator.dto.CreateNovelRequest;
 import com.novel.simulator.dto.UpdateNovelRequest;
 import com.novel.simulator.entity.Novel;
 import com.novel.simulator.entity.NovelRoleVisibility;
-import com.novel.simulator.mapper.NovelMapper;
-import com.novel.simulator.mapper.NovelRoleVisibilityMapper;
+import com.novel.simulator.mapper.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,10 +19,28 @@ public class NovelService {
 
     private final NovelMapper novelMapper;
     private final NovelRoleVisibilityMapper visibilityMapper;
+    private final UserSessionMapper userSessionMapper;
+    private final UserCharacterMapper userCharacterMapper;
+    private final NodeMapper nodeMapper;
+    private final NodeEdgeMapper nodeEdgeMapper;
+    private final NodeOptionMapper nodeOptionMapper;
+    private final RandomEventMapper randomEventMapper;
+    private final ParseRecordMapper parseRecordMapper;
 
-    public NovelService(NovelMapper novelMapper, NovelRoleVisibilityMapper visibilityMapper) {
+    public NovelService(NovelMapper novelMapper, NovelRoleVisibilityMapper visibilityMapper,
+                        UserSessionMapper userSessionMapper, UserCharacterMapper userCharacterMapper,
+                        NodeMapper nodeMapper, NodeEdgeMapper nodeEdgeMapper,
+                        NodeOptionMapper nodeOptionMapper, RandomEventMapper randomEventMapper,
+                        ParseRecordMapper parseRecordMapper) {
         this.novelMapper = novelMapper;
         this.visibilityMapper = visibilityMapper;
+        this.userSessionMapper = userSessionMapper;
+        this.userCharacterMapper = userCharacterMapper;
+        this.nodeMapper = nodeMapper;
+        this.nodeEdgeMapper = nodeEdgeMapper;
+        this.nodeOptionMapper = nodeOptionMapper;
+        this.randomEventMapper = randomEventMapper;
+        this.parseRecordMapper = parseRecordMapper;
     }
 
     public Page<Novel> list(int page, int size, String keyword) {
@@ -80,7 +97,46 @@ public class NovelService {
 
     @Transactional
     public void delete(Long id) {
-        Novel novel = getById(id);
+        // 1. 删除关联的角色属性（FK → user_session）
+        List<com.novel.simulator.entity.UserSession> sessions = userSessionMapper.selectList(
+            new LambdaQueryWrapper<com.novel.simulator.entity.UserSession>()
+                .eq(com.novel.simulator.entity.UserSession::getNovelId, id));
+        for (com.novel.simulator.entity.UserSession s : sessions) {
+            userCharacterMapper.delete(new LambdaQueryWrapper<com.novel.simulator.entity.UserCharacter>()
+                .eq(com.novel.simulator.entity.UserCharacter::getSessionId, s.getSessionId()));
+        }
+        // 2. 删除用户会话（FK → novel）
+        userSessionMapper.delete(new LambdaQueryWrapper<com.novel.simulator.entity.UserSession>()
+            .eq(com.novel.simulator.entity.UserSession::getNovelId, id));
+
+        // 3. 查找本作品的所有节点 ID
+        List<Long> nodeIds = nodeMapper.selectList(
+            new LambdaQueryWrapper<com.novel.simulator.entity.Node>()
+                .eq(com.novel.simulator.entity.Node::getNovelId, id))
+            .stream().map(com.novel.simulator.entity.Node::getId).collect(Collectors.toList());
+
+        if (!nodeIds.isEmpty()) {
+            // 4. 删除节点选项（FK → node）
+            nodeOptionMapper.delete(new LambdaQueryWrapper<com.novel.simulator.entity.NodeOption>()
+                .in(com.novel.simulator.entity.NodeOption::getNodeId, nodeIds));
+        }
+
+        // 5. 删除节点边
+        nodeEdgeMapper.delete(new LambdaQueryWrapper<com.novel.simulator.entity.NodeEdge>()
+            .eq(com.novel.simulator.entity.NodeEdge::getNovelId, id));
+        // 6. 删除节点
+        nodeMapper.delete(new LambdaQueryWrapper<com.novel.simulator.entity.Node>()
+            .eq(com.novel.simulator.entity.Node::getNovelId, id));
+        // 7. 删除随机事件
+        randomEventMapper.delete(new LambdaQueryWrapper<com.novel.simulator.entity.RandomEvent>()
+            .eq(com.novel.simulator.entity.RandomEvent::getNovelId, id));
+        // 8. 删除解析记录
+        parseRecordMapper.delete(new LambdaQueryWrapper<com.novel.simulator.entity.ParseRecord>()
+            .eq(com.novel.simulator.entity.ParseRecord::getNovelId, id));
+        // 9. 删除可见角色配置
+        visibilityMapper.delete(new LambdaQueryWrapper<NovelRoleVisibility>()
+            .eq(NovelRoleVisibility::getNovelId, id));
+        // 10. 最后删除作品本身
         novelMapper.deleteById(id);
     }
 
