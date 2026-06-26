@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from 'src/components/ui/button';
 import { Input } from 'src/components/ui/input';
@@ -32,11 +32,14 @@ export default function AdminNovelImportPage() {
   const [contentType, setContentType] = useState('0');
   const [generating, setGenerating] = useState(false);
   const [generateResult, setGenerateResult] = useState<any>(null);
+  const [asyncGenerating, setAsyncGenerating] = useState(false);
+  const [asyncError, setAsyncError] = useState<string | null>(null);
 
   // TXT upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<any>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (novelId) {
@@ -51,21 +54,41 @@ export default function AdminNovelImportPage() {
 
   const handleGenerate = async () => {
     if (!name.trim()) { toast.error('请输入作品名称'); return; }
-    setGenerating(true);
+    setAsyncGenerating(true);
+    setAsyncError(null);
     setGenerateResult(null);
     try {
-      const res = await api.post('/admin/novel/import/name', {
+      const res = await api.post('/admin/novel/import/preview-async', {
         name: name.trim(),
         author: author.trim() || undefined,
         contentType: Number(contentType),
       });
       if (res.data.code === 200) {
-        setGenerateResult(res.data.data);
-        setNovel(res.data.data.novel);
-        toast.success('生成成功');
+        const taskId = res.data.data.taskId;
+        // Start polling
+        pollRef.current = setInterval(async () => {
+          try {
+            const statusRes = await api.get(`/admin/novel/import/status/${taskId}`);
+            if (statusRes.data.code === 200) {
+              const data = statusRes.data.data;
+              if (data.status === 'done') {
+                if (pollRef.current) clearInterval(pollRef.current);
+                pollRef.current = null;
+                setAsyncGenerating(false);
+                setGenerateResult(data.result);
+              } else if (data.status === 'error') {
+                if (pollRef.current) clearInterval(pollRef.current);
+                pollRef.current = null;
+                setAsyncGenerating(false);
+                setAsyncError(data.error || '生成失败');
+                toast.error('生成失败: ' + (data.error || '未知错误'));
+              }
+              // 'processing' → continue polling
+            }
+          } catch { /* ignore polling errors */ }
+        }, 3000);
       }
-    } catch { /* handled */ }
-    setGenerating(false);
+    } catch { setAsyncGenerating(false); }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,6 +176,12 @@ export default function AdminNovelImportPage() {
     );
   };
 
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
@@ -222,7 +251,7 @@ export default function AdminNovelImportPage() {
                 onChange={e => setAuthor(e.target.value)}
                 className="w-48"
               />
-              <Button onClick={handleGenerate} disabled={generating || !name.trim()}>
+              <Button onClick={handleGenerate} disabled={asyncGenerating || !name.trim()}>
                 {generating ? (
                   <><Loader2Icon className="size-4 animate-spin mr-1" /> 生成中...</>
                 ) : (
@@ -232,6 +261,32 @@ export default function AdminNovelImportPage() {
             </div>
 
             {generateResult && renderParsePreview(generateResult.parseResult)}
+          </CardContent>
+        </Card>
+      )}
+
+      {asyncGenerating && (
+        <Card className="mb-6 border-primary/20 bg-primary/5">
+          <CardContent className="py-10 text-center space-y-4">
+            <Loader2Icon className="size-10 animate-spin mx-auto text-primary" />
+            <div>
+              <p className="text-base font-semibold">正在生成故事框架...</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                AI 正在根据作品信息创作世界观、{name ? `「${name}」的` : ''}节点和事件，预计需要 1-5 分钟
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {asyncError && (
+        <Card className="mb-6 border-destructive/20 bg-destructive/5">
+          <CardContent className="py-6 text-center space-y-3">
+            <p className="text-destructive font-medium">生成失败</p>
+            <p className="text-sm text-muted-foreground">{asyncError}</p>
+            <Button variant="outline" size="sm" onClick={() => setAsyncError(null)}>
+              重试
+            </Button>
           </CardContent>
         </Card>
       )}
