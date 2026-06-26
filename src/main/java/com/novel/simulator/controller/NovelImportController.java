@@ -9,6 +9,7 @@ import com.novel.simulator.entity.RandomEvent;
 import com.novel.simulator.mapper.NodeEdgeMapper;
 import com.novel.simulator.mapper.NodeMapper;
 import com.novel.simulator.mapper.RandomEventMapper;
+import com.novel.simulator.service.AsyncTaskService;
 import com.novel.simulator.service.NovelService;
 import com.novel.simulator.service.ParseChain;
 import org.apache.commons.io.IOUtils;
@@ -30,17 +31,20 @@ public class NovelImportController {
 
     private final NovelService novelService;
     private final ParseChain parseChain;
+    private final AsyncTaskService asyncTaskService;
     private final NodeMapper nodeMapper;
     private final NodeEdgeMapper nodeEdgeMapper;
     private final RandomEventMapper randomEventMapper;
     private final ObjectMapper objectMapper;
 
     public NovelImportController(NovelService novelService, ParseChain parseChain,
+                                  AsyncTaskService asyncTaskService,
                                   NodeMapper nodeMapper, NodeEdgeMapper nodeEdgeMapper,
                                   RandomEventMapper randomEventMapper,
                                   ObjectMapper objectMapper) {
         this.novelService = novelService;
         this.parseChain = parseChain;
+        this.asyncTaskService = asyncTaskService;
         this.nodeMapper = nodeMapper;
         this.nodeEdgeMapper = nodeEdgeMapper;
         this.randomEventMapper = randomEventMapper;
@@ -93,6 +97,49 @@ public class NovelImportController {
         resp.put("found", true);
         resp.put("result", genResult);
         return Result.success(resp);
+    }
+
+    /**
+     * Preview import (async) — creates a task and returns taskId immediately.
+     * The frontend polls /import/status/{taskId} for completion.
+     */
+    @PostMapping("/import/preview-async")
+    @PreAuthorize("hasAuthority('novel:create')")
+    public Result<Map<String, Object>> previewImportAsync(@RequestBody Map<String, Object> request) {
+        String name = (String) request.get("name");
+        if (name == null || name.trim().isEmpty()) {
+            return Result.error(400, "作品名称不能为空");
+        }
+        String author = (String) request.get("author");
+        int contentType = request.get("contentType") != null ? ((Number) request.get("contentType")).intValue() : 0;
+        int nodeCount = Math.min(Math.max(request.get("nodeCount") != null ? ((Number) request.get("nodeCount")).intValue() : 12, 10), 30);
+        int eventCount = Math.min(Math.max(request.get("eventCount") != null ? ((Number) request.get("eventCount")).intValue() : 8, 5), 15);
+
+        String taskId = asyncTaskService.createTask();
+        asyncTaskService.executeImportTask(taskId, name.trim(), author, contentType, nodeCount, eventCount, parseChain);
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("taskId", taskId);
+        return Result.success(resp);
+    }
+
+    /**
+     * Get async import task status. Returns the task JSON stored in Redis.
+     */
+    @GetMapping("/import/status/{taskId}")
+    @PreAuthorize("hasAuthority('novel:create')")
+    public Result<Map<String, Object>> getImportStatus(@PathVariable String taskId) {
+        String json = asyncTaskService.getTaskStatus(taskId);
+        if (json == null) {
+            return Result.error(404, "任务不存在或已过期");
+        }
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = objectMapper.readValue(json, Map.class);
+            return Result.success(data);
+        } catch (Exception e) {
+            return Result.error(500, "解析任务状态失败");
+        }
     }
 
     /**
