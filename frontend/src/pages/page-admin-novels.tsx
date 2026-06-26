@@ -35,6 +35,14 @@ interface Novel {
   createdAt: string;
 }
 
+interface GenTask {
+  taskId: string;
+  name: string;
+  status: 'processing' | 'done' | 'error';
+  result?: any;
+  error?: string;
+}
+
 export default function AdminNovelsPage() {
   const [novels, setNovels] = useState<Novel[]>([]);
   const [total, setTotal] = useState(0);
@@ -52,8 +60,8 @@ export default function AdminNovelsPage() {
   const [nodeCount, setNodeCount] = useState(12);
   const [eventCount, setEventCount] = useState(8);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [asyncPreviewLoading, setAsyncPreviewLoading] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [genTasks, setGenTasks] = useState<GenTask[]>([]);
+  const pollTimersRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
   // Confirm dialog state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmType, setConfirmType] = useState<'llm' | 'txt'>('llm');
@@ -105,13 +113,10 @@ export default function AdminNovelsPage() {
     setTxtParsedNovelId(null);
     setNodeCount(12);
     setEventCount(8);
-    setAsyncPreviewLoading(false);
-    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
   };
 
   const handlePreviewLlm = async () => {
     if (!createTitle.trim()) { toast.error('请输入作品名称'); return; }
-    setAsyncPreviewLoading(true);
     setActionError('');
     try {
       const res = await api.post('/admin/novel/import/preview-async', {
@@ -123,30 +128,10 @@ export default function AdminNovelsPage() {
       });
       if (res.data.code === 200) {
         const taskId = res.data.data.taskId;
-        pollRef.current = setInterval(async () => {
-          try {
-            const sr = await api.get(`/admin/novel/import/status/${taskId}`);
-            if (sr.data.code === 200) {
-              const data = sr.data.data;
-              if (data.status === 'done') {
-                if (pollRef.current) clearInterval(pollRef.current);
-                pollRef.current = null;
-                setAsyncPreviewLoading(false);
-                setPreviewResult(data.result);
-                setConfirmType('llm');
-                setConfirmOpen(true);
-              } else if (data.status === 'error') {
-                if (pollRef.current) clearInterval(pollRef.current);
-                pollRef.current = null;
-                setAsyncPreviewLoading(false);
-                setActionError(data.error || '生成失败');
-                toast.error('生成失败: ' + (data.error || '未知错误'));
-              }
-            }
-          } catch { /* ignore */ }
-        }, 3000);
+        addTask(createTitle.trim(), taskId);
+        startPolling(taskId);
       }
-    } catch { setAsyncPreviewLoading(false); }
+    } catch { /* handled */ }
   };
 
   const handleConfirmLlm = async () => {
@@ -513,21 +498,68 @@ export default function AdminNovelsPage() {
                 <button
                   type="button"
                   onClick={handlePreviewLlm}
-                  disabled={asyncPreviewLoading || !createTitle.trim()}
+                  disabled={genTasks.some(t => t.status === 'processing') || !createTitle.trim()}
                   className="w-full flex items-center gap-3 rounded-lg border border-input bg-background px-4 py-3 text-left text-sm hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:pointer-events-none transition-colors"
                 >
-                  {asyncPreviewLoading ? (
-                    <Loader2Icon className="size-5 animate-spin shrink-0" />
-                  ) : (
-                    <SparklesIcon className="size-5 shrink-0 text-primary" />
-                  )}
+                  <SparklesIcon className="size-5 shrink-0 text-primary" />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium">{asyncPreviewLoading ? 'AI 生成中...' : 'AI 智能生成'}</div>
+                    <div className="font-medium">AI 智能生成</div>
                     <div className="text-xs text-muted-foreground">
-                      {asyncPreviewLoading ? '正在生成故事框架，请稍候...' : (isNovel ? '输入名称，AI 生成故事框架' : 'AI 根据知识生成故事框架，查不到则提示未找到')}
+                      {isNovel ? '输入名称，AI 生成故事框架' : 'AI 根据知识生成故事框架，查不到则提示未找到'}
                     </div>
                   </div>
                 </button>
+
+                {/* Async generation task list */}
+                {genTasks.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    <p className="text-xs font-medium text-muted-foreground">生成任务</p>
+                    {genTasks.map(task => (
+                      <div
+                        key={task.taskId}
+                        className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm cursor-pointer transition-colors ${
+                          task.status === 'done' ? 'border-green-200 bg-green-50/50 hover:bg-green-50' :
+                          task.status === 'error' ? 'border-destructive/20 bg-destructive/5' :
+                          'border-muted bg-muted/20'
+                        }`}
+                        onClick={() => {
+                          if (task.status === 'done') {
+                            setPreviewResult(task.result);
+                            setConfirmType('llm');
+                            setConfirmOpen(true);
+                          } else if (task.status === 'error') {
+                            removeTask(task.taskId);
+                          }
+                        }}
+                      >
+                        {task.status === 'processing' ? (
+                          <Loader2Icon className="size-4 animate-spin shrink-0 text-primary" />
+                        ) : task.status === 'done' ? (
+                          <CheckCircleIcon className="size-4 shrink-0 text-green-600" />
+                        ) : (
+                          <XCircleIcon className="size-4 shrink-0 text-destructive" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm truncate font-medium">{task.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {task.status === 'processing' ? '生成中...' :
+                             task.status === 'done' ? '点击预览' :
+                             task.error || '生成失败（点击关闭）'}
+                          </div>
+                        </div>
+                        {task.status !== 'processing' && (
+                          <button
+                            type="button"
+                            className="shrink-0 text-muted-foreground hover:text-foreground p-0.5"
+                            onClick={(e) => { e.stopPropagation(); removeTask(task.taskId); }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {isNovel && (
                   <div
