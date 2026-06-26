@@ -105,7 +105,8 @@ public class NovelImportController {
      */
     @PostMapping("/import/preview-async")
     @PreAuthorize("hasAuthority('novel:create')")
-    public Result<Map<String, Object>> previewImportAsync(@RequestBody Map<String, Object> request) {
+    public Result<Map<String, Object>> previewImportAsync(@RequestBody Map<String, Object> request,
+                                                           Authentication authentication) {
         String name = (String) request.get("name");
         if (name == null || name.trim().isEmpty()) {
             return Result.error(400, "作品名称不能为空");
@@ -115,12 +116,28 @@ public class NovelImportController {
         int nodeCount = Math.min(Math.max(request.get("nodeCount") != null ? ((Number) request.get("nodeCount")).intValue() : 12, 10), 30);
         int eventCount = Math.min(Math.max(request.get("eventCount") != null ? ((Number) request.get("eventCount")).intValue() : 8, 5), 15);
 
-        String taskId = asyncTaskService.createTask();
+        Long userId = Long.valueOf(((Map<String, Object>) authentication.getPrincipal()).get("userId").toString());
+        String taskId = asyncTaskService.createTask(userId, name.trim());
         asyncTaskService.executeImportTask(taskId, name.trim(), author, contentType, nodeCount, eventCount, parseChain);
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("taskId", taskId);
         return Result.success(resp);
+    }
+
+    @GetMapping("/import/tasks")
+    @PreAuthorize("hasAuthority('novel:create')")
+    public Result<List<Map<String, Object>>> listTasks(Authentication authentication) {
+        Long userId = Long.valueOf(((Map<String, Object>) authentication.getPrincipal()).get("userId").toString());
+        return Result.success(asyncTaskService.listTasks(userId));
+    }
+
+    @PostMapping("/import/task/remove")
+    @PreAuthorize("hasAuthority('novel:create')")
+    public Result<Void> removeTask(@RequestBody Map<String, String> request, Authentication authentication) {
+        Long userId = Long.valueOf(((Map<String, Object>) authentication.getPrincipal()).get("userId").toString());
+        asyncTaskService.removeTask(request.get("taskId"), userId);
+        return Result.success(null);
     }
 
     /**

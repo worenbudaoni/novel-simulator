@@ -68,18 +68,28 @@ export default function AdminNovelsPage() {
   });
   const pollTimersRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
+  // Load tasks from backend on mount
+  useEffect(() => {
+    api.get('/admin/novel/import/tasks').then(res => {
+      if (res.data.code === 200) {
+        const tasks: GenTask[] = (res.data.data || []).map((t: any) => ({
+          taskId: t.taskId,
+          name: t.name || '未知作品',
+          status: t.status || 'error',
+          result: t.result,
+          error: t.error,
+        }));
+        setGenTasks(tasks);
+        tasks.forEach(task => {
+          if (task.status === 'processing') startPolling(task.taskId);
+        });
+      }
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('novel_gen_tasks', JSON.stringify(genTasks));
   }, [genTasks]);
-
-  // Restart polling for processing tasks on mount (survives refresh)
-  useEffect(() => {
-    genTasks.forEach(task => {
-      if (task.status === 'processing' && !pollTimersRef.current.has(task.taskId)) {
-        startPolling(task.taskId);
-      }
-    });
-  }, []);
   // Confirm dialog state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmType, setConfirmType] = useState<'llm' | 'txt'>('llm');
@@ -132,6 +142,7 @@ export default function AdminNovelsPage() {
     const timer = pollTimersRef.current.get(taskId);
     if (timer) { clearInterval(timer); pollTimersRef.current.delete(taskId); }
     setGenTasks(prev => prev.filter(t => t.taskId !== taskId));
+    api.post('/admin/novel/import/task/remove', { taskId }).catch(() => {});
   };
 
   const startPolling = (taskId: string) => {
