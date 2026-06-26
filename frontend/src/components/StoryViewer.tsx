@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Card, CardContent } from 'src/components/ui/card';
@@ -12,46 +12,60 @@ interface StoryViewerProps {
   waiting?: boolean;
 }
 
+const DIVIDER = '📖 **故事继续**';
+
 export default function StoryViewer({ text, streaming, placeholder, waiting }: StoryViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const markerRef = useRef<HTMLDivElement>(null);
-  const [userScrolledUp, setUserScrolledUp] = useState(false);
-  const [showJumpToBottom, setShowJumpToBottom] = useState(false);
-  const prevStreamingRef = useRef(false);
+  const dividerRef = useRef<HTMLDivElement>(null);
+  const [showJumpBtn, setShowJumpBtn] = useState(false);
+  const wasStreaming = useRef(false);
 
-  // 检测用户是否向上滚动
-  const handleScroll = useCallback(() => {
-    if (!containerRef.current) return;
-    const el = containerRef.current;
-    const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-    if (!isAtBottom && streaming) {
-      setUserScrolledUp(true);
-      setShowJumpToBottom(true);
-    } else {
-      setUserScrolledUp(false);
-      setShowJumpToBottom(false);
+  // 将文本在分隔标记处拆分为旧内容 + 新内容
+  const { oldText, newText } = useMemo(() => {
+    const idx = text.indexOf(DIVIDER);
+    if (idx === -1) return { oldText: text, newText: '' };
+    return {
+      oldText: text.slice(0, idx),
+      newText: text.slice(idx + DIVIDER.length),
+    };
+  }, [text]);
+
+  // 流式结束时 → 滚动到分隔标记（新内容开头）
+  useEffect(() => {
+    if (wasStreaming.current && !streaming) {
+      // 延迟一帧确保 DOM 已更新
+      requestAnimationFrame(() => {
+        if (dividerRef.current) {
+          dividerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
     }
+    wasStreaming.current = streaming;
   }, [streaming]);
 
-  // 流式结束时，如果用户没主动向上翻，滚动到新内容开头（不是底部）
+  // 检测滚动位置，决定是否显示"跳到新内容"按钮
   useEffect(() => {
-    if (prevStreamingRef.current && !streaming && !userScrolledUp) {
-      // 流式刚刚结束 → 滚动到新内容起始标记
-      if (markerRef.current) {
-        markerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-    prevStreamingRef.current = streaming;
-  }, [streaming, userScrolledUp]);
+    const el = containerRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      if (!dividerRef.current || !streaming) { setShowJumpBtn(false); return; }
+      const dividerTop = dividerRef.current.getBoundingClientRect().top;
+      const containerTop = el.getBoundingClientRect().top;
+      // 如果分隔标记在可视区上方超过一定距离，显示按钮
+      setShowJumpBtn(dividerTop < containerTop - 60);
+    };
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [streaming]);
 
-  // 用户点击"跳到最新"
-  const jumpToBottom = () => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+  const jumpToDivider = () => {
+    if (dividerRef.current) {
+      dividerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    setUserScrolledUp(false);
-    setShowJumpToBottom(false);
   };
+
+  // 判断是否有新内容需要标记
+  const hasDivider = text.includes(DIVIDER);
 
   return (
     <Card>
@@ -59,15 +73,31 @@ export default function StoryViewer({ text, streaming, placeholder, waiting }: S
         {text ? (
           <div
             ref={containerRef}
-            onScroll={handleScroll}
             className="prose prose-sm max-w-none dark:prose-invert h-96 overflow-y-auto p-2"
           >
+            {/* 旧内容 */}
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {text}
+              {oldText || ' '}
             </ReactMarkdown>
 
-            {/* 新内容起始标记 */}
-            <div ref={markerRef} />
+            {/* 可视分隔标记（带 ref，用于滚动定位） */}
+            {hasDivider && (
+              <div ref={dividerRef} className="border-t border-primary/20 my-4 pt-2">
+                <div className="flex items-center gap-2 text-sm text-primary/60">
+                  <BookOpenIcon className="size-4" />
+                  <span className="font-medium">故事继续</span>
+                </div>
+              </div>
+            )}
+
+            {/* 新内容 */}
+            {newText && (
+              <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {newText}
+                </ReactMarkdown>
+              </div>
+            )}
 
             {streaming && (
               <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
@@ -90,16 +120,16 @@ export default function StoryViewer({ text, streaming, placeholder, waiting }: S
           </div>
         )}
 
-        {/* 跳到最新按钮 */}
-        {showJumpToBottom && streaming && (
+        {/* 跳到新内容按钮 */}
+        {showJumpBtn && hasDivider && streaming && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
             <Button
               variant="secondary"
               size="sm"
-              onClick={jumpToBottom}
+              onClick={jumpToDivider}
               className="shadow-md text-xs gap-1"
             >
-              <ArrowDownIcon className="size-3" /> 跳到最新
+              <ArrowDownIcon className="size-3" /> 跳到新内容
             </Button>
           </div>
         )}
