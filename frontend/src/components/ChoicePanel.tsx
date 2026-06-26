@@ -1,9 +1,12 @@
 import { Button } from 'src/components/ui/button';
+import { Loader2Icon } from 'lucide-react';
 import type { ChoiceOption } from '@/types';
 
 interface ChoicePanelProps {
   options: ChoiceOption[];
   disabled?: boolean;
+  loading?: boolean;          // 正在生成选项
+  resolving?: boolean;        // 正在处理选择
   onChoose: (option: ChoiceOption) => void;
 }
 
@@ -13,7 +16,33 @@ const riskStyle: Record<string, { label: string; tagCls: string; borderCls: stri
   daring:  { label: '高危', tagCls: 'bg-red-100 text-red-700', borderCls: 'border-red-300' },
 };
 
-export default function ChoicePanel({ options, disabled, onChoose }: ChoicePanelProps) {
+export default function ChoicePanel({ options, disabled, loading, resolving, onChoose }: ChoicePanelProps) {
+  // 生成选项中
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-muted-foreground">做出你的选择：</p>
+        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground gap-2">
+          <Loader2Icon className="size-4 animate-spin" />
+          <span>正在生成选项...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 选择处理中
+  if (resolving) {
+    return (
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-muted-foreground">做出你的选择：</p>
+        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground gap-2">
+          <Loader2Icon className="size-4 animate-spin" />
+          <span>正在处理，请稍候...</span>
+        </div>
+      </div>
+    );
+  }
+
   if (options.length === 0) return null;
 
   return (

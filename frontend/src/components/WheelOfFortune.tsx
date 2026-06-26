@@ -10,14 +10,15 @@ interface WheelOfFortuneProps {
 
 const COLORS = ['#a855f7', '#eab308', '#ef4444', '#22c55e', '#6366f1', '#06b6d4'];
 const SECTORS = [
-  { icon: '✨' }, { icon: '💎' }, { icon: '⚔️' },
-  { icon: '💀' }, { icon: '🌀' }, { icon: '💕' },
+  { icon: '✨', name: '奇遇' }, { icon: '💎', name: '宝箱' }, { icon: '⚔️', name: '战斗' },
+  { icon: '💀', name: '诅咒' }, { icon: '🌀', name: '命运' }, { icon: '💕', name: '邂逅' },
 ];
 const N = 6;
 
 export default function WheelOfFortune({ riskLevel, rollResult, success, autoPlay, onComplete }: WheelOfFortuneProps) {
   const [pointerRot, setPointerRot] = useState(0);
   const [showResult, setShowResult] = useState(false);
+  const [landedSector, setLandedSector] = useState(-1);
 
   useEffect(() => {
     if (!autoPlay) return;
@@ -31,8 +32,13 @@ export default function WheelOfFortune({ riskLevel, rollResult, success, autoPla
       targetAngle = sector * 60 + 30;
     }
 
+    const sector = riskLevel === 'risky' && rollResult != null
+      ? Math.max(0, Math.min(5, Math.floor((rollResult - 1) / 3.33)))
+      : Math.floor(Math.random() * N);
+
+    setLandedSector(sector);
     const extraRotations = (3 + Math.floor(Math.random() * 3)) * 360;
-    const totalRotation = pointerRot + extraRotations + targetAngle;
+    const totalRotation = pointerRot + extraRotations + sector * 60 + 30;
 
     setPointerRot(totalRotation);
 
@@ -70,9 +76,17 @@ export default function WheelOfFortune({ riskLevel, rollResult, success, autoPla
         </div>
       </div>
 
-      {showResult && success != null && (
-        <div className={`text-sm font-semibold ${success ? 'text-green-600' : 'text-red-500'}`}>
-          {success ? '✅ 成功' : '❌ 失败'}
+      {showResult && landedSector >= 0 && (
+        <div className="text-center">
+          <div className="flex items-center gap-2 justify-center">
+            <span className="text-2xl">{SECTORS[landedSector].icon}</span>
+            <span className="text-sm font-semibold">{SECTORS[landedSector].name}</span>
+            {success != null && (
+              <span className={`text-sm font-bold ${success ? 'text-green-600' : 'text-red-500'}`}>
+                {success ? '✅' : '❌'}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

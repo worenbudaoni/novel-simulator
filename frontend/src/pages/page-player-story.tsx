@@ -31,6 +31,9 @@ export default function PlayerStoryPage() {
   const pendingDeathRef = useRef(false);
   const [showMobileChar, setShowMobileChar] = useState(false);
   const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);     // resolve API 处理中
+  const [optionsLoading, setOptionsLoading] = useState(false); // 选项生成中
+  const [storyWaiting, setStoryWaiting] = useState(false);     // 故事生成等待中
 
   useEffect(() => {
     if (sessionId) loadSession(sessionId);
@@ -51,9 +54,12 @@ export default function PlayerStoryPage() {
   // 到达节点后自动生成选项
   useEffect(() => {
     if (currentNode && session?.sessionId && !loading) {
-      generateOptions(currentNode.id).catch(() => {
-        toast.error('选项生成失败，请检查 LLM 配置后重试');
-      });
+      setOptionsLoading(true);
+      generateOptions(currentNode.id)
+        .catch(() => {
+          toast.error('选项生成失败，请检查 LLM 配置后重试');
+        })
+        .finally(() => setOptionsLoading(false));
     }
   }, [currentNode?.id, session?.sessionId, loading]);
 
@@ -100,34 +106,35 @@ export default function PlayerStoryPage() {
   // resolve 处理
   const handleResolve = async (option: ChoiceOption) => {
     setActionDisabled(true);
+    setResolving(true);
     try {
       const result = await resolveAction(option);
+      setResolving(false);
       if (!result) { setActionDisabled(false); return; }
 
       setResolution(result);
       setShowResolution(true);
-
-      // 根据风险等级设定自动推进延迟
-      const delay = option.riskLevel === 'safe' ? 1500
-                  : option.riskLevel === 'risky' ? 2500
-                  : 3000;
-
-      setTimeout(() => {
-        setShowResolution(false);
-        if (sessionId) triggerStory(sessionId, result);
-      }, delay);
+      // 不再自动消失，用户点击"继续"才推进
     } catch {
+      setResolving(false);
       setActionDisabled(false);
     }
   };
 
-  // 从 resolution 过渡到 story 后的继续
+  // 用户看完 resolution 后点击继续 → 触发 SSE 故事
   const handleContinue = () => {
     setShowResolution(false);
+    setStoryWaiting(true);    // 故事还没到，显示等待态
     if (resolution && sessionId) {
       triggerStory(sessionId, resolution);
     }
   };
+
+  // SSE onDone 时清除等待态（triggerStory 的 connect onDone 里会 setActionDisabled(false)）
+  // 但 SSE connect 本身不暴露 onDone 给这里的 state…用 streaming 间接控制
+  useEffect(() => {
+    if (streaming) setStoryWaiting(false);
+  }, [streaming]);
 
   const handleSave = async () => {
     await saveSession();
@@ -199,15 +206,18 @@ export default function PlayerStoryPage() {
             <StoryViewer
               text={storyText}
               streaming={streaming}
+              waiting={storyWaiting}
               placeholder={session.storyText ? '继续你的冒险...' : '故事即将开始...'}
             />
           )}
 
           {/* 选项面板 */}
-          {!streaming && !showResolution && currentOptions.length > 0 && (
+          {!streaming && !showResolution && (
             <ChoicePanel
               options={currentOptions}
               disabled={actionDisabled}
+              loading={optionsLoading}
+              resolving={resolving}
               onChoose={handleResolve}
             />
           )}

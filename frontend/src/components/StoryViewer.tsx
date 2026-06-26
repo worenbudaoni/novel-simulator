@@ -8,6 +8,7 @@ interface StoryViewerProps {
   text: string;
   streaming?: boolean;
   placeholder?: string;
+  waiting?: boolean;     // SSE 等待中
 }
 
 export default function StoryViewer({ text, streaming, placeholder }: StoryViewerProps) {
@@ -36,9 +37,16 @@ export default function StoryViewer({ text, streaming, placeholder }: StoryViewe
           </div>
         ) : (
           <div className="h-48 flex items-center justify-center">
-            <p className="text-sm text-muted-foreground text-center py-8">
-              {placeholder || '故事即将开始...'}
-            </p>
+            {waiting ? (
+              <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+                <Loader2Icon className="size-5 animate-spin" />
+                <span>故事生成中...</span>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                {placeholder || '故事即将开始...'}
+              </p>
+            )}
           </div>
         )}
       </CardContent>
