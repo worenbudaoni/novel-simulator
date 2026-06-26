@@ -188,7 +188,8 @@ public class NovelImportController {
             + "2. nodes: 节点数组，每个节点有 title, description, isStart(boolean), isEnd(boolean), sortOrder\n"
             + "3. edges: 节点连接数组，每个连接有 sourceNodeIndex(int), targetNodeIndex(int), conditionDesc, edgeType(0=固定)\n"
             + "4. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
-            + "5. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n\n"
+            + "5. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n"
+            + "6. author: 原作者（如从内容可识别）\n\n"
             + "请确保生成" + nodeCount + "个核心节点"
             + (eventCount > 0 ? "和" + eventCount + "个随机事件" : "") + "。\n\n"
             + "小说内容：\n" + (content.length() > 30000 ? content.substring(0, 30000) + "\n... [截断]" : content);
@@ -253,6 +254,11 @@ public class NovelImportController {
         writeParsedData(novelId, parseResult);
 
         novel.setWorldView((String) parseResult.getOrDefault("worldView", novel.getWorldView()));
+        // Update author if LLM returned one
+        if (parseResult.containsKey("author") && parseResult.get("author") != null
+            && !((String) parseResult.get("author")).isEmpty()) {
+            novel.setAuthor((String) parseResult.get("author"));
+        }
         novel.setParseStatus(2);
         novel.setParsedAt(LocalDateTime.now());
         novelService.getBaseMapper().updateById(novel);
