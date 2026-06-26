@@ -28,6 +28,7 @@ export default function AdminNovelImportPage() {
 
   // Name import state
   const [name, setName] = useState('');
+  const [author, setAuthor] = useState('');
   const [contentType, setContentType] = useState('0');
   const [generating, setGenerating] = useState(false);
   const [generateResult, setGenerateResult] = useState<any>(null);
@@ -55,6 +56,7 @@ export default function AdminNovelImportPage() {
     try {
       const res = await api.post('/admin/novel/import/name', {
         name: name.trim(),
+        author: author.trim() || undefined,
         contentType: Number(contentType),
       });
       if (res.data.code === 200) {
@@ -213,6 +215,12 @@ export default function AdminNovelImportPage() {
                 onChange={e => setName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleGenerate()}
                 className="flex-1"
+              />
+              <Input
+                placeholder="原作者（可选，辅助精准搜索）"
+                value={author}
+                onChange={e => setAuthor(e.target.value)}
+                className="w-48"
               />
               <Button onClick={handleGenerate} disabled={generating || !name.trim()}>
                 {generating ? (

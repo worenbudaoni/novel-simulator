@@ -54,6 +54,7 @@ public class NovelImportController {
     @PreAuthorize("hasAuthority('novel:create')")
     public Result<Map<String, Object>> previewImport(@RequestBody Map<String, Object> request) {
         String name = (String) request.get("name");
+        String author = (String) request.get("author");
         Integer contentType = request.get("contentType") != null
             ? ((Number) request.get("contentType")).intValue() : 0;
         if (name == null || name.trim().isEmpty()) {
@@ -75,7 +76,7 @@ public class NovelImportController {
             return Result.error(400, "作品「" + name.trim() + "」已存在");
         }
 
-        Map<String, Object> genResult = parseChain.previewGenerate(name.trim(), contentType, nodeCount, eventCount);
+        Map<String, Object> genResult = parseChain.previewGenerate(name.trim(), author, contentType, nodeCount, eventCount);
 
         if (genResult.containsKey("exists") && Boolean.FALSE.equals(genResult.get("exists"))) {
             Map<String, Object> resp = new HashMap<>();
@@ -103,6 +104,7 @@ public class NovelImportController {
     public Result<Map<String, Object>> importByName(@RequestBody Map<String, Object> request,
                                                      Authentication authentication) {
         String name = (String) request.get("name");
+        String author = (String) request.get("author");
         Integer contentType = request.get("contentType") != null
             ? ((Number) request.get("contentType")).intValue() : 0;
         if (name == null || name.trim().isEmpty()) {
@@ -125,7 +127,7 @@ public class NovelImportController {
         if (eventCount < 5) eventCount = 5;
         if (eventCount > 15) eventCount = 15;
 
-        Map<String, Object> genResult = parseChain.generateFromName(name.trim(), contentType, null, "name_gen", nodeCount, eventCount);
+        Map<String, Object> genResult = parseChain.generateFromName(name.trim(), author, contentType, null, "name_gen", nodeCount, eventCount);
         if (genResult.containsKey("error")) {
             return Result.error(500, (String) genResult.get("error"));
         }

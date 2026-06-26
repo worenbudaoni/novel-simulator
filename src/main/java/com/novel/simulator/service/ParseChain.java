@@ -84,12 +84,19 @@ public class ParseChain {
      * For 动漫/漫画: checks if LLM knows the work, returns {exists: false} if not.
      */
     public Map<String, Object> previewGenerate(String name, Integer contentType, int nodeCount, int eventCount) {
+        return previewGenerate(name, null, contentType, nodeCount, eventCount);
+    }
+
+    public Map<String, Object> previewGenerate(String name, String author, Integer contentType, int nodeCount, int eventCount) {
         String typeName = contentType == null || contentType == 0 ? "小说" :
                           contentType == 1 ? "动漫" : "漫画";
-        String prompt = "你熟悉各种" + typeName + "作品。请判断你是否了解《" + name + "》这部作品。\n\n"
+        String workRef = author != null && !author.trim().isEmpty()
+            ? "《" + name + "》（作者：" + author.trim() + "）"
+            : "《" + name + "》";
+        String prompt = "你熟悉各种" + typeName + "作品。请判断你是否了解" + workRef + "这部作品。\n\n"
             + "如果你确定知道这部作品，请返回完整的互动故事框架JSON（不要markdown代码块标记），包含以下字段：\n"
-            + "1. worldView: 世界观设定文本（200-500字）\n"
-            + "2. nodes: 节点数组，每个节点有 title, description, isStart(boolean), isEnd(boolean), sortOrder\n"
+            + "1. worldView: 世界观设定文本（1000字左右，详细描述世界背景）\n"
+            + "2. nodes: 节点数组，每个节点有 title, description（500字左右，详细描述场景氛围和关键细节）, isStart(boolean), isEnd(boolean), sortOrder\n"
             + "3. edges: 节点连接数组，每个连接有 sourceNodeIndex(int), targetNodeIndex(int), conditionDesc, edgeType(0=固定)\n"
             + "4. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
             + "5. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n"
@@ -150,13 +157,20 @@ public class ParseChain {
      * First checks if preview cache exists (from /import/preview), skips LLM if found.
      */
     public Map<String, Object> generateFromName(String name, Integer contentType, Long novelId, String promptType, int nodeCount, int eventCount) {
+        return generateFromName(name, null, contentType, novelId, promptType, nodeCount, eventCount);
+    }
+
+    public Map<String, Object> generateFromName(String name, String author, Integer contentType, Long novelId, String promptType, int nodeCount, int eventCount) {
         String typeName = contentType == null || contentType == 0 ? "小说" :
                           contentType == 1 ? "动漫" : "漫画";
-        String prompt = "你熟悉各种" + typeName + "作品。请根据你对《" + name + "》的了解，"
+        String workRef = author != null && !author.trim().isEmpty()
+            ? "《" + name + "》（作者：" + author.trim() + "）"
+            : "《" + name + "》";
+        String prompt = "你熟悉各种" + typeName + "作品。请根据你对" + workRef + "的了解，"
             + "生成该作品的互动故事框架。\n\n"
             + "请返回严格的JSON格式（不要markdown代码块标记），包含以下字段：\n"
-            + "1. worldView: 世界观设定文本（200-500字）\n"
-            + "2. nodes: 节点数组，每个节点有 title, description, isStart(boolean), isEnd(boolean), sortOrder\n"
+            + "1. worldView: 世界观设定文本（1000字左右，详细描述世界背景）\n"
+            + "2. nodes: 节点数组，每个节点有 title, description（500字左右，详细描述场景氛围和关键细节）, isStart(boolean), isEnd(boolean), sortOrder\n"
             + "3. edges: 节点连接数组，每个连接有 sourceNodeIndex(int), targetNodeIndex(int), conditionDesc, edgeType(0=固定)\n"
             + "4. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
             + "5. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n"
@@ -263,8 +277,8 @@ public class ParseChain {
             : content;
         return "你是一个小说解析专家。请分析以下小说内容，提取结构化信息。\n\n"
             + "请返回严格的JSON格式（不要markdown代码块标记），包含以下字段：\n"
-            + "1. worldView: 世界观设定文本\n"
-            + "2. nodes: 节点数组，每个节点有 title, description, isStart(boolean), isEnd(boolean), sortOrder\n"
+            + "1. worldView: 世界观设定文本（1000字左右，详细描述世界背景）\n"
+            + "2. nodes: 节点数组，每个节点有 title, description（500字左右，详细描述场景氛围和关键细节）, isStart(boolean), isEnd(boolean), sortOrder\n"
             + "3. edges: 节点连接数组，每个连接有 sourceNodeIndex(int), targetNodeIndex(int), conditionDesc, edgeType(0=固定)\n"
             + "4. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
             + "5. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n\n"
