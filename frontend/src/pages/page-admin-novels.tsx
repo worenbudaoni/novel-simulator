@@ -360,7 +360,7 @@ export default function AdminNovelsPage() {
                 key={task.taskId}
                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer transition-colors ${
                   task.status === 'done' ? 'border-green-200 bg-green-50/50 hover:bg-green-50' :
-                  task.status === 'error' ? 'border-destructive/20 bg-destructive/5' :
+                  task.status === 'error' ? 'border-destructive/30 bg-destructive/5 hover:bg-destructive/10' :
                   'border-muted bg-muted/20'
                 }`}
                 onClick={() => {
@@ -371,7 +371,7 @@ export default function AdminNovelsPage() {
                     setShowCreate(false);
                     setConfirmOpen(true);
                   } else if (task.status === 'error') {
-                    removeTask(task.taskId);
+                    toast.error(task.error || '生成失败');
                   }
                 }}
               >
@@ -383,11 +383,26 @@ export default function AdminNovelsPage() {
                   <XCircleIcon className="size-4 shrink-0 text-destructive" />
                 )}
                 <span className="text-sm font-medium">{task.name}</span>
-                <span className="text-xs text-muted-foreground">
+                <span className={`text-xs ${task.status === 'error' ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
                   {task.status === 'processing' ? '生成中...' :
                    task.status === 'done' ? '✅ 点击预览' :
-                   '⚠️ 失败'}
+                   '生成失败'}
                 </span>
+                {task.status === 'error' && (
+                  <button
+                    type="button"
+                    className="ml-1.5 text-xs text-destructive hover:text-destructive/80 font-medium"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const name = task.name;
+                      removeTask(task.taskId);
+                      setCreateTitle(name);
+                      setShowCreate(true);
+                    }}
+                  >
+                    重试
+                  </button>
+                )}
                 {task.status !== 'processing' && (
                   <button
                     type="button"
