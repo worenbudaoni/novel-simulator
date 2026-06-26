@@ -15,7 +15,7 @@
 - ResolutionResult 新增 choiceLabel，删除 sector
 - LLM 不可用时报错不打底（移除所有 stub）
 - 删除 WheelOfFortune 组件及所有引用
-- 事件内容不拼接进 storyText
+- 事件内容作为格式化段落持久化写入 storyText（`---` 分隔线），SSE 故事续接其后
 
 ---
 
@@ -1233,21 +1233,25 @@ git commit -m "feat: remove WheelOfFortune component"
 
 ---
 
-### Task 17: 前端 page-player-story — 删除事件拼接
+### Task 17: 前端 page-player-story — 事件持久化写入 storyText
 
 **Files:**
 - Modify: `frontend/src/pages/page-player-story.tsx`
 
-- [ ] **Step 1: 删除 triggerStory 中的事件拼接**
+- [ ] **Step 1: 在 triggerStory 中，SSE 之前持久化事件段落**
 
-删除约 line 81-84 的事件拼接代码：
+将事件标题+内容格式化为 Markdown 段落（`---` 分隔线包围），写入 storyText：
 
-```diff
-- if (res?.eventTitle) {
--   const desc = '---\n\n' + res.eventTitle + '！' + (res.eventContent || '');
--   setStoryText(prev => prev + '\n\n' + desc + '\n\n');
-- }
+```typescript
+// triggerStory 中，setContentStart 之后、connect 之前添加：
+if (res?.eventTitle) {
+  const eventBlock = '\n\n---\n\n⚡ **' + res.eventTitle + '**\n\n'
+    + (res.eventContent || '') + '\n\n---\n\n';
+  setStoryText(prev => prev + eventBlock);
+}
 ```
+
+与旧版区别：旧版是混乱的 `'---\n\n' + eventTitle + '！' + eventContent` 直接拼接；新版用 Markdown 格式 + `---` 分隔线 + `⚡ **标题**`，作为永久段落保存，SSE 故事自然续接其后。
 
 - [ ] **Step 2: 类型检查 + Commit**
 
