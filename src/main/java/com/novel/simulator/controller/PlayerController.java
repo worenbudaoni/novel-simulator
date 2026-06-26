@@ -5,7 +5,9 @@ import com.novel.simulator.dto.*;
 import com.novel.simulator.entity.*;
 import com.novel.simulator.mapper.*;
 import com.novel.simulator.service.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.security.access.prepost.PreAuthorize;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,6 +36,8 @@ public class PlayerController {
     private final OptionChain optionChain;
     private final UserCharacterMapper userCharacterMapper;
     private final UserSessionMapper userSessionMapper;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
     public PlayerController(NovelService novelService,
                             NovelRoleVisibilityMapper novelRoleVisibilityMapper,
@@ -46,7 +51,9 @@ public class PlayerController {
                             EventChain eventChain,
                             OptionChain optionChain,
                             UserCharacterMapper userCharacterMapper,
-                            UserSessionMapper userSessionMapper) {
+                            UserSessionMapper userSessionMapper,
+                            StringRedisTemplate redisTemplate,
+                            ObjectMapper objectMapper) {
         this.novelService = novelService;
         this.novelRoleVisibilityMapper = novelRoleVisibilityMapper;
         this.roleMapper = roleMapper;
@@ -60,6 +67,8 @@ public class PlayerController {
         this.optionChain = optionChain;
         this.userCharacterMapper = userCharacterMapper;
         this.userSessionMapper = userSessionMapper;
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -231,16 +240,34 @@ public class PlayerController {
         return Result.success();
     }
 
-    @PostMapping("/action/choose")
-    public Result<ActionResult> choose(@RequestBody ChooseActionRequest request) {
-        ActionResult result = actionEngine.choose(request.getSessionId(), request.getTargetNodeId(), request.getLabel());
-        return Result.success(result);
+    @PostMapping("/action/resolve")
+    @PreAuthorize("hasAuthority('player:play')")
+    public Result<ResolutionResult> resolve(@RequestBody Map<String, Object> request) {
+        try {
+            String sessionIdStr = (String) request.get("sessionId");
+            Long targetNodeId = request.get("targetNodeId") != null
+                ? Long.valueOf(request.get("targetNodeId").toString()) : null;
+            String label = (String) request.get("choiceLabel");
+            String riskLevel = (String) request.get("riskLevel");
+            ResolutionResult result = actionEngine.resolve(sessionIdStr, targetNodeId, label, riskLevel);
+            return Result.success(result);
+        } catch (Exception e) {
+            log.warn("ActionEngine.resolve error: {}", e.getMessage());
+            return Result.error(500, e.getMessage());
+        }
     }
 
-    @PostMapping("/action/spin")
-    public Result<ActionResult> spin(@RequestBody SpinActionRequest request) {
-        ActionResult result = actionEngine.spin(request.getSessionId(), request.getNodeId());
-        return Result.success(result);
+    @PostMapping("/story/prepare")
+    @PreAuthorize("hasAuthority('player:play')")
+    public Result<Void> prepareStory(@RequestBody Map<String, Object> request) {
+        try {
+            String sid = (String) request.get("sessionId");
+            // resolution data already saved by ActionEngine.resolve() into Redis as pending_resolution
+            // This endpoint is kept for future sync needs
+            return Result.success();
+        } catch (Exception e) {
+            return Result.error(500, e.getMessage());
+        }
     }
 
     @GetMapping("/story/stream/{sessionId}")
@@ -266,8 +293,25 @@ public class PlayerController {
                 story = storyChain.generateEnding(session, character);
                 session.setStoryText(story);
             } else {
-                story = storyChain.generateStory(session, currentNode, character,
-                    description != null ? description : "");
+                // 尝试从 Redis 读取 resolution 数据
+                ResolutionResult resolution = null;
+                String resolutionJson = redisTemplate.opsForValue().get(
+                    "cache:session:" + sessionId + ":pending_resolution");
+                if (resolutionJson != null && !resolutionJson.isEmpty()) {
+                    try {
+                        resolution = objectMapper.readValue(resolutionJson, ResolutionResult.class);
+                        redisTemplate.delete("cache:session:" + sessionId + ":pending_resolution");
+                    } catch (Exception e) {
+                        log.warn("Failed to parse pending_resolution: {}", e.getMessage());
+                    }
+                }
+
+                if (resolution != null) {
+                    story = storyChain.generateStory(session, currentNode, character, resolution);
+                } else {
+                    story = storyChain.generateStory(session, currentNode, character,
+                        description != null ? description : "");
+                }
                 String existingStory = session.getStoryText() != null ? session.getStoryText() : "";
                 session.setStoryText(existingStory + "\n\n" + story);
             }

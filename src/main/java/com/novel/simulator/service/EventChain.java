@@ -94,18 +94,18 @@ public class EventChain {
         // 1. 先试 LLM
         if (llmApiKey != null && !llmApiKey.isEmpty()) {
             try {
-                return generateEventWithLlm(session, currentNode, character, eventType);
+                return generateEventWithLlm(session, currentNode, character, riskLevel);
             } catch (Exception e) {
                 log.warn("LLM event generation failed, falling back to stub: {}", e.getMessage());
             }
         }
         // 2. LLM 不可用或失败 → 回退 stub
-        return generateEventStub(character, eventType);
+        return generateEventStub(character, riskLevel);
     }
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> generateEventWithLlm(UserSession session, Node currentNode,
-                                                      UserCharacter character, String eventType) {
+                                                      UserCharacter character, String riskLevel) {
         Novel novel = novelMapper.selectById(session.getNovelId());
         String worldView = novel != null ? novel.getWorldView() : "";
         String novelTitle = novel != null ? novel.getTitle() : "";
@@ -177,7 +177,7 @@ public class EventChain {
             + "HP=" + hp + ", 攻击=" + atk + ", 防御=" + def + "\n"
             + "悟性=" + inte + ", 魅力=" + cha + ", 气运=" + luk + "\n\n"
             + "【扇区类型】\n" + sectorName + "\n\n"
-            + (!"daring".equals(eventType) ? "" :
+            + (!"daring".equals(riskLevel) ? "" :
                 "【当前行动风险等级】daring（高风险）\n"
                 + "角色运气值: " + luk + "/100\n"
                 + "运气高→结果偏向正面，运气低→结果偏向负面\n\n")
@@ -248,7 +248,7 @@ public class EventChain {
         return 0;
     }
 
-    public Map<String, Object> generateEventStub(UserCharacter character, String eventType) {
+    public Map<String, Object> generateEventStub(UserCharacter character, String riskLevel) {
         int sector = new Random().nextInt(6);
         Map<String, Object> result = new HashMap<>();
         String title, content;
