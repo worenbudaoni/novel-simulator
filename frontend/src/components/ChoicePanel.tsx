@@ -23,9 +23,9 @@ export default function ChoicePanel({ options, disabled, onChoose }: ChoicePanel
           variant="outline"
           disabled={disabled}
           onClick={() => onChoose(opt.targetNodeId, opt.label)}
-          className="w-full justify-start text-left h-auto py-3 px-4 hover:bg-accent hover:text-accent-foreground transition-colors"
+          className="w-full justify-start text-left h-auto py-3 px-4 whitespace-normal break-words hover:bg-accent hover:text-accent-foreground transition-colors"
         >
-          <span className="text-sm">{opt.label}</span>
+          <span className="text-sm leading-relaxed">{opt.label}</span>
         </Button>
       ))}
     </div>
