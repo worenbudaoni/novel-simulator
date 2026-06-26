@@ -12,6 +12,7 @@ public class ActionResult {
     private String eventTitle;
     private String eventDescription;
     private Map<String, Object> attrChanges;
+    private boolean isDead;
 
     public String getActionType() { return actionType; }
     public void setActionType(String actionType) { this.actionType = actionType; }
@@ -29,4 +30,6 @@ public class ActionResult {
     public void setEventDescription(String eventDescription) { this.eventDescription = eventDescription; }
     public Map<String, Object> getAttrChanges() { return attrChanges; }
     public void setAttrChanges(Map<String, Object> attrChanges) { this.attrChanges = attrChanges; }
+    public boolean isDead() { return isDead; }
+    public void setIsDead(boolean isDead) { this.isDead = isDead; }
 }

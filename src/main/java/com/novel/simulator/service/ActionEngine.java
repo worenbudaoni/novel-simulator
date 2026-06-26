@@ -70,6 +70,7 @@ public class ActionEngine {
         result.setChosenOptionLabel(optionLabel != null ? optionLabel : "做出了选择");
         result.setTargetNode(targetNode);
         result.setCharacter(character);
+        result.setIsDead(character.getHp() != null && character.getHp() <= 0);
         return result;
     }
 
@@ -110,6 +111,7 @@ public class ActionEngine {
         result.setEventTitle(eventTitle);
         result.setEventDescription(eventContent);
         result.setCharacter(character);
+        result.setIsDead(character.getHp() != null && character.getHp() <= 0);
 
         // 返回属性变化供前端展示
         Map<String, Object> changes = new HashMap<>();
