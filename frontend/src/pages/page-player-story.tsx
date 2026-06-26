@@ -204,13 +204,20 @@ export default function PlayerStoryPage() {
             <ResolutionDisplay result={resolution} onContinue={handleContinue} />
           )}
 
+          {/* resolve 期间的全局加载指示器 */}
+          {resolving && (
+            <div className="flex items-center justify-center py-6 text-sm text-muted-foreground gap-2 bg-card border rounded-lg">
+              <Loader2Icon className="size-5 animate-spin" />
+              <span>正在生成，请稍候...</span>
+            </div>
+          )}
+
           {/* 选项面板 */}
-          {!streaming && !showResolution && (
+          {!streaming && !showResolution && !resolving && (
             <ChoicePanel
               options={currentOptions}
               disabled={actionDisabled}
               loading={optionsLoading}
-              resolving={resolving}
               onChoose={handleResolve}
             />
           )}

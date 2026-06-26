@@ -311,6 +311,7 @@ public class EventChain {
         result.put("intChange", inte);
         result.put("chaChange", cha);
         result.put("lukChange", luk);
+        result.put("sector", sector);
         return result;
     }
 }
