@@ -186,6 +186,8 @@ export default function AdminNovelsPage() {
         const taskId = res.data.data.taskId;
         addTask(createTitle.trim(), taskId);
         startPolling(taskId);
+        toast.success(`「${createTitle.trim()}」已开始生成，请耐心等待`);
+        setShowCreate(false);
       }
     } catch { /* handled */ }
   };
