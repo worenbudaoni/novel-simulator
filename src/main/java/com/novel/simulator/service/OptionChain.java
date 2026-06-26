@@ -73,8 +73,17 @@ public class OptionChain {
             .build();
         List<ChatMessage> messages = Collections.singletonList(new UserMessage(prompt));
         Response<AiMessage> response = model.generate(messages);
-        String text = response.content().text();
+        if (response == null) {
+            throw new RuntimeException("LLM 返回 null response");
+        }
+        AiMessage content = response.content();
+        if (content == null) {
+            log.warn("LLM raw response: {}", response);
+            throw new RuntimeException("LLM 返回内容为 null");
+        }
+        String text = content.text();
         if (text == null || text.trim().isEmpty()) {
+            log.warn("LLM raw response: {}", response);
             throw new RuntimeException("LLM 返回内容为空");
         }
         return text;
