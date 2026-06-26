@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import api from '@/hooks/useApi';
+import type { ChoiceOption, ResolutionResult } from '@/types';
 
 export interface NodeData {
   id: number;
@@ -44,7 +45,7 @@ export function useStory() {
   const [session, setSession] = useState<SessionData | null>(null);
   const [character, setCharacter] = useState<CharacterData | null>(null);
   const [currentNode, setCurrentNode] = useState<NodeData | null>(null);
-  const [currentOptions, setCurrentOptions] = useState<NodeOption[]>([]);
+  const [currentOptions, setCurrentOptions] = useState<ChoiceOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
 
@@ -138,37 +139,39 @@ export function useStory() {
     await api.post('/player/session/settings', { sessionId: session.sessionId, settings });
   }, [session]);
 
-  const chooseAction = useCallback(async (targetNodeId: number, label: string) => {
+  const resolveAction = useCallback(async (option: ChoiceOption) => {
     if (!session?.sessionId) return null;
-    const res = await api.post('/player/action/choose', {
+    const res = await api.post('/player/action/resolve', {
       sessionId: session.sessionId,
-      targetNodeId,
-      label,
+      targetNodeId: option.targetNodeId,
+      choiceLabel: option.label,
+      riskLevel: option.riskLevel,
     });
     if (res.data.code === 200) {
-      const data = res.data.data;
-      if (data.character) setCharacter(data.character);
-      if (data.targetNode?.id) {
-        await loadNode(data.targetNode.id);
+      const data = res.data.data as ResolutionResult;
+      // 更新本地 character 属性
+      if (data.attrChanges) {
+        setCharacter(prev => {
+          if (!prev) return prev;
+          const next = { ...prev };
+          Object.entries(data.attrChanges).forEach(([key, val]) => {
+            if (key === 'hp') next.hp = Math.max(0, Math.min(100, (next.hp || 100) + val));
+            if (key === 'attack') next.attack = Math.max(0, (next.attack || 10) + val);
+            if (key === 'defense') next.defense = Math.max(0, (next.defense || 10) + val);
+            if (key === 'intelligence') next.intelligence = Math.max(0, (next.intelligence || 50) + val);
+            if (key === 'charm') next.charm = Math.max(0, (next.charm || 50) + val);
+            if (key === 'luck') next.luck = Math.max(0, (next.luck || 50) + val);
+          });
+          return next;
+        });
+      }
+      if (data.targetNodeId) {
+        await loadNode(data.targetNodeId);
       }
       return data;
     }
     return null;
   }, [session, loadNode]);
-
-  const spinAction = useCallback(async () => {
-    if (!session?.sessionId) return null;
-    const res = await api.post('/player/action/spin', {
-      sessionId: session.sessionId,
-      nodeId: session.currentNodeId,
-    });
-    if (res.data.code === 200) {
-      const data = res.data.data;
-      if (data.character) setCharacter(data.character);
-      return data;
-    }
-    return null;
-  }, [session]);
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -197,7 +200,7 @@ export function useStory() {
   return {
     session, character, currentNode, currentOptions, loading, sessions,
     createSession, loadSession, loadBySessionId, fetchSessions,
-    chooseAction, spinAction,
+    resolveAction,
     loadNode, generateOptions,
     saveSession, restartSession, saveSettings,
   };

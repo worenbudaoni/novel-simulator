@@ -6,8 +6,10 @@ import { useStory } from '@/hooks/useStory';
 import { useSSE } from '@/hooks/useSSE';
 import ChoicePanel from 'src/components/ChoicePanel';
 import StoryViewer from 'src/components/StoryViewer';
-import WheelOfFortune from 'src/components/WheelOfFortune';
+import ResolutionDisplay from 'src/components/ResolutionDisplay';
 import CharacterPanel from 'src/components/CharacterPanel';
+import api from '@/hooks/useApi';
+import type { ChoiceOption, ResolutionResult } from '@/types';
 import { ArrowLeftIcon, SaveIcon, RotateCcwIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import EndingModal from 'src/components/EndingModal';
@@ -16,20 +18,19 @@ import SaveLoadModal from 'src/components/SaveLoadModal';
 export default function PlayerStoryPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { session, character, currentNode, currentOptions, loading, loadSession, saveSession, restartSession, chooseAction, spinAction, generateOptions } = useStory();
+  const { session, character, currentNode, currentOptions, loading, loadSession,
+          saveSession, restartSession, resolveAction, generateOptions } = useStory();
   const { streaming, connect } = useSSE();
   const [storyText, setStoryText] = useState('');
   const [actionDisabled, setActionDisabled] = useState(false);
-  const [showWheel, setShowWheel] = useState(false);
-  const [pendingSpin, setPendingSpin] = useState(false);
-  const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
+  const [resolution, setResolution] = useState<ResolutionResult | null>(null);
+  const [showResolution, setShowResolution] = useState(false);
   const [showEnding, setShowEnding] = useState(false);
   const [showSaveLoad, setShowSaveLoad] = useState(false);
-  const [lastEventDesc, setLastEventDesc] = useState('');
-  const pendingWheelRef = useRef(false);
   const [isDead, setIsDead] = useState(false);
   const pendingDeathRef = useRef(false);
   const [showMobileChar, setShowMobileChar] = useState(false);
+  const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (sessionId) loadSession(sessionId);
@@ -57,26 +58,28 @@ export default function PlayerStoryPage() {
   }, [currentNode?.id, session?.sessionId, loading]);
 
   // 触发 SSE 故事流
-  // displayDesc: 展示在故事区的文字（选择/事件的完整内容）
-  // sseDesc: 传给后端的简短标记（为空时后端从 Redis 读取事件内容）
-  const triggerStory = useCallback((sid: string, displayDesc?: string, sseDesc?: string) => {
-    // 追加选择/事件描述到故事区，不覆盖已有内容
+  const triggerStory = useCallback((sid: string, res?: ResolutionResult) => {
+    if (res?.isDead) {
+      pendingDeathRef.current = true;
+    }
+
+    const displayDesc = res?.eventTitle
+      ? res.eventTitle + '！' + (res.eventContent || '')
+      : '';
+
     if (displayDesc) {
       setStoryText(prev => prev + '\n\n---\n\n' + displayDesc + '\n\n');
     }
+
     setPendingSessionId(sid);
-    setLastEventDesc(displayDesc || '');
     connect(sid, {
       onStory: (text) => {
-        // flushSync 强制立即渲染，避免 React 18 批处理合并 SSE 段落
         flushSync(() => {
           setStoryText(prev => prev + text + '\n\n');
         });
       },
       onDone: () => {
         setPendingSessionId(null);
-        setPendingSpin(false);
-        setShowWheel(false);
         if (pendingDeathRef.current) {
           pendingDeathRef.current = false;
           setIsDead(true);
@@ -84,72 +87,47 @@ export default function PlayerStoryPage() {
           setActionDisabled(true);
           return;
         }
-        if (pendingWheelRef.current) {
-          pendingWheelRef.current = false;
-          setShowWheel(true);
-        } else {
-          setActionDisabled(false);
-        }
+        setActionDisabled(false);
       },
-      onError: (msg) => { toast.error(msg); setActionDisabled(false); setPendingSpin(false); setShowWheel(false); setPendingSessionId(null); },
-    }, sseDesc);  // 传短的标记给 SSE URL
+      onError: (msg) => {
+        toast.error(msg);
+        setActionDisabled(false);
+        setPendingSessionId(null);
+      },
+    });
   }, [connect]);
 
-  // 选择选项
-  const handleChoose = async (targetNodeId: number, optionLabel: string) => {
+  // resolve 处理
+  const handleResolve = async (option: ChoiceOption) => {
     setActionDisabled(true);
     try {
-      const result = await chooseAction(targetNodeId, optionLabel);
-      if (!sessionId) return;
+      const result = await resolveAction(option);
+      if (!result) { setActionDisabled(false); return; }
 
-      // 检查死亡
-      if (result?.isDead) {
-        pendingDeathRef.current = true;
-      }
+      setResolution(result);
+      setShowResolution(true);
 
-      // 选项标签用于故事展示
-      const choiceLabel = result?.chosenOptionLabel || optionLabel || '做出了选择';
+      // 根据风险等级设定自动推进延迟
+      const delay = option.riskLevel === 'safe' ? 1500
+                  : option.riskLevel === 'risky' ? 2500
+                  : 3000;
 
-      // 解析设置，判断转盘是否触发
-      if (session?.settingsJson) {
-        try {
-          const settings = JSON.parse(session.settingsJson);
-          const rate = settings.randomRate || 0;
-          pendingWheelRef.current = Math.random() * 100 < rate;
-        } catch { /* ignore */ }
-      }
-
-      // 生成选择后的故事
-      triggerStory(sessionId, choiceLabel, choiceLabel);
-    } catch { setActionDisabled(false); }
+      setTimeout(() => {
+        setShowResolution(false);
+        if (sessionId) triggerStory(sessionId, result);
+      }, delay);
+    } catch {
+      setActionDisabled(false);
+    }
   };
 
-  // 转盘抽奖
-  const handleSpin = async () => {
-    setPendingSpin(true);
-    // 同时发起 API 和计时，互不阻塞
-    const spinPromise = spinAction();
-    // 指针转 1s + 停留 1s = 2s 后关转盘
-    await new Promise(r => setTimeout(r, 2000));
-    setShowWheel(false);
-    try {
-      const result = await spinPromise;
-
-      // 检查死亡
-      if (result?.isDead) {
-        pendingDeathRef.current = true;
-      }
-
-      const displayDesc = result?.eventTitle
-        ? result.eventTitle + '！' + (result.eventDescription || '')
-        : (result?.eventDescription || '');
-      const sseDesc = result?.eventTitle || '';
-      if (sessionId) {
-        triggerStory(sessionId, displayDesc, sseDesc);
-      }
-    } catch { setPendingSpin(false); setActionDisabled(false); }
+  // 从 resolution 过渡到 story 后的继续
+  const handleContinue = () => {
+    setShowResolution(false);
+    if (resolution && sessionId) {
+      triggerStory(sessionId, resolution);
+    }
   };
-
 
   const handleSave = async () => {
     await saveSession();
@@ -211,36 +189,38 @@ export default function PlayerStoryPage() {
             </div>
           )}
 
-          <StoryViewer
-            text={storyText}
-            streaming={streaming}
-            placeholder={session.storyText ? '继续你的冒险...' : '故事即将开始...'}
-          />
+          {/* 检定结果展示 */}
+          {showResolution && resolution && (
+            <ResolutionDisplay result={resolution} onContinue={handleContinue} />
+          )}
 
-          {!streaming && currentOptions.length > 0 && !showWheel && (
+          {/* 故事阅读 */}
+          {!showResolution && (
+            <StoryViewer
+              text={storyText}
+              streaming={streaming}
+              placeholder={session.storyText ? '继续你的冒险...' : '故事即将开始...'}
+            />
+          )}
+
+          {/* 选项面板 */}
+          {!streaming && !showResolution && currentOptions.length > 0 && (
             <ChoicePanel
               options={currentOptions}
               disabled={actionDisabled}
-              onChoose={handleChoose}
+              onChoose={handleResolve}
             />
           )}
         </div>
 
         <div className="hidden lg:block space-y-3">
-          <CharacterPanel character={character} loading={loading} />
+          <CharacterPanel
+            character={character}
+            loading={loading}
+            attrChanges={resolution?.attrChanges}
+          />
         </div>
       </div>
-
-      {/* 转盘弹窗 */}
-      {showWheel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="max-w-sm w-full mx-4">
-            <WheelOfFortune onSpin={handleSpin} disabled={pendingSpin} spinning={pendingSpin} />
-            <div className="flex justify-center mt-3">
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 移动端角色面板触发按钮 */}
       <button
@@ -257,14 +237,12 @@ export default function PlayerStoryPage() {
           <div className="absolute inset-0 bg-black/40" />
           <div className="relative w-full bg-background rounded-t-xl p-4 animate-in slide-in-from-bottom duration-200 max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-4" />
-            <CharacterPanel character={character} loading={loading} />
+            <CharacterPanel character={character} loading={loading} attrChanges={resolution?.attrChanges} />
             <button
               type="button"
               onClick={() => setShowMobileChar(false)}
               className="w-full mt-3 text-sm text-muted-foreground py-2 hover:text-foreground transition-colors"
-            >
-              关闭
-            </button>
+            >关闭</button>
           </div>
         </div>
       )}

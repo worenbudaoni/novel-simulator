@@ -1,54 +1,58 @@
-import { useState } from 'react';
-import { Loader2Icon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface WheelOfFortuneProps {
-  onSpin: (sectorIndex: number) => void;
-  disabled?: boolean;
-  spinning?: boolean;
+  riskLevel: 'risky' | 'daring';
+  rollResult?: number;
+  success?: boolean;
+  autoPlay: boolean;
+  onComplete?: () => void;
 }
 
 const COLORS = ['#a855f7', '#eab308', '#ef4444', '#22c55e', '#6366f1', '#06b6d4'];
-
-const SECTOR_NAMES = ['奇遇', '宝箱', '战斗', '诅咒', '命运', '邂逅'];
-
 const SECTORS = [
-  { icon: '✨' },
-  { icon: '💎' },
-  { icon: '⚔️' },
-  { icon: '💀' },
-  { icon: '🌀' },
-  { icon: '💕' },
+  { icon: '✨' }, { icon: '💎' }, { icon: '⚔️' },
+  { icon: '💀' }, { icon: '🌀' }, { icon: '💕' },
 ];
+const N = 6;
 
-export default function WheelOfFortune({ onSpin, disabled, spinning }: WheelOfFortuneProps) {
+export default function WheelOfFortune({ riskLevel, rollResult, success, autoPlay, onComplete }: WheelOfFortuneProps) {
   const [pointerRot, setPointerRot] = useState(0);
-  const [resultSector, setResultSector] = useState(-1);
+  const [showResult, setShowResult] = useState(false);
 
-  const handleSpin = () => {
-    const idx = Math.floor(Math.random() * 6);
-    setResultSector(idx);
-    const target = idx * 60 + 30; // 扇区中心
-    const extra = (3 + Math.floor(Math.random() * 3)) * 360;
-    setPointerRot(prev => {
-      let r = prev + extra + target;
-      if (r - prev < 1080) r += 1080;
-      return r;
-    });
-    onSpin(idx);
-  };
+  useEffect(() => {
+    if (!autoPlay) return;
 
-  const n = SECTORS.length;
+    let targetAngle = 0;
+    if (riskLevel === 'risky' && rollResult != null) {
+      const sector = Math.max(0, Math.min(5, Math.floor((rollResult - 1) / 3.33)));
+      targetAngle = sector * 60 + 30;
+    } else {
+      const sector = Math.floor(Math.random() * N);
+      targetAngle = sector * 60 + 30;
+    }
+
+    const extraRotations = (3 + Math.floor(Math.random() * 3)) * 360;
+    const totalRotation = pointerRot + extraRotations + targetAngle;
+
+    setPointerRot(totalRotation);
+
+    const timer = setTimeout(() => {
+      setShowResult(true);
+      if (onComplete) onComplete();
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [autoPlay]);
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="relative size-72">
-        {/* 静态转盘 */}
+    <div className="flex flex-col items-center gap-3">
+      <div className="relative size-40 sm:size-48">
         <div className="w-full h-full rounded-full border-2 border-border bg-card overflow-hidden">
           <svg viewBox="0 0 200 200" className="w-full h-full">
             {SECTORS.map((s, i) => {
-              const a1 = ((360 / n) * i - 90) * Math.PI / 180;
-              const a2 = ((360 / n) * (i + 1) - 90) * Math.PI / 180;
-              const am = ((360 / n) * i - 90 + (360 / n) / 2) * Math.PI / 180;
+              const a1 = ((360 / N) * i - 90) * Math.PI / 180;
+              const a2 = ((360 / N) * (i + 1) - 90) * Math.PI / 180;
+              const am = ((360 / N) * i - 90 + (360 / N) / 2) * Math.PI / 180;
               return (
                 <g key={i}>
                   <path d={`M100,100 L${100 + 85 * Math.cos(a1)},${100 + 85 * Math.sin(a1)} A85,85 0 0,1 ${100 + 85 * Math.cos(a2)},${100 + 85 * Math.sin(a2)} Z`} fill={COLORS[i]} stroke="white" strokeWidth="1.5" />
@@ -59,34 +63,18 @@ export default function WheelOfFortune({ onSpin, disabled, spinning }: WheelOfFo
           </svg>
         </div>
 
-        {/* 旋转指针 */}
-        <div className="absolute inset-0 transition-transform duration-[1000ms] ease-out" style={{ transform: `rotate(${pointerRot}deg)` }}>
+        <div className="absolute inset-0 transition-transform duration-[1200ms] ease-out" style={{ transform: `rotate(${pointerRot}deg)` }}>
           <div className="absolute top-0 left-1/2 -translate-x-1/2 z-10">
             <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-t-[16px] border-l-transparent border-r-transparent border-t-foreground" />
           </div>
         </div>
-
-        {/* 中心按钮 */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <button
-            type="button"
-            onClick={handleSpin}
-            disabled={disabled || spinning}
-            className="size-12 rounded-full bg-background border-2 border-border hover:scale-110 active:scale-95 transition-all flex items-center justify-center disabled:opacity-50 cursor-pointer z-10"
-          >
-            {spinning ? <Loader2Icon className="size-5 animate-spin text-muted-foreground" /> : <span className="text-xl">🎰</span>}
-          </button>
-        </div>
       </div>
 
-      {!spinning && resultSector >= 0 && (
-        <div className="text-center">
-          <span className="text-xl">{SECTORS[resultSector].icon}</span>
-          <span className="text-sm font-medium ml-1">{SECTOR_NAMES[resultSector]}</span>
+      {showResult && success != null && (
+        <div className={`text-sm font-semibold ${success ? 'text-green-600' : 'text-red-500'}`}>
+          {success ? '✅ 成功' : '❌ 失败'}
         </div>
       )}
-      {spinning && <p className="text-xs text-muted-foreground">抽奖中...</p>}
-      {!spinning && resultSector < 0 && <p className="text-xs text-muted-foreground">点击中心按钮抽奖</p>}
     </div>
   );
 }
