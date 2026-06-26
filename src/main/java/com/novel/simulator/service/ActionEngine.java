@@ -205,6 +205,9 @@ public class ActionEngine {
         r.setAttrChanges(changes);
         r.setEventTitle(eventTitle);
         r.setEventContent(eventContent);
+        if (eventData.containsKey("sector")) {
+            r.setSector(((Number) eventData.get("sector")).intValue());
+        }
         return r;
     }
 

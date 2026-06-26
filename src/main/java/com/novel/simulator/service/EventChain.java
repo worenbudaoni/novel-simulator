@@ -240,6 +240,7 @@ public class EventChain {
         result.put("intChange", getInt(parsed.get("intelligenceChange")));
         result.put("chaChange", getInt(parsed.get("charmChange")));
         result.put("lukChange", getInt(parsed.get("luckChange")));
+        result.put("sector", sector);
         return result;
     }
 
