@@ -62,15 +62,24 @@ export default function AdminNovelsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [genTasks, setGenTasks] = useState<GenTask[]>(() => {
     try {
-      const saved = sessionStorage.getItem('novel_gen_tasks');
+      const saved = localStorage.getItem('novel_gen_tasks');
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
   const pollTimersRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
   useEffect(() => {
-    sessionStorage.setItem('novel_gen_tasks', JSON.stringify(genTasks));
+    localStorage.setItem('novel_gen_tasks', JSON.stringify(genTasks));
   }, [genTasks]);
+
+  // Restart polling for processing tasks on mount (survives refresh)
+  useEffect(() => {
+    genTasks.forEach(task => {
+      if (task.status === 'processing' && !pollTimersRef.current.has(task.taskId)) {
+        startPolling(task.taskId);
+      }
+    });
+  }, []);
   // Confirm dialog state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmType, setConfirmType] = useState<'llm' | 'txt'>('llm');
