@@ -77,6 +77,12 @@ export default function PlayerStoryPage() {
     // 从 ref 拿最新长度（避免 useCallback 闭包捕获旧值）
     setContentStart(storyLenRef.current);
 
+    // 持久化事件内容到故事流（先于 SSE，保证不丢失）
+    if (res?.eventTitle) {
+      const eventBlock = '\n\n---\n\n⚡ **' + res.eventTitle + '**\n\n' + (res.eventContent || '') + '\n\n---\n\n';
+      setStoryText(prev => prev + eventBlock);
+    }
+
     connect(sid, {
       onStory: (chunk) => {
         flushSync(() => {
