@@ -8,12 +8,13 @@ import ChoicePanel from 'src/components/ChoicePanel';
 import StoryViewer from 'src/components/StoryViewer';
 import ResolutionDisplay from 'src/components/ResolutionDisplay';
 import CharacterPanel from 'src/components/CharacterPanel';
-import api from '@/hooks/useApi';
 import type { ChoiceOption, ResolutionResult } from '@/types';
 import { ArrowLeftIcon, SaveIcon, RotateCcwIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import EndingModal from 'src/components/EndingModal';
 import SaveLoadModal from 'src/components/SaveLoadModal';
+
+const DIVIDER = '<!--NEW-STORY-->';
 
 export default function PlayerStoryPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -30,17 +31,20 @@ export default function PlayerStoryPage() {
   const [isDead, setIsDead] = useState(false);
   const pendingDeathRef = useRef(false);
   const [showMobileChar, setShowMobileChar] = useState(false);
-  const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
-  const [resolving, setResolving] = useState(false);     // resolve API 处理中
-  const [optionsLoading, setOptionsLoading] = useState(false); // 选项生成中
-  const [storyWaiting, setStoryWaiting] = useState(false);     // 故事生成等待中
+  const [resolving, setResolving] = useState(false);
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  const storyInitRef = useRef(false);
 
   useEffect(() => {
     if (sessionId) loadSession(sessionId);
   }, [sessionId]);
 
+  // 仅首次加载时从 session.storyText 恢复
   useEffect(() => {
-    if (session?.storyText) setStoryText(session.storyText);
+    if (session?.storyText && !storyInitRef.current) {
+      setStoryText(session.storyText);
+      storyInitRef.current = true;
+    }
   }, [session?.storyText]);
 
   // 到达结局节点时弹出结局
@@ -56,9 +60,7 @@ export default function PlayerStoryPage() {
     if (currentNode && session?.sessionId && !loading) {
       setOptionsLoading(true);
       generateOptions(currentNode.id)
-        .catch(() => {
-          toast.error('选项生成失败，请检查 LLM 配置后重试');
-        })
+        .catch(() => toast.error('选项生成失败，请检查 LLM 配置后重试'))
         .finally(() => setOptionsLoading(false));
     }
   }, [currentNode?.id, session?.sessionId, loading]);
@@ -69,24 +71,22 @@ export default function PlayerStoryPage() {
       pendingDeathRef.current = true;
     }
 
-    const displayDesc = res?.eventTitle
-      ? res.eventTitle + '！' + (res.eventContent || '')
-      : '';
+    // 插入 HTML 注释作为分隔标记（不可见，用于 split 定位）
+    setStoryText(prev => prev + '\n\n' + DIVIDER + '\n\n');
 
-    // 新内容起始分隔标记
-    const sep = '\n\n---\n\n📖 **故事继续**\n\n';
-    const desc = displayDesc ? displayDesc + '\n\n' : '';
-    setStoryText(prev => prev + sep + desc);
+    // 事件描述单独追加
+    if (res?.eventTitle) {
+      const desc = res.eventTitle + '！' + (res.eventContent || '');
+      setStoryText(prev => prev + '\n\n---\n\n' + desc + '\n\n');
+    }
 
-    setPendingSessionId(sid);
     connect(sid, {
-      onStory: (text) => {
+      onStory: (chunk) => {
         flushSync(() => {
-          setStoryText(prev => prev + text + '\n\n');
+          setStoryText(prev => prev + chunk + '\n\n');
         });
       },
       onDone: () => {
-        setPendingSessionId(null);
         if (pendingDeathRef.current) {
           pendingDeathRef.current = false;
           setIsDead(true);
@@ -99,7 +99,6 @@ export default function PlayerStoryPage() {
       onError: (msg) => {
         toast.error(msg);
         setActionDisabled(false);
-        setPendingSessionId(null);
       },
     });
   }, [connect]);
@@ -112,10 +111,8 @@ export default function PlayerStoryPage() {
       const result = await resolveAction(option);
       setResolving(false);
       if (!result) { setActionDisabled(false); return; }
-
       setResolution(result);
       setShowResolution(true);
-      // 不再自动消失，用户点击"继续"才推进
     } catch {
       setResolving(false);
       setActionDisabled(false);
@@ -125,17 +122,10 @@ export default function PlayerStoryPage() {
   // 用户看完 resolution 后点击继续 → 触发 SSE 故事
   const handleContinue = () => {
     setShowResolution(false);
-    setStoryWaiting(true);    // 故事还没到，显示等待态
     if (resolution && sessionId) {
       triggerStory(sessionId, resolution);
     }
   };
-
-  // SSE onDone 时清除等待态（triggerStory 的 connect onDone 里会 setActionDisabled(false)）
-  // 但 SSE connect 本身不暴露 onDone 给这里的 state…用 streaming 间接控制
-  useEffect(() => {
-    if (streaming) setStoryWaiting(false);
-  }, [streaming]);
 
   const handleSave = async () => {
     await saveSession();
@@ -170,7 +160,7 @@ export default function PlayerStoryPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-2 sm:px-4">
+    <div className="max-w-4xl mx-auto px-3 sm:px-6">
       <div className="flex items-center justify-between mb-4">
         <Button variant="ghost" size="sm" onClick={() => navigate('/player')}>
           <ArrowLeftIcon className="size-4 mr-1" />
@@ -180,14 +170,14 @@ export default function PlayerStoryPage() {
           <Button variant="outline" size="sm" onClick={() => setShowSaveLoad(true)} disabled={actionDisabled}>
             <SaveIcon className="size-4 mr-1" /> 存档
           </Button>
-          <Button variant="outline" size="sm" onClick={async () => { await restartSession(); setStoryText(''); }} disabled={actionDisabled}>
+          <Button variant="outline" size="sm" onClick={async () => { await restartSession(); setStoryText(''); storyInitRef.current = false; }} disabled={actionDisabled}>
             <RotateCcwIcon className="size-4 mr-1" /> 重新开始
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_220px]">
-        <div className="space-y-4">
+      <div className="grid gap-6 lg:grid-cols-[1fr_260px]">
+        <div className="space-y-4 min-w-0">
           {currentNode && (
             <div>
               <h3 className="text-lg font-semibold">{currentNode.title}</h3>
@@ -197,30 +187,26 @@ export default function PlayerStoryPage() {
             </div>
           )}
 
-          {/* 检定结果展示 */}
-          {showResolution && resolution && (
+          {showResolution && resolution ? (
             <ResolutionDisplay result={resolution} onContinue={handleContinue} />
-          )}
+          ) : (
+            <>
+              <StoryViewer
+                text={storyText}
+                streaming={streaming}
+                placeholder={storyText ? '继续你的冒险...' : '故事即将开始...'}
+              />
 
-          {/* 故事阅读 */}
-          {!showResolution && (
-            <StoryViewer
-              text={storyText}
-              streaming={streaming}
-              waiting={storyWaiting}
-              placeholder={session.storyText ? '继续你的冒险...' : '故事即将开始...'}
-            />
-          )}
-
-          {/* 选项面板 */}
-          {!streaming && !showResolution && (
-            <ChoicePanel
-              options={currentOptions}
-              disabled={actionDisabled}
-              loading={optionsLoading}
-              resolving={resolving}
-              onChoose={handleResolve}
-            />
+              {!streaming && (
+                <ChoicePanel
+                  options={currentOptions}
+                  disabled={actionDisabled}
+                  loading={optionsLoading}
+                  resolving={resolving}
+                  onChoose={handleResolve}
+                />
+              )}
+            </>
           )}
         </div>
 
@@ -233,32 +219,25 @@ export default function PlayerStoryPage() {
         </div>
       </div>
 
-      {/* 移动端角色面板触发按钮 */}
-      <button
-        type="button"
-        onClick={() => setShowMobileChar(true)}
-        className="fixed bottom-4 right-4 z-40 size-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center lg:hidden"
-      >
-        <span className="text-lg">📊</span>
-      </button>
-
-      {/* 移动端角色面板 Drawer */}
+      {/* 移动端角色面板 */}
       {showMobileChar && (
         <div className="fixed inset-0 z-50 flex items-end lg:hidden" onClick={() => setShowMobileChar(false)}>
           <div className="absolute inset-0 bg-black/40" />
           <div className="relative w-full bg-background rounded-t-xl p-4 animate-in slide-in-from-bottom duration-200 max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-4" />
             <CharacterPanel character={character} loading={loading} attrChanges={resolution?.attrChanges} />
-            <button
-              type="button"
-              onClick={() => setShowMobileChar(false)}
+            <button type="button" onClick={() => setShowMobileChar(false)}
               className="w-full mt-3 text-sm text-muted-foreground py-2 hover:text-foreground transition-colors"
             >关闭</button>
           </div>
         </div>
       )}
+      <button type="button" onClick={() => setShowMobileChar(true)}
+        className="fixed bottom-4 right-4 z-40 size-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center lg:hidden"
+      >
+        <span className="text-lg">📊</span>
+      </button>
 
-      {/* 结局弹窗 */}
       {showEnding && (
         <EndingModal
           isDeath={isDead}
@@ -267,26 +246,17 @@ export default function PlayerStoryPage() {
           storyText={storyText}
           onClose={() => setShowEnding(false)}
           character={character ? {
-            hp: character.hp,
-            attack: character.attack,
-            defense: character.defense,
-            intelligence: character.intelligence,
-            charm: character.charm,
-            luck: character.luck,
-            choicesMade: character.choicesMade,
-            eventsTriggered: character.eventsTriggered,
+            hp: character.hp, attack: character.attack, defense: character.defense,
+            intelligence: character.intelligence, charm: character.charm, luck: character.luck,
+            choicesMade: character.choicesMade, eventsTriggered: character.eventsTriggered,
             currentTitle: character.currentTitle,
           } : null}
-          onRestart={async () => { setShowEnding(false); setIsDead(false); await restartSession(); setStoryText(''); }}
+          onRestart={async () => { setShowEnding(false); setIsDead(false); await restartSession(); setStoryText(''); storyInitRef.current = false; }}
           onBackToHome={() => navigate('/player')}
         />
       )}
 
-      {/* 存档管理弹窗 */}
-      <SaveLoadModal
-        open={showSaveLoad}
-        onClose={() => setShowSaveLoad(false)}
-      />
+      <SaveLoadModal open={showSaveLoad} onClose={() => setShowSaveLoad(false)} />
     </div>
   );
 }

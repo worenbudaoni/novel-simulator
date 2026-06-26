@@ -2,101 +2,83 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Card, CardContent } from 'src/components/ui/card';
-import { Loader2Icon, ArrowDownIcon } from 'lucide-react';
+import { Loader2Icon, ArrowDownIcon, BookOpenIcon } from 'lucide-react';
 import { Button } from 'src/components/ui/button';
 
 interface StoryViewerProps {
   text: string;
   streaming?: boolean;
   placeholder?: string;
-  waiting?: boolean;
 }
 
-const DIVIDER = '📖 **故事继续**';
+const DIVIDER = '<!--NEW-STORY-->';
 
-export default function StoryViewer({ text, streaming, placeholder, waiting }: StoryViewerProps) {
+export default function StoryViewer({ text, streaming, placeholder }: StoryViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dividerRef = useRef<HTMLDivElement>(null);
   const [showJumpBtn, setShowJumpBtn] = useState(false);
   const wasStreaming = useRef(false);
 
-  // 将文本在分隔标记处拆分为旧内容 + 新内容
-  const { oldText, newText } = useMemo(() => {
+  // 在分隔标记处拆分：分隔之前是旧内容，分隔之后是新内容
+  const { hasDivider, oldContent, newContent } = useMemo(() => {
     const idx = text.indexOf(DIVIDER);
-    if (idx === -1) return { oldText: text, newText: '' };
-    return {
-      oldText: text.slice(0, idx),
-      newText: text.slice(idx + DIVIDER.length),
-    };
+    if (idx === -1) return { hasDivider: false, oldContent: text, newContent: '' };
+    const before = text.slice(0, idx);
+    const after = text.slice(idx + DIVIDER.length);
+    return { hasDivider: true, oldContent: before, newContent: after };
   }, [text]);
 
-  // 流式结束时 → 滚动到分隔标记（新内容开头）
+  const hasNewText = newContent.trim().length > 0;
+
+  // 流式结束 → 滚动到分隔标记（新内容开头）
   useEffect(() => {
-    if (wasStreaming.current && !streaming) {
-      // 延迟一帧确保 DOM 已更新
+    if (wasStreaming.current && !streaming && dividerRef.current) {
       requestAnimationFrame(() => {
-        if (dividerRef.current) {
-          dividerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        dividerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     }
     wasStreaming.current = streaming;
   }, [streaming]);
 
-  // 检测滚动位置，决定是否显示"跳到新内容"按钮
+  // 滚动监测：分隔标记离开视口时显示"跳到新内容"按钮
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
-    const handleScroll = () => {
-      if (!dividerRef.current || !streaming) { setShowJumpBtn(false); return; }
-      const dividerTop = dividerRef.current.getBoundingClientRect().top;
-      const containerTop = el.getBoundingClientRect().top;
-      // 如果分隔标记在可视区上方超过一定距离，显示按钮
-      setShowJumpBtn(dividerTop < containerTop - 60);
+    if (!el || !streaming) { setShowJumpBtn(false); return; }
+    const onScroll = () => {
+      if (!dividerRef.current) { setShowJumpBtn(false); return; }
+      const db = dividerRef.current.getBoundingClientRect();
+      const cb = el.getBoundingClientRect();
+      setShowJumpBtn(db.top < cb.top - 40);
     };
-    el.addEventListener('scroll', handleScroll, { passive: true });
-    return () => el.removeEventListener('scroll', handleScroll);
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
   }, [streaming]);
 
   const jumpToDivider = () => {
-    if (dividerRef.current) {
-      dividerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    dividerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
-
-  // 判断是否有新内容需要标记（newText 非空白且有实际字符）
-  const hasDivider = text.includes(DIVIDER);
-  const hasNewContent = newText.trim().length > 0;
 
   return (
     <Card>
       <CardContent className="pt-4 relative">
-        {text && hasNewContent ? (
-          <div
-            ref={containerRef}
-            className="prose prose-sm max-w-none dark:prose-invert h-96 overflow-y-auto p-2"
-          >
+        {text ? (
+          <div ref={containerRef} className="h-96 overflow-y-auto p-2 prose prose-sm max-w-none dark:prose-invert">
             {/* 旧内容 */}
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {oldText || ' '}
-            </ReactMarkdown>
+            {oldContent && (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{oldContent}</ReactMarkdown>
+            )}
 
-            {/* 可视分隔标记（带 ref，用于滚动定位） */}
+            {/* 分隔标记 */}
             {hasDivider && (
-              <div ref={dividerRef} className="border-t border-primary/20 my-4 pt-2">
-                <div className="flex items-center gap-2 text-sm text-primary/60">
-                  <BookOpenIcon className="size-4" />
-                  <span className="font-medium">故事继续</span>
-                </div>
-              </div>
+              <div ref={dividerRef} className="border-t border-primary/20 my-4 pt-2" />
             )}
 
             {/* 新内容 */}
-            <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {newText}
-              </ReactMarkdown>
-            </div>
+            {hasNewText && (
+              <div className="animate-in fade-in duration-300">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{newContent}</ReactMarkdown>
+              </div>
+            )}
 
             {streaming && (
               <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
@@ -106,7 +88,7 @@ export default function StoryViewer({ text, streaming, placeholder, waiting }: S
           </div>
         ) : (
           <div className="h-48 flex items-center justify-center">
-            {waiting || streaming ? (
+            {streaming ? (
               <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
                 <Loader2Icon className="size-5 animate-spin" />
                 <span>故事生成中...</span>
@@ -119,15 +101,9 @@ export default function StoryViewer({ text, streaming, placeholder, waiting }: S
           </div>
         )}
 
-        {/* 跳到新内容按钮 */}
         {showJumpBtn && hasDivider && streaming && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={jumpToDivider}
-              className="shadow-md text-xs gap-1"
-            >
+            <Button variant="secondary" size="sm" onClick={jumpToDivider} className="shadow-md text-xs gap-1">
               <ArrowDownIcon className="size-3" /> 跳到新内容
             </Button>
           </div>
