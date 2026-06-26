@@ -2,6 +2,7 @@ package com.novel.simulator.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.novel.simulator.dto.ResolutionResult;
 import com.novel.simulator.entity.Node;
 import com.novel.simulator.entity.Novel;
 import com.novel.simulator.entity.UserCharacter;
@@ -65,6 +66,21 @@ public class StoryChain {
             }
         }
         return generateStoryStub(currentNode, character, actionDescription);
+    }
+
+    /**
+     * 新方法：接收完整 ResolutionResult，嵌入式检定数据到 prompt
+     */
+    public String generateStory(UserSession session, Node currentNode,
+                                 UserCharacter character, ResolutionResult resolution) {
+        if (llmApiKey != null && !llmApiKey.isEmpty()) {
+            try {
+                return generateStoryWithResolution(session, currentNode, character, resolution);
+            } catch (Exception e) {
+                log.warn("LLM story generation failed, falling back to stub: {}", e.getMessage());
+            }
+        }
+        return generateStoryStub(currentNode, character, resolution);
     }
 
     public String generateEnding(UserSession session, UserCharacter character) {
@@ -262,6 +278,77 @@ public class StoryChain {
         return storyText;
     }
 
+    // ========== Story with ResolutionResult ==========
+
+    private String generateStoryWithResolution(UserSession session, Node currentNode,
+                                                UserCharacter character, ResolutionResult resolution) {
+        Novel novel = novelMapper.selectById(session.getNovelId());
+
+        List<Map<String, String>> history = loadHistory(session.getSessionId());
+
+        if (history.isEmpty()) {
+            String systemPrompt = buildSystemPrompt(novel, currentNode, character);
+            Map<String, String> sysMsg = new HashMap<>();
+            sysMsg.put("role", "system");
+            sysMsg.put("content", systemPrompt);
+            history.add(sysMsg);
+        }
+
+        // 构建包含检定结果的消息
+        StringBuilder userContent = new StringBuilder();
+        userContent.append("你的选择：").append(resolution.getRiskLevel() != null ? resolution.getRiskLevel() : "").append("行动\n");
+        userContent.append("实际结果：\n");
+
+        // 检定信息
+        if ("risky".equals(resolution.getRiskLevel()) && resolution.getCheckAttr() != null) {
+            userContent.append("- 属性检定：").append(resolution.getCheckAttr())
+                .append("=").append(resolution.getAttrValue())
+                .append("，掷出").append(resolution.getDiceRoll())
+                .append("，修正").append(resolution.getModifier())
+                .append("，合计").append(resolution.getTotal())
+                .append(" vs DC").append(resolution.getDc())
+                .append(" → ").append(resolution.isSuccess() ? "成功" : "失败").append("\n");
+        }
+
+        // 属性变化
+        if (resolution.getAttrChanges() != null && !resolution.getAttrChanges().isEmpty()) {
+            userContent.append("- 属性变化：");
+            for (Map.Entry<String, Integer> e : resolution.getAttrChanges().entrySet()) {
+                userContent.append(e.getKey()).append(e.getValue() >= 0 ? "+" : "").append(e.getValue()).append(" ");
+            }
+            userContent.append("\n");
+        }
+
+        // 事件
+        if (resolution.getEventTitle() != null) {
+            userContent.append("- 触发事件：").append(resolution.getEventTitle()).append("\n");
+            if (resolution.getEventContent() != null) {
+                userContent.append("  事件内容：").append(resolution.getEventContent()).append("\n");
+            }
+        }
+
+        userContent.append("\n请根据以上实际结果续写故事，以第二人称「你」叙述，生动地描述发生了什么。");
+
+        Map<String, String> userMsg = new HashMap<>();
+        userMsg.put("role", "user");
+        userMsg.put("content", userContent.toString());
+        history.add(userMsg);
+
+        List<ChatMessage> messages = historyToChatMessages(history);
+        ChatLanguageModel model = buildModel(0.8, 4096);
+        Response<AiMessage> llmResponse = model.generate(messages);
+        String storyText = llmResponse.content().text();
+        log.info("LLM generated {} chars for session {}", storyText.length(), session.getSessionId());
+
+        Map<String, String> assistantMsg = new HashMap<>();
+        assistantMsg.put("role", "assistant");
+        assistantMsg.put("content", storyText);
+        history.add(assistantMsg);
+        saveHistory(session.getSessionId(), history);
+
+        return storyText;
+    }
+
     // ========== Ending Generation ==========
 
     private String generateEndingWithLlm(UserSession session, UserCharacter character) {
@@ -362,6 +449,19 @@ public class StoryChain {
             sb.append("这一路让你遍体鳞伤，但你终究坚持到了最后。");
         } else {
             sb.append("你几乎耗尽了一切——但有些东西，比生命更重要。");
+        }
+        return sb.toString();
+    }
+
+    /** Stub 降级：附带检定摘要 */
+    public String generateStoryStub(Node currentNode, UserCharacter character, ResolutionResult resolution) {
+        String base = generateStoryStub(currentNode, character, "");
+        StringBuilder sb = new StringBuilder(base);
+        if (resolution != null && resolution.getAttrChanges() != null) {
+            sb.append("\n\n");
+            for (Map.Entry<String, Integer> e : resolution.getAttrChanges().entrySet()) {
+                sb.append(e.getKey()).append(e.getValue() >= 0 ? " +" : " ").append(e.getValue()).append(" ");
+            }
         }
         return sb.toString();
     }
