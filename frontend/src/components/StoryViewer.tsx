@@ -64,13 +64,14 @@ export default function StoryViewer({ text, streaming, placeholder, waiting }: S
     }
   };
 
-  // 判断是否有新内容需要标记
+  // 判断是否有新内容需要标记（newText 非空白且有实际字符）
   const hasDivider = text.includes(DIVIDER);
+  const hasNewContent = newText.trim().length > 0;
 
   return (
     <Card>
       <CardContent className="pt-4 relative">
-        {text ? (
+        {text && hasNewContent ? (
           <div
             ref={containerRef}
             className="prose prose-sm max-w-none dark:prose-invert h-96 overflow-y-auto p-2"
@@ -91,13 +92,11 @@ export default function StoryViewer({ text, streaming, placeholder, waiting }: S
             )}
 
             {/* 新内容 */}
-            {newText && (
-              <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {newText}
-                </ReactMarkdown>
-              </div>
-            )}
+            <div className="animate-in fade-in slide-in-from-bottom-1 duration-300">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {newText}
+              </ReactMarkdown>
+            </div>
 
             {streaming && (
               <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
@@ -107,7 +106,7 @@ export default function StoryViewer({ text, streaming, placeholder, waiting }: S
           </div>
         ) : (
           <div className="h-48 flex items-center justify-center">
-            {waiting ? (
+            {waiting || streaming ? (
               <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
                 <Loader2Icon className="size-5 animate-spin" />
                 <span>故事生成中...</span>
