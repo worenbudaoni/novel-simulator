@@ -358,6 +358,12 @@ public class ParseChain {
     }
 
     private void saveCache(String cacheKey, String promptType, String resultText) {
+        // Check if cache already exists (race condition guard)
+        LlmCache existing = llmCacheMapper.selectOne(
+            new LambdaQueryWrapper<LlmCache>().eq(LlmCache::getCacheKey, cacheKey));
+        if (existing != null) {
+            return;
+        }
         LlmCache cache = new LlmCache();
         cache.setCacheKey(cacheKey);
         cache.setPromptType(promptType);
@@ -367,7 +373,7 @@ public class ParseChain {
         try {
             llmCacheMapper.insert(cache);
         } catch (Exception e) {
-            log.warn("Failed to save LLM cache", e);
+            log.debug("LLM cache save failed (race condition): {}", e.getMessage());
         }
     }
 }
