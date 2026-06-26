@@ -16,7 +16,7 @@ import SaveLoadModal from 'src/components/SaveLoadModal';
 export default function PlayerStoryPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { session, character, currentNode, currentOptions, loading, loadSession, saveSession, restartSession, chooseAction, spinAction } = useStory();
+  const { session, character, currentNode, currentOptions, loading, loadSession, saveSession, restartSession, chooseAction, spinAction, generateOptions } = useStory();
   const { streaming, connect } = useSSE();
   const [storyText, setStoryText] = useState('');
   const [actionDisabled, setActionDisabled] = useState(false);
@@ -43,6 +43,15 @@ export default function PlayerStoryPage() {
       setActionDisabled(true);
     }
   }, [currentNode?.isEnd, streaming]);
+
+  // 到达节点后自动生成选项
+  useEffect(() => {
+    if (currentNode && session?.sessionId && !loading) {
+      generateOptions(currentNode.id).catch(() => {
+        toast.error('选项生成失败，请检查 LLM 配置后重试');
+      });
+    }
+  }, [currentNode?.id, session?.sessionId, loading]);
 
   // 触发 SSE 故事流
   // displayDesc: 展示在故事区的文字（选择/事件的完整内容）
@@ -78,16 +87,16 @@ export default function PlayerStoryPage() {
   }, [connect]);
 
   // 选择选项
-  const handleChoose = async (optionId: number) => {
+  const handleChoose = async (targetNodeId: number, optionLabel: string) => {
     setActionDisabled(true);
     try {
-      const result = await chooseAction(optionId);
+      const result = await chooseAction(targetNodeId, optionLabel);
       if (!sessionId) return;
 
-      // 用户可见的选择描述
-      const choiceLabel = result?.chosenOption?.label || '做出了选择';
+      // 选项标签用于故事展示
+      const choiceLabel = result?.chosenOptionLabel || optionLabel || '做出了选择';
 
-      // 解析设置，判断转盘是否在本轮选择后触发
+      // 解析设置，判断转盘是否触发
       if (session?.settingsJson) {
         try {
           const settings = JSON.parse(session.settingsJson);
@@ -96,7 +105,7 @@ export default function PlayerStoryPage() {
         } catch { /* ignore */ }
       }
 
-      // 先生成选择后的故事（选择描述同时用于展示和 SSE）
+      // 生成选择后的故事
       triggerStory(sessionId, choiceLabel, choiceLabel);
     } catch { setActionDisabled(false); }
   };
@@ -189,15 +198,9 @@ export default function PlayerStoryPage() {
 
           {!streaming && currentOptions.length > 0 && !showWheel && (
             <ChoicePanel
-              options={currentOptions.map(o => ({
-                id: o.id,
-                label: o.label,
-                minIntelligence: o.minIntelligence,
-                minCharm: o.minCharm,
-              }))}
+              options={currentOptions}
               disabled={actionDisabled}
               onChoose={handleChoose}
-              character={character}
             />
           )}
         </div>
