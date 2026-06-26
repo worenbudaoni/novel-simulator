@@ -6,8 +6,12 @@ import com.novel.simulator.entity.LlmCache;
 import com.novel.simulator.entity.ParseRecord;
 import com.novel.simulator.mapper.LlmCacheMapper;
 import com.novel.simulator.mapper.ParseRecordMapper;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.output.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -258,10 +262,13 @@ public class ParseChain {
                 .modelName(llmModelName)
                 .baseUrl(llmApiUrl)
                 .temperature(0.7)
-                .maxTokens(8192)
+                .maxTokens(16384)
                 .timeout(java.time.Duration.ofSeconds(600))
                 .build();
-            r.rawResponse = model.generate(prompt);
+            java.util.List<ChatMessage> messages = java.util.Collections.singletonList(new UserMessage(prompt));
+            Response<AiMessage> response = model.generate(messages);
+            r.rawResponse = response.content().text();
+            if (r.rawResponse == null) r.rawResponse = "";
             r.tokensUsed = r.rawResponse.length() / 2;
             r.json = extractJson(r.rawResponse);
         } catch (Exception e) {
