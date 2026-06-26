@@ -1,7 +1,7 @@
 -- ============================================================
 -- Novel Interactive Story Simulator — DDL
 -- 文件: sql/01-ddl.sql
--- 说明: 全部 15 张表的建表语句
+-- 说明: 全部 15 张表，逻辑外键（无 FK 约束）
 -- ============================================================
 
 -- 1. 用户表
@@ -37,7 +37,7 @@ CREATE TABLE permission (
     route       VARCHAR(200) DEFAULT NULL COMMENT '前端路由（仅菜单）',
     status      TINYINT DEFAULT 1 COMMENT '1=有效 0=无效',
     sort_order  INT DEFAULT 0 COMMENT '排序号',
-    created_by  BIGINT DEFAULT 0 NOT NULL COMMENT '创建人（逻辑外键）',
+    created_by  BIGINT DEFAULT 0 NOT NULL COMMENT '创建人（逻辑外键 → user.id）',
     created_at  DATETIME COMMENT '创建时间',
     updated_at  DATETIME COMMENT '修改时间',
     UNIQUE KEY uk_code (code)
@@ -46,21 +46,17 @@ CREATE TABLE permission (
 -- 4. 用户-角色关联表
 CREATE TABLE user_role (
     id       BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id  BIGINT NOT NULL,
-    role_id  BIGINT NOT NULL,
-    UNIQUE KEY uk_user_role (user_id, role_id),
-    FOREIGN KEY (user_id) REFERENCES user(id),
-    FOREIGN KEY (role_id) REFERENCES role(id)
+    user_id  BIGINT NOT NULL COMMENT '逻辑外键 → user.id',
+    role_id  BIGINT NOT NULL COMMENT '逻辑外键 → role.id',
+    UNIQUE KEY uk_user_role (user_id, role_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 5. 角色-权限关联表
 CREATE TABLE role_permission (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,
-    role_id       BIGINT NOT NULL,
-    permission_id BIGINT NOT NULL,
-    UNIQUE KEY uk_role_permission (role_id, permission_id),
-    FOREIGN KEY (role_id) REFERENCES role(id),
-    FOREIGN KEY (permission_id) REFERENCES permission(id)
+    role_id       BIGINT NOT NULL COMMENT '逻辑外键 → role.id',
+    permission_id BIGINT NOT NULL COMMENT '逻辑外键 → permission.id',
+    UNIQUE KEY uk_role_permission (role_id, permission_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 6. 小说表
@@ -76,26 +72,23 @@ CREATE TABLE novel (
     status       TINYINT DEFAULT 0 COMMENT '0=草稿 1=已发布',
     parse_status TINYINT DEFAULT 0 COMMENT '0=未解析 1=解析中 2=已完成',
     parsed_at    DATETIME COMMENT '最近解析时间',
-    created_by   BIGINT COMMENT '创建者',
+    created_by   BIGINT COMMENT '创建者（逻辑外键 → user.id）',
     created_at   DATETIME,
-    updated_at   DATETIME,
-    FOREIGN KEY (created_by) REFERENCES user(id)
+    updated_at   DATETIME
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 7. 作品-角色可见性表
 CREATE TABLE novel_role_visibility (
     id       BIGINT AUTO_INCREMENT PRIMARY KEY,
-    novel_id BIGINT NOT NULL,
-    role_id  BIGINT NOT NULL,
-    UNIQUE KEY uk_novel_role (novel_id, role_id),
-    FOREIGN KEY (novel_id) REFERENCES novel(id) ON DELETE CASCADE,
-    FOREIGN KEY (role_id) REFERENCES role(id)
+    novel_id BIGINT NOT NULL COMMENT '逻辑外键 → novel.id',
+    role_id  BIGINT NOT NULL COMMENT '逻辑外键 → role.id',
+    UNIQUE KEY uk_novel_role (novel_id, role_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 8. 核心节点表
 CREATE TABLE node (
     id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    novel_id    BIGINT NOT NULL,
+    novel_id    BIGINT NOT NULL COMMENT '逻辑外键 → novel.id',
     title       VARCHAR(200) NOT NULL COMMENT '节点名称',
     description TEXT COMMENT '节点描述/场景介绍',
     node_type   TINYINT DEFAULT 0 COMMENT '0=核心节点 1=LLM动态生成',
@@ -105,41 +98,35 @@ CREATE TABLE node (
     min_charm   INT DEFAULT 0 COMMENT '最小魅力要求（0=不限制）',
     required_title VARCHAR(100) COMMENT '需要称号解锁',
     sort_order  INT,
-    created_at  DATETIME,
-    FOREIGN KEY (novel_id) REFERENCES novel(id) ON DELETE CASCADE
+    created_at  DATETIME
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 9. 节点连接表
 CREATE TABLE node_edge (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-    novel_id        BIGINT NOT NULL,
-    source_node_id  BIGINT NOT NULL,
-    target_node_id  BIGINT NOT NULL,
+    novel_id        BIGINT NOT NULL COMMENT '逻辑外键 → novel.id',
+    source_node_id  BIGINT NOT NULL COMMENT '逻辑外键 → node.id',
+    target_node_id  BIGINT NOT NULL COMMENT '逻辑外键 → node.id',
     condition_desc  VARCHAR(500) COMMENT '解锁条件描述',
-    edge_type       TINYINT DEFAULT 0 COMMENT '0=固定 1=条件解锁 2=随机解锁',
-    FOREIGN KEY (novel_id) REFERENCES novel(id) ON DELETE CASCADE,
-    FOREIGN KEY (source_node_id) REFERENCES node(id) ON DELETE CASCADE,
-    FOREIGN KEY (target_node_id) REFERENCES node(id) ON DELETE CASCADE
+    edge_type       TINYINT DEFAULT 0 COMMENT '0=固定 1=条件解锁 2=随机解锁'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 10. 节点选项表
 CREATE TABLE node_option (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-    node_id         BIGINT NOT NULL,
+    node_id         BIGINT NOT NULL COMMENT '逻辑外键 → node.id',
     label           VARCHAR(200) NOT NULL COMMENT '选项文字',
-    target_node_id  BIGINT COMMENT '指向节点（NULL=LLM动态生成）',
+    target_node_id  BIGINT COMMENT '指向节点（逻辑外键 → node.id, NULL=LLM动态生成）',
     trigger_event   BOOLEAN DEFAULT FALSE COMMENT '选择后是否触发随机事件',
     risk_hint       VARCHAR(200) COMMENT '风险提示',
-    created_at      DATETIME,
-    FOREIGN KEY (node_id) REFERENCES node(id) ON DELETE CASCADE,
-    FOREIGN KEY (target_node_id) REFERENCES node(id) ON DELETE SET NULL
+    created_at      DATETIME
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 11. 随机事件表
 CREATE TABLE random_event (
     id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    novel_id    BIGINT NOT NULL,
-    node_id     BIGINT COMMENT 'NULL=全局事件, 非NULL=节点专属',
+    novel_id    BIGINT NOT NULL COMMENT '逻辑外键 → novel.id',
+    node_id     BIGINT COMMENT 'NULL=全局事件, 非NULL=节点专属（逻辑外键 → node.id）',
     title       VARCHAR(200) NOT NULL,
     content     TEXT NOT NULL COMMENT '事件描述',
     event_type  TINYINT DEFAULT 0 COMMENT '0=正面 1=负面 2=中立',
@@ -147,18 +134,16 @@ CREATE TABLE random_event (
     attr_changes TEXT COMMENT '属性变化JSON: {"hp":-30,"attack":+5}',
     is_llm_gen  BOOLEAN DEFAULT FALSE COMMENT '是否LLM生成',
     weight      INT DEFAULT 10 COMMENT '随机权重',
-    created_at  DATETIME,
-    FOREIGN KEY (novel_id) REFERENCES novel(id) ON DELETE CASCADE,
-    FOREIGN KEY (node_id) REFERENCES node(id) ON DELETE CASCADE
+    created_at  DATETIME
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 12. 用户存档表
 CREATE TABLE user_session (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     session_id      VARCHAR(64) UNIQUE NOT NULL COMMENT '游戏会话标识',
-    user_id         BIGINT COMMENT '所属用户（NULL=游客）',
-    novel_id        BIGINT NOT NULL,
-    current_node_id BIGINT,
+    user_id         BIGINT COMMENT '所属用户（逻辑外键 → user.id, NULL=游客）',
+    novel_id        BIGINT NOT NULL COMMENT '逻辑外键 → novel.id',
+    current_node_id BIGINT COMMENT '逻辑外键 → node.id',
     history_path    TEXT COMMENT '走过的节点路径 JSON',
     story_text      LONGTEXT COMMENT '已生成的故事全文',
     story_summary   TEXT COMMENT '故事摘要',
@@ -167,15 +152,13 @@ CREATE TABLE user_session (
     last_save_at    DATETIME COMMENT '最近手动存档时间',
     is_active       BOOLEAN DEFAULT TRUE,
     created_at      DATETIME,
-    updated_at      DATETIME,
-    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL,
-    FOREIGN KEY (novel_id) REFERENCES novel(id)
+    updated_at      DATETIME
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 13. 角色属性表
 CREATE TABLE user_character (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-    session_id      VARCHAR(64) NOT NULL UNIQUE,
+    session_id      VARCHAR(64) NOT NULL UNIQUE COMMENT '逻辑外键 → user_session.session_id',
     hp              INT DEFAULT 100,
     attack          INT DEFAULT 10,
     defense         INT DEFAULT 10,
@@ -190,22 +173,20 @@ CREATE TABLE user_character (
     final_score     INT COMMENT '最终分数',
     final_rank      VARCHAR(10) COMMENT '评级: SSS/S/A/B/C/D',
     rank_reason     TEXT COMMENT '评级理由（LLM生成）',
-    updated_at      DATETIME,
-    FOREIGN KEY (session_id) REFERENCES user_session(session_id) ON DELETE CASCADE
+    updated_at      DATETIME
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 14. LLM 解析记录表
 CREATE TABLE parse_record (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,
-    novel_id      BIGINT NOT NULL,
+    novel_id      BIGINT NOT NULL COMMENT '逻辑外键 → novel.id',
     prompt_type   VARCHAR(50) NOT NULL COMMENT 'full_parse/reparse_nodes',
     input_summary VARCHAR(500),
     raw_response  LONGTEXT COMMENT 'LLM 原始返回',
     result_json   LONGTEXT COMMENT '解析后的结构化数据',
     tokens_used   INT COMMENT '消耗 tokens',
     status        TINYINT DEFAULT 0 COMMENT '0=成功 1=失败',
-    created_at    DATETIME,
-    FOREIGN KEY (novel_id) REFERENCES novel(id) ON DELETE CASCADE
+    created_at    DATETIME
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 15. LLM 生成缓存表
