@@ -29,6 +29,7 @@ export default function PlayerStoryPage() {
   const pendingWheelRef = useRef(false);
   const [isDead, setIsDead] = useState(false);
   const pendingDeathRef = useRef(false);
+  const [showMobileChar, setShowMobileChar] = useState(false);
 
   useEffect(() => {
     if (sessionId) loadSession(sessionId);
@@ -165,7 +166,7 @@ export default function PlayerStoryPage() {
             <div className="h-8 w-24 bg-muted rounded" />
           </div>
         </div>
-        <div className="grid gap-6 lg:grid-cols-[1fr_220px]">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_220px]">
           <div className="space-y-4">
             <div className="h-6 w-48 bg-muted rounded" />
             <div className="h-32 bg-muted rounded-lg" />
@@ -183,10 +184,11 @@ export default function PlayerStoryPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto px-2 sm:px-4">
       <div className="flex items-center justify-between mb-4">
         <Button variant="ghost" size="sm" onClick={() => navigate('/player')}>
-          <ArrowLeftIcon className="size-4 mr-1" /> 返回
+          <ArrowLeftIcon className="size-4 mr-1" />
+          <span className="hidden sm:inline">返回</span>
         </Button>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowSaveLoad(true)} disabled={actionDisabled}>
@@ -198,7 +200,7 @@ export default function PlayerStoryPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_220px]">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1fr_220px]">
         <div className="space-y-4">
           {currentNode && (
             <div>
@@ -224,7 +226,7 @@ export default function PlayerStoryPage() {
           )}
         </div>
 
-        <div className="space-y-3">
+        <div className="hidden lg:block space-y-3">
           <CharacterPanel character={character} loading={loading} />
         </div>
       </div>
@@ -236,6 +238,33 @@ export default function PlayerStoryPage() {
             <WheelOfFortune onSpin={handleSpin} disabled={pendingSpin} spinning={pendingSpin} />
             <div className="flex justify-center mt-3">
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 移动端角色面板触发按钮 */}
+      <button
+        type="button"
+        onClick={() => setShowMobileChar(true)}
+        className="fixed bottom-4 right-4 z-40 size-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center lg:hidden"
+      >
+        <span className="text-lg">📊</span>
+      </button>
+
+      {/* 移动端角色面板 Drawer */}
+      {showMobileChar && (
+        <div className="fixed inset-0 z-50 flex items-end lg:hidden" onClick={() => setShowMobileChar(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative w-full bg-background rounded-t-xl p-4 animate-in slide-in-from-bottom duration-200 max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-muted rounded-full mx-auto mb-4" />
+            <CharacterPanel character={character} loading={loading} />
+            <button
+              type="button"
+              onClick={() => setShowMobileChar(false)}
+              className="w-full mt-3 text-sm text-muted-foreground py-2 hover:text-foreground transition-colors"
+            >
+              关闭
+            </button>
           </div>
         </div>
       )}
