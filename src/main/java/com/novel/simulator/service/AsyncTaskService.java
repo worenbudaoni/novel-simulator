@@ -64,6 +64,22 @@ public class AsyncTaskService {
 
             java.util.Map<String, Object> result = parseChain.previewGenerate(name, author, contentType, nodeCount, eventCount);
 
+            // LLM doesn't know this work
+            if (result.containsKey("exists") && Boolean.FALSE.equals(result.get("exists"))) {
+                String msg = "未找到「" + name + "」的信息，请检查作品名称拼写或换一个作品";
+                log.warn("Async task {}: work '{}' not found", taskId, name);
+                failTask(taskId, msg);
+                return;
+            }
+
+            // LLM returned an error
+            if (result.containsKey("error")) {
+                String msg = (String) result.get("error");
+                log.warn("Async task {}: LLM error: {}", taskId, msg);
+                failTask(taskId, msg);
+                return;
+            }
+
             String json = objectMapper.writeValueAsString(result);
             updateTask(taskId, "done", json);
             log.info("Async task {}: completed for '{}'", taskId, name);
