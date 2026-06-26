@@ -146,6 +146,7 @@ export function useStory() {
       targetNodeId: option.targetNodeId,
       choiceLabel: option.label,
       riskLevel: option.riskLevel,
+      checkAttr: option.checkAttr || 'intelligence',
     });
     if (res.data.code === 200) {
       const data = res.data.data as ResolutionResult;
