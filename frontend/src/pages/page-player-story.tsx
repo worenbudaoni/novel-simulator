@@ -77,12 +77,6 @@ export default function PlayerStoryPage() {
     // 从 ref 拿最新长度（避免 useCallback 闭包捕获旧值）
     setContentStart(storyLenRef.current);
 
-    // 事件描述先追加到 storyText（作为新内容的一部分）
-    if (res?.eventTitle) {
-      const desc = '---\n\n' + res.eventTitle + '！' + (res.eventContent || '');
-      setStoryText(prev => prev + '\n\n' + desc + '\n\n');
-    }
-
     connect(sid, {
       onStory: (chunk) => {
         flushSync(() => {
