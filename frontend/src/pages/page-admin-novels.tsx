@@ -85,6 +85,7 @@ export default function AdminNovelsPage() {
   const [confirmType, setConfirmType] = useState<'llm' | 'txt'>('llm');
   const [previewResult, setPreviewResult] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [errorDetail, setErrorDetail] = useState<{ name: string; error: string } | null>(null);
   const [txtPreviewResult, setTxtPreviewResult] = useState<any>(null);
   const [txtParsedNovelId, setTxtParsedNovelId] = useState<number | null>(null);
   const [expandedSection, setExpandedSection] = useState<string>('nodes');
@@ -371,7 +372,7 @@ export default function AdminNovelsPage() {
                     setShowCreate(false);
                     setConfirmOpen(true);
                   } else if (task.status === 'error') {
-                    toast.error(task.error || '生成失败');
+                    setErrorDetail({ name: task.name, error: task.error || '未知错误' });
                   }
                 }}
               >
@@ -1019,6 +1020,37 @@ export default function AdminNovelsPage() {
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>取消</Button>
             <Button variant="destructive" onClick={handleDeleteConfirm}>
               <Trash2Icon className="size-4 mr-1" /> 删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Error detail dialog */}
+      <Dialog open={!!errorDetail} onOpenChange={(open) => { if (!open) setErrorDetail(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircleIcon className="size-5 text-destructive" />
+              生成失败
+            </DialogTitle>
+            <DialogDescription>
+              {errorDetail?.name ? `「${errorDetail.name}」生成失败` : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-destructive/5 rounded-lg border border-destructive/20 p-4 text-sm text-muted-foreground whitespace-pre-wrap">
+            {errorDetail?.error || '未知错误'}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setErrorDetail(null)}>关闭</Button>
+            <Button onClick={() => {
+              if (errorDetail) {
+                const name = errorDetail.name;
+                setErrorDetail(null);
+                setCreateTitle(name);
+                setShowCreate(true);
+              }
+            }}>
+              重新生成
             </Button>
           </DialogFooter>
         </DialogContent>
