@@ -249,7 +249,8 @@ public class PlayerController {
                 ? Long.valueOf(request.get("targetNodeId").toString()) : null;
             String label = (String) request.get("choiceLabel");
             String riskLevel = (String) request.get("riskLevel");
-            ResolutionResult result = actionEngine.resolve(sessionIdStr, targetNodeId, label, riskLevel);
+            String checkAttr = (String) request.getOrDefault("checkAttr", "intelligence");
+            ResolutionResult result = actionEngine.resolve(sessionIdStr, targetNodeId, label, riskLevel, checkAttr);
             return Result.success(result);
         } catch (Exception e) {
             log.warn("ActionEngine.resolve error: {}", e.getMessage());
@@ -271,8 +272,7 @@ public class PlayerController {
     }
 
     @GetMapping("/story/stream/{sessionId}")
-    public SseEmitter streamStory(@PathVariable String sessionId,
-                                   @RequestParam(required = false) String description) {
+    public SseEmitter streamStory(@PathVariable String sessionId) {
         SseEmitter emitter = new SseEmitter(300_000L);
         try {
             UserSession session = sessionService.getBySessionId(sessionId);
@@ -309,8 +309,9 @@ public class PlayerController {
                 if (resolution != null) {
                     story = storyChain.generateStory(session, currentNode, character, resolution);
                 } else {
-                    story = storyChain.generateStory(session, currentNode, character,
-                        description != null ? description : "");
+                    emitter.send(SseEmitter.event().name("error").data("无有效检定结果，请重新选择"));
+                    emitter.complete();
+                    return emitter;
                 }
                 String existingStory = session.getStoryText() != null ? session.getStoryText() : "";
                 session.setStoryText(existingStory + "\n\n" + story);
