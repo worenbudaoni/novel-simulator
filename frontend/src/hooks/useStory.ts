@@ -13,14 +13,8 @@ export interface NodeData {
 }
 
 export interface NodeOption {
-  id: number;
-  nodeId: number;
   label: string;
-  targetNodeId?: number;
-  triggerEvent: boolean;
-  riskHint?: string;
-  minIntelligence?: number;
-  minCharm?: number;
+  targetNodeId: number;
 }
 
 export interface CharacterData {
@@ -96,17 +90,25 @@ export function useStory() {
     const res = await api.get(`/player/node/${nodeId}${sid ? `?sessionId=${sid}` : ''}`);
     if (res.data.code === 200) {
       setCurrentNode(res.data.data.node);
-      const options = (res.data.data.options || []).map((opt: any) => {
-        const req = res.data.data.targetRequirements?.[String(opt.id)];
-        if (req) {
-          return { ...opt, minIntelligence: req.minIntelligence, minCharm: req.minCharm };
-        }
-        return opt;
-      });
-      setCurrentOptions(options);
+      setCurrentOptions([]);  // 清空旧选项，稍后由 generateOptions 填充
       if (res.data.data.character) {
         setCharacter(res.data.data.character);
       }
+    }
+  }, [session]);
+
+  const generateOptions = useCallback(async (nodeId: number) => {
+    if (!session?.sessionId) return;
+    try {
+      const res = await api.get(`/player/option/generate?sessionId=${session.sessionId}&nodeId=${nodeId}`);
+      if (res.data.code === 200) {
+        setCurrentOptions(res.data.data || []);
+      } else {
+        setCurrentOptions([]);
+      }
+    } catch (e) {
+      setCurrentOptions([]);
+      throw e;
     }
   }, [session]);
 
@@ -136,11 +138,12 @@ export function useStory() {
     await api.post('/player/session/settings', { sessionId: session.sessionId, settings });
   }, [session]);
 
-  const chooseAction = useCallback(async (optionId: number) => {
+  const chooseAction = useCallback(async (targetNodeId: number, label: string) => {
     if (!session?.sessionId) return null;
     const res = await api.post('/player/action/choose', {
       sessionId: session.sessionId,
-      optionId,
+      targetNodeId,
+      label,
     });
     if (res.data.code === 200) {
       const data = res.data.data;
@@ -193,7 +196,9 @@ export function useStory() {
 
   return {
     session, character, currentNode, currentOptions, loading, sessions,
-    createSession, loadSession, loadBySessionId, fetchSessions, chooseAction, spinAction,
-    loadNode, saveSession, restartSession, saveSettings,
+    createSession, loadSession, loadBySessionId, fetchSessions,
+    chooseAction, spinAction,
+    loadNode, generateOptions,
+    saveSession, restartSession, saveSettings,
   };
 }
