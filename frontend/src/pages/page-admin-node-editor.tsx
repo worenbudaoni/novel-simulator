@@ -72,7 +72,6 @@ export default function AdminNodeEditorPage() {
   // Original data for saving
   const [originalNodes, setOriginalNodes] = useState<Map<string, NovelNode>>(new Map());
   const [dbEdges, setDbEdges] = useState<NovelEdge[]>([]);
-  const [dbOptions, setDbOptions] = useState<any[]>([]);
 
   // Selected node for editing
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -138,11 +137,9 @@ export default function AdminNodeEditorPage() {
       if (res.data.code === 200) {
         const nodes: NovelNode[] = res.data.data.nodes || [];
         const edges: NovelEdge[] = res.data.data.edges || [];
-        const opts = res.data.data.options || [];
         console.log('Nodes:', nodes);
         console.log('Edges:', edges);
         setDbEdges(edges);
-        setDbOptions(opts);
         // Store original node data map
         const map = new Map<string, NovelNode>();
         nodes.forEach(n => { if (n.id) map.set(`db-${n.id}`, n); });
@@ -252,7 +249,6 @@ export default function AdminNodeEditorPage() {
       const res = await api.put(`/admin/novel/${novelId}/nodes`, {
         nodes: novelNodes,
         edges: novelEdges,
-        options: dbOptions,
       });
       if (res.data.code === 200) {
         toast.success('保存成功');
@@ -261,9 +257,7 @@ export default function AdminNodeEditorPage() {
         if (reload.data.code === 200) {
           const nodes: NovelNode[] = reload.data.data.nodes || [];
           const edges: NovelEdge[] = reload.data.data.edges || [];
-          const opts = reload.data.data.options || [];
           setDbEdges(edges);
-          setDbOptions(opts);
           const map = new Map<string, NovelNode>();
           nodes.forEach(n => { if (n.id) map.set(`db-${n.id}`, n); });
           setOriginalNodes(map);
