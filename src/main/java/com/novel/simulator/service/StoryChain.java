@@ -38,6 +38,7 @@ public class StoryChain {
     private final NovelMapper novelMapper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final SessionContextService sessionContextService;
 
     @Value("${llm.api-url:}")
     private String llmApiUrl;
@@ -48,10 +49,12 @@ public class StoryChain {
     @Value("${llm.model-name:gpt-3.5-turbo}")
     private String llmModelName;
 
-    public StoryChain(NovelMapper novelMapper, StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
+    public StoryChain(NovelMapper novelMapper, StringRedisTemplate redisTemplate, ObjectMapper objectMapper,
+                       SessionContextService sessionContextService) {
         this.novelMapper = novelMapper;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.sessionContextService = sessionContextService;
     }
 
     // ========== Public API ==========
@@ -346,6 +349,11 @@ public class StoryChain {
         history.add(assistantMsg);
         saveHistory(session.getSessionId(), history);
 
+        sessionContextService.appendRound(session.getSessionId(),
+            "选择「" + (resolution.getChoiceLabel() != null ? resolution.getChoiceLabel() : "") + "」(" + resolution.getRiskLevel() + ")",
+            buildCheckSummary(resolution),
+            storyText);
+
         return storyText;
     }
 
@@ -396,6 +404,23 @@ public class StoryChain {
         saveHistory(session.getSessionId(), history);
 
         return endingText;
+    }
+
+    // ========== Check Summary ==========
+
+    private String buildCheckSummary(ResolutionResult resolution) {
+        StringBuilder sb = new StringBuilder();
+        if ("risky".equals(resolution.getRiskLevel()) && resolution.getCheckAttr() != null) {
+            sb.append(resolution.getCheckAttr()).append("=").append(resolution.getAttrValue())
+                .append(", D").append(resolution.getDiceRoll())
+                .append(resolution.getModifier() >= 0 ? "+" : "").append(resolution.getModifier())
+                .append("=").append(resolution.getTotal())
+                .append(" vs DC").append(resolution.getDc())
+                .append(" → ").append(resolution.isSuccess() ? "成功" : "失败");
+        } else {
+            sb.append("无检定");
+        }
+        return sb.toString();
     }
 
     // ========== Stub fallbacks ==========

@@ -105,34 +105,31 @@ public class OptionChain {
     }
 
     private String loadRecentContext(String sessionId) {
-        String historyJson = redisTemplate.opsForValue().get(HISTORY_KEY_PREFIX + sessionId + HISTORY_KEY_SUFFIX);
-        if (historyJson == null || historyJson.isEmpty()) {
-            return "";
-        }
+        String ctxJson = redisTemplate.opsForValue().get(HISTORY_KEY_PREFIX + sessionId + ":context");
+        if (ctxJson == null || ctxJson.isEmpty()) return "";
         try {
-            List<Map<String, String>> history = objectMapper.readValue(historyJson,
-                new TypeReference<List<Map<String, String>>>() {});
-            // 取最近 6 条消息，保留更多上下文
-            int start = Math.max(0, history.size() - 6);
-            StringBuilder ctx = new StringBuilder();
-            for (int i = start; i < history.size(); i++) {
-                Map<String, String> msg = history.get(i);
-                String role = msg.getOrDefault("role", "");
-                String content = msg.getOrDefault("content", "");
-                if ("user".equals(role) && content.length() > 200) content = content.substring(0, 200) + "…";
-                if ("assistant".equals(role) && content.length() > 500) content = content.substring(0, 500) + "…";
-                ctx.append("[").append(role).append("] ").append(content).append("\n");
+            Map<String, Object> ctx = objectMapper.readValue(ctxJson, Map.class);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> rounds = (List<Map<String, Object>>) ctx.get("recentRounds");
+            if (rounds == null || rounds.isEmpty()) return "";
+            StringBuilder sb = new StringBuilder();
+            for (Map<String, Object> round : rounds) {
+                sb.append("[user] ").append(round.getOrDefault("userAction", "")).append("\n");
+                sb.append("[result] ").append(round.getOrDefault("checkResult", "")).append("\n");
+                String story = (String) round.getOrDefault("storyText", "");
+                if (story.length() > 300) story = story.substring(0, 300) + "...";
+                sb.append("[story] ").append(story).append("\n");
             }
-            return ctx.toString();
+            return sb.toString();
         } catch (Exception e) {
-            log.warn("Failed to parse chat history: {}", e.getMessage());
+            log.warn("Failed to parse SessionContext: {}", e.getMessage());
             return "";
         }
     }
 
     private String buildPrompt(Novel novel, String worldView, Node currentNode,
                                int hp, int atk, int def, int inte, int cha, int luk,
-                               StringBuilder connSb, String recentContext) {
+                               StringBuilder connSb, String recentContext, int nodeDangerLevel) {
         return "你是一个互动叙事游戏的设计师。请根据以下信息，为玩家生成 3-4 个选择。\n\n"
             + "【作品】" + (novel != null ? novel.getTitle() : "") + "\n"
             + "【世界观】" + worldView + "\n"
@@ -158,19 +155,17 @@ public class OptionChain {
             + "- 结合最近的故事和角色当前的处境，让每个选择都有叙事分量\n"
             + "- 不要出现「继续前进」「下一步」这种无意义标题"
             + "\n"
-            + "【新增要求】\n"
-            + "5. 每个选项标注风险等级：\n"
-            + "   - \"safe\"：安全推进，稳定小收益，适合稳妥玩家\n"
-            + "   - \"risky\"：冒险一试，需要属性检定，成功大收益/失败大代价\n"
-            + "   - \"daring\"：高风险高回报，必定触发随机事件\n"
-            + "6. 用 attrHint 简要说明属性要求（如'需要一定洞察力'）\n"
-            + "7. 用 expectedOutcome 简要描述预期结果（如'可能发现宝藏，但也有危险'）\n"
             + "返回格式示例：\n"
             + "[\n"
-            + "  {\"label\":\"...\",\"targetNodeId\":1,\"riskLevel\":\"safe\",\"attrHint\":\"\",\"expectedOutcome\":\"稳步推进，小有收获\"},\n"
-            + "  {\"label\":\"...\",\"targetNodeId\":2,\"riskLevel\":\"risky\",\"attrHint\":\"需要一定勇气和力量\",\"expectedOutcome\":\"搏斗一番，可能受伤但有机会获得情报\"},\n"
-            + "  {\"label\":\"...\",\"targetNodeId\":3,\"riskLevel\":\"daring\",\"attrHint\":\"极其危险\",\"expectedOutcome\":\"直面敌人首领，九死一生\"}\n"
-            + "]";
+            + "  {\"label\":\"...\",\"targetNodeId\":1,\"riskLevel\":\"safe\",\"checkAttr\":\"intelligence\",\"attrHint\":\"\",\"expectedOutcome\":\"稳步推进\"},\n"
+            + "  {\"label\":\"...\",\"targetNodeId\":2,\"riskLevel\":\"risky\",\"checkAttr\":\"attack\",\"attrHint\":\"需要一定战力\",\"expectedOutcome\":\"搏斗一番\"},\n"
+            + "  {\"label\":\"...\",\"targetNodeId\":3,\"riskLevel\":\"daring\",\"checkAttr\":\"luck\",\"attrHint\":\"极其危险\",\"expectedOutcome\":\"直面危险\"}\n"
+            + "]\n\n"
+            + "【必须遵守】\n"
+            + "- 所有选项内容严格限定在《" + (novel != null ? novel.getTitle() : "该作品") + "》的世界观内\n"
+            + "- checkAttr 必须是 intelligence/charm/attack/defense/luck 之一\n"
+            + "- 当前场景危险度 " + nodeDangerLevel + "/5，安全/冒险/高危的分布要合理\n"
+            + "- 禁止出现原作中不存在的人物、地点、概念或设定";
     }
 
     public List<OptionVO> generateOptions(String sessionId, Long nodeId) {
@@ -237,7 +232,8 @@ public class OptionChain {
         int luk = character != null && character.getLuck() != null ? character.getLuck() : 50;
 
         // 8. 构建 Prompt
-        String prompt = buildPrompt(novel, worldView, currentNode, hp, atk, def, inte, cha, luk, connSb, recentContext);
+        int nodeDangerLevel = currentNode.getDangerLevel() != null ? currentNode.getDangerLevel() : 3;
+        String prompt = buildPrompt(novel, worldView, currentNode, hp, atk, def, inte, cha, luk, connSb, recentContext, nodeDangerLevel);
 
         // 9. 调用 LLM
         String llmText;
@@ -261,6 +257,15 @@ public class OptionChain {
             String rl = opt.getRiskLevel();
             if (rl == null || (!"safe".equals(rl) && !"risky".equals(rl) && !"daring".equals(rl))) {
                 opt.setRiskLevel("safe");
+            }
+        }
+
+        // checkAttr 合法性校验
+        Set<String> validAttrs = new HashSet<>(Arrays.asList("intelligence", "charm", "attack", "defense", "luck"));
+        for (OptionVO opt : options) {
+            String ca = opt.getCheckAttr();
+            if (ca == null || !validAttrs.contains(ca)) {
+                opt.setCheckAttr("intelligence");
             }
         }
 
