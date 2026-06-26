@@ -156,7 +156,21 @@ public class OptionChain {
             + "- 选项要体现从当前场景到目标节点的过渡过程，例如当前在「城门」要去「客栈」，选项可以是「穿过热闹的街市，朝城中的客栈走去」\n"
             + "- 角色属性影响选项内容（高智力看到洞察选项，高魅力看到社交选项）\n"
             + "- 结合最近的故事和角色当前的处境，让每个选择都有叙事分量\n"
-            + "- 不要出现「继续前进」「下一步」这种无意义标题";
+            + "- 不要出现「继续前进」「下一步」这种无意义标题"
+            + "\n"
+            + "【新增要求】\n"
+            + "5. 每个选项标注风险等级：\n"
+            + "   - \"safe\"：安全推进，稳定小收益，适合稳妥玩家\n"
+            + "   - \"risky\"：冒险一试，需要属性检定，成功大收益/失败大代价\n"
+            + "   - \"daring\"：高风险高回报，必定触发随机事件\n"
+            + "6. 用 attrHint 简要说明属性要求（如'需要一定洞察力'）\n"
+            + "7. 用 expectedOutcome 简要描述预期结果（如'可能发现宝藏，但也有危险'）\n"
+            + "返回格式示例：\n"
+            + "[\n"
+            + "  {\"label\":\"...\",\"targetNodeId\":1,\"riskLevel\":\"safe\",\"attrHint\":\"\",\"expectedOutcome\":\"稳步推进，小有收获\"},\n"
+            + "  {\"label\":\"...\",\"targetNodeId\":2,\"riskLevel\":\"risky\",\"attrHint\":\"需要一定勇气和力量\",\"expectedOutcome\":\"搏斗一番，可能受伤但有机会获得情报\"},\n"
+            + "  {\"label\":\"...\",\"targetNodeId\":3,\"riskLevel\":\"daring\",\"attrHint\":\"极其危险\",\"expectedOutcome\":\"直面敌人首领，九死一生\"}\n"
+            + "]";
     }
 
     public List<OptionVO> generateOptions(String sessionId, Long nodeId) {
@@ -240,6 +254,14 @@ public class OptionChain {
             options = objectMapper.readValue(json, new TypeReference<List<OptionVO>>() {});
         } catch (Exception e) {
             throw new RuntimeException("解析 LLM 返回失败: " + e.getMessage());
+        }
+
+        // riskLevel 合法性校验，非法值默认 safe
+        for (OptionVO opt : options) {
+            String rl = opt.getRiskLevel();
+            if (rl == null || (!"safe".equals(rl) && !"risky".equals(rl) && !"daring".equals(rl))) {
+                opt.setRiskLevel("safe");
+            }
         }
 
         // 11. 约束校验：过滤掉不在可用连接列表中的选项
