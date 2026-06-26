@@ -19,6 +19,7 @@ public class ResolutionResult {
 
     // 检定信息（risky/daring 时填充）
     private String riskLevel;            // safe / risky / daring
+    private String choiceLabel;          // 玩家选择的选项文案
     private String checkAttr;            // 关联属性名（如 "intelligence"）
     private int attrValue;               // 属性值
     private int diceRoll;                // d20 结果 (risky)
@@ -34,7 +35,6 @@ public class ResolutionResult {
     // 事件数据（触发时才有）
     private String eventTitle;
     private String eventContent;
-    private int sector;                  // 事件扇区 0=奇遇 1=宝箱 2=战斗 3=诅咒 4=命运 5=邂逅
 
     public String getActionType() { return actionType; }
     public void setActionType(String actionType) { this.actionType = actionType; }
@@ -43,6 +43,8 @@ public class ResolutionResult {
 
     public String getRiskLevel() { return riskLevel; }
     public void setRiskLevel(String riskLevel) { this.riskLevel = riskLevel; }
+    public String getChoiceLabel() { return choiceLabel; }
+    public void setChoiceLabel(String choiceLabel) { this.choiceLabel = choiceLabel; }
     public String getCheckAttr() { return checkAttr; }
     public void setCheckAttr(String checkAttr) { this.checkAttr = checkAttr; }
     public int getAttrValue() { return attrValue; }
@@ -67,6 +69,4 @@ public class ResolutionResult {
     public void setEventTitle(String eventTitle) { this.eventTitle = eventTitle; }
     public String getEventContent() { return eventContent; }
     public void setEventContent(String eventContent) { this.eventContent = eventContent; }
-    public int getSector() { return sector; }
-    public void setSector(int sector) { this.sector = sector; }
 }
