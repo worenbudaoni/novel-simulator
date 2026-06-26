@@ -14,8 +14,6 @@ import { toast } from 'sonner';
 import EndingModal from 'src/components/EndingModal';
 import SaveLoadModal from 'src/components/SaveLoadModal';
 
-const DIVIDER = '<!--NEW-STORY-->';
-
 export default function PlayerStoryPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
@@ -23,6 +21,7 @@ export default function PlayerStoryPage() {
           saveSession, restartSession, resolveAction, generateOptions } = useStory();
   const { streaming, connect } = useSSE();
   const [storyText, setStoryText] = useState('');
+  const [contentStart, setContentStart] = useState<number | undefined>(undefined);
   const [actionDisabled, setActionDisabled] = useState(false);
   const [resolution, setResolution] = useState<ResolutionResult | null>(null);
   const [showResolution, setShowResolution] = useState(false);
@@ -71,13 +70,13 @@ export default function PlayerStoryPage() {
       pendingDeathRef.current = true;
     }
 
-    // 插入 HTML 注释作为分隔标记（不可见，用于 split 定位）
-    setStoryText(prev => prev + '\n\n' + DIVIDER + '\n\n');
+    // 先记录旧内容的末尾位置 — 这就是新旧分界点
+    setContentStart(storyText.length);
 
-    // 事件描述单独追加
+    // 事件描述先追加到 storyText（作为新内容的一部分）
     if (res?.eventTitle) {
-      const desc = res.eventTitle + '！' + (res.eventContent || '');
-      setStoryText(prev => prev + '\n\n---\n\n' + desc + '\n\n');
+      const desc = '---\n\n' + res.eventTitle + '！' + (res.eventContent || '');
+      setStoryText(prev => prev + '\n\n' + desc + '\n\n');
     }
 
     connect(sid, {
@@ -170,7 +169,7 @@ export default function PlayerStoryPage() {
           <Button variant="outline" size="sm" onClick={() => setShowSaveLoad(true)} disabled={actionDisabled}>
             <SaveIcon className="size-4 mr-1" /> 存档
           </Button>
-          <Button variant="outline" size="sm" onClick={async () => { await restartSession(); setStoryText(''); storyInitRef.current = false; }} disabled={actionDisabled}>
+          <Button variant="outline" size="sm" onClick={async () => { await restartSession(); setStoryText(''); setContentStart(undefined); storyInitRef.current = false; }} disabled={actionDisabled}>
             <RotateCcwIcon className="size-4 mr-1" /> 重新开始
           </Button>
         </div>
@@ -194,6 +193,7 @@ export default function PlayerStoryPage() {
               <StoryViewer
                 text={storyText}
                 streaming={streaming}
+                contentStart={contentStart}
                 placeholder={storyText ? '继续你的冒险...' : '故事即将开始...'}
               />
 
@@ -251,7 +251,7 @@ export default function PlayerStoryPage() {
             choicesMade: character.choicesMade, eventsTriggered: character.eventsTriggered,
             currentTitle: character.currentTitle,
           } : null}
-          onRestart={async () => { setShowEnding(false); setIsDead(false); await restartSession(); setStoryText(''); storyInitRef.current = false; }}
+          onRestart={async () => { setShowEnding(false); setIsDead(false); await restartSession(); setStoryText(''); setContentStart(undefined); storyInitRef.current = false; }}
           onBackToHome={() => navigate('/player')}
         />
       )}
