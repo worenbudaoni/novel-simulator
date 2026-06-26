@@ -3,6 +3,7 @@ package com.novel.simulator.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.novel.simulator.entity.*;
 import com.novel.simulator.mapper.NovelMapper;
+import com.novel.simulator.mapper.RandomEventMapper;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +24,7 @@ public class EventChain {
     private static final String HISTORY_KEY_SUFFIX = ":chat_history";
 
     private final NovelMapper novelMapper;
+    private final RandomEventMapper randomEventMapper;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
 
@@ -35,8 +37,10 @@ public class EventChain {
     @Value("${llm.model-name:gpt-3.5-turbo}")
     private String llmModelName;
 
-    public EventChain(NovelMapper novelMapper, ObjectMapper objectMapper, StringRedisTemplate redisTemplate) {
+    public EventChain(NovelMapper novelMapper, RandomEventMapper randomEventMapper,
+                      ObjectMapper objectMapper, StringRedisTemplate redisTemplate) {
         this.novelMapper = novelMapper;
+        this.randomEventMapper = randomEventMapper;
         this.objectMapper = objectMapper;
         this.redisTemplate = redisTemplate;
     }
@@ -128,6 +132,27 @@ public class EventChain {
             log.warn("Failed to read chat history for event context: {}", e.getMessage());
         }
 
+        // 读取本作品已有事件作为风格参考（取 3 条）
+        String eventExamples = "";
+        try {
+            List<RandomEvent> existingEvents = randomEventMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<RandomEvent>()
+                    .eq(RandomEvent::getNovelId, session.getNovelId())
+                    .orderByAsc(RandomEvent::getCreatedAt)
+                    .last("LIMIT 3"));
+            if (!existingEvents.isEmpty()) {
+                StringBuilder eb = new StringBuilder();
+                for (RandomEvent e : existingEvents) {
+                    eb.append("- ").append(e.getTitle() != null ? e.getTitle() : "无标题").append(": ");
+                    String c = e.getContent();
+                    eb.append(c != null && c.length() > 150 ? c.substring(0, 150) + "…" : c).append("\n");
+                }
+                eventExamples = eb.toString();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to load event examples: {}", e.getMessage());
+        }
+
         // Null-safe defaults for character stats
         int hp = character.getHp() != null ? character.getHp() : 100;
         int atk = character.getAttack() != null ? character.getAttack() : 10;
@@ -151,6 +176,9 @@ public class EventChain {
             + "【扇区类型】\n" + sectorName + "\n\n"
             + (!storyContext.isEmpty()
                 ? "【最近的故事进展（以此为基础继续，不要脱离当前叙事）】\n" + storyContext + "\n\n"
+                : "")
+            + (!eventExamples.isEmpty()
+                ? "【本作品已有的事件示例（请保持相似的风格和基调）】\n" + eventExamples + "\n"
                 : "")
             + "请生成一个严格符合该作品世界观的事件，严格返回以下 JSON 格式（不要 markdown 代码块标记，不要额外内容）：\n\n"
             + "{\n"
