@@ -7,6 +7,7 @@ import com.novel.simulator.entity.*;
 import com.novel.simulator.mapper.*;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
@@ -70,8 +71,12 @@ public class OptionChain {
             .temperature(0.7)
             .maxTokens(1024)
             .timeout(Duration.ofSeconds(60))
+            .logRequests(true)
+            .logResponses(true)
             .build();
-        List<ChatMessage> messages = Collections.singletonList(new UserMessage(prompt));
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new SystemMessage("你是一个互动叙事游戏的设计师，严格按用户要求输出 JSON 格式的选项。"));
+        messages.add(new UserMessage(prompt));
         Response<AiMessage> response = model.generate(messages);
         if (response == null) {
             throw new RuntimeException("LLM 返回 null response");
