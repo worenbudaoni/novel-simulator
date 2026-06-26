@@ -8,12 +8,14 @@ import com.novel.simulator.service.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.security.access.prepost.PreAuthorize;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/player")
 public class PlayerController {
@@ -28,6 +30,7 @@ public class PlayerController {
     private final ActionEngine actionEngine;
     private final StoryChain storyChain;
     private final EventChain eventChain;
+    private final OptionChain optionChain;
     private final UserCharacterMapper userCharacterMapper;
     private final UserSessionMapper userSessionMapper;
 
@@ -41,6 +44,7 @@ public class PlayerController {
                             ActionEngine actionEngine,
                             StoryChain storyChain,
                             EventChain eventChain,
+                            OptionChain optionChain,
                             UserCharacterMapper userCharacterMapper,
                             UserSessionMapper userSessionMapper) {
         this.novelService = novelService;
@@ -53,6 +57,7 @@ public class PlayerController {
         this.actionEngine = actionEngine;
         this.storyChain = storyChain;
         this.eventChain = eventChain;
+        this.optionChain = optionChain;
         this.userCharacterMapper = userCharacterMapper;
         this.userSessionMapper = userSessionMapper;
     }
@@ -133,24 +138,6 @@ public class PlayerController {
         Node node = nodeMapper.selectById(nodeId);
         if (node == null) return Result.error(404, "节点不存在");
 
-        List<NodeOption> options = nodeOptionMapper.selectList(
-            new LambdaQueryWrapper<NodeOption>().eq(NodeOption::getNodeId, nodeId));
-
-        // Build target node requirement map (optionId -> {minIntelligence, minCharm})
-        Map<String, Map<String, Object>> targetReqs = new HashMap<>();
-        for (NodeOption opt : options) {
-            if (opt.getTargetNodeId() != null) {
-                Node target = nodeMapper.selectById(opt.getTargetNodeId());
-                if (target != null && (target.getMinIntelligence() != null && target.getMinIntelligence() > 0
-                    || target.getMinCharm() != null && target.getMinCharm() > 0)) {
-                    Map<String, Object> reqs = new HashMap<>();
-                    reqs.put("minIntelligence", target.getMinIntelligence());
-                    reqs.put("minCharm", target.getMinCharm());
-                    targetReqs.put(String.valueOf(opt.getId()), reqs);
-                }
-            }
-        }
-
         // Get character attributes if sessionId is provided
         Map<String, Object> character = null;
         if (sessionId != null && !sessionId.isEmpty()) {
@@ -171,10 +158,24 @@ public class PlayerController {
 
         Map<String, Object> result = new HashMap<>();
         result.put("node", node);
-        result.put("options", options);
-        result.put("targetRequirements", targetReqs);
         result.put("character", character);
         return Result.success(result);
+    }
+
+    /**
+     * LLM 动态生成选项
+     */
+    @GetMapping("/option/generate")
+    @PreAuthorize("hasAuthority('player:play')")
+    public Result<List<OptionVO>> generateOptions(@RequestParam String sessionId,
+                                                   @RequestParam Long nodeId) {
+        try {
+            List<OptionVO> options = optionChain.generateOptions(sessionId, nodeId);
+            return Result.success(options);
+        } catch (Exception e) {
+            log.warn("OptionChain error: {}", e.getMessage());
+            return Result.error(500, e.getMessage());
+        }
     }
 
     @PostMapping("/session/create")
