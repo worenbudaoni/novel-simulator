@@ -10,6 +10,9 @@ interface ResolutionDisplayProps {
   onContinue: () => void;
 }
 
+const SECTOR_ICONS = ['✨', '💎', '⚔️', '💀', '🌀', '💕'];
+const SECTOR_NAMES = ['奇遇', '宝箱', '战斗', '诅咒', '命运', '邂逅'];
+
 export default function ResolutionDisplay({ result, onContinue }: ResolutionDisplayProps) {
   // 用数字控制动画渐进展示：0=入场动画 1=核心结果 2=完全展示
   const [reveal, setReveal] = useState(0);
@@ -28,11 +31,13 @@ export default function ResolutionDisplay({ result, onContinue }: ResolutionDisp
         <div className="flex items-center gap-2">
           {result.riskLevel === 'safe' && <span className="text-lg">🟢</span>}
           {result.riskLevel === 'risky' && <span className="text-lg">{result.success ? '🎲' : '💥'}</span>}
-          {result.riskLevel === 'daring' && <span className="text-lg">🌀</span>}
+          {result.riskLevel === 'daring' && result.sector != null && (
+            <span className="text-lg">{SECTOR_ICONS[result.sector] ?? '🌀'}</span>
+          )}
           <h3 className="text-base font-semibold">
             {result.riskLevel === 'safe' && '稳定推进'}
             {result.riskLevel === 'risky' && (result.success ? '检定成功！' : '检定失败')}
-            {result.riskLevel === 'daring' && '高风险行动'}
+            {result.riskLevel === 'daring' && (result.sector != null ? SECTOR_NAMES[result.sector] ?? '高风险' : '高风险行动')}
           </h3>
         </div>
 
