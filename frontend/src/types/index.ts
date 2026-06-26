@@ -23,3 +23,29 @@ export interface RegisterRequest {
   password: string;
   nickname?: string;
 }
+
+export interface ChoiceOption {
+  id?: number;
+  label: string;
+  targetNodeId: number;
+  riskLevel: 'safe' | 'risky' | 'daring';
+  attrHint?: string;
+  expectedOutcome?: string;
+}
+
+export interface ResolutionResult {
+  actionType: string;
+  targetNodeId: number;
+  riskLevel: string;
+  checkAttr?: string;
+  attrValue?: number;
+  diceRoll?: number;
+  dc?: number;
+  modifier?: number;
+  total?: number;
+  success: boolean;
+  attrChanges: Record<string, number>;
+  isDead: boolean;
+  eventTitle?: string;
+  eventContent?: string;
+}
