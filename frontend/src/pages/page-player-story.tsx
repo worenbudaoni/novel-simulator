@@ -27,6 +27,8 @@ export default function PlayerStoryPage() {
   const [showSaveLoad, setShowSaveLoad] = useState(false);
   const [lastEventDesc, setLastEventDesc] = useState('');
   const pendingWheelRef = useRef(false);
+  const [isDead, setIsDead] = useState(false);
+  const pendingDeathRef = useRef(false);
 
   useEffect(() => {
     if (sessionId) loadSession(sessionId);
@@ -74,7 +76,13 @@ export default function PlayerStoryPage() {
         setPendingSessionId(null);
         setPendingSpin(false);
         setShowWheel(false);
-        // 如果等待转盘，故事完成后显示转盘
+        if (pendingDeathRef.current) {
+          pendingDeathRef.current = false;
+          setIsDead(true);
+          setShowEnding(true);
+          setActionDisabled(true);
+          return;
+        }
         if (pendingWheelRef.current) {
           pendingWheelRef.current = false;
           setShowWheel(true);
@@ -92,6 +100,11 @@ export default function PlayerStoryPage() {
     try {
       const result = await chooseAction(targetNodeId, optionLabel);
       if (!sessionId) return;
+
+      // 检查死亡
+      if (result?.isDead) {
+        pendingDeathRef.current = true;
+      }
 
       // 选项标签用于故事展示
       const choiceLabel = result?.chosenOptionLabel || optionLabel || '做出了选择';
@@ -120,6 +133,12 @@ export default function PlayerStoryPage() {
     setShowWheel(false);
     try {
       const result = await spinPromise;
+
+      // 检查死亡
+      if (result?.isDead) {
+        pendingDeathRef.current = true;
+      }
+
       const displayDesc = result?.eventTitle
         ? result.eventTitle + '！' + (result.eventDescription || '')
         : (result?.eventDescription || '');
@@ -224,8 +243,9 @@ export default function PlayerStoryPage() {
       {/* 结局弹窗 */}
       {showEnding && (
         <EndingModal
-          nodeTitle={currentNode?.title || '结局'}
-          nodeDescription={currentNode?.description}
+          isDeath={isDead}
+          nodeTitle={isDead ? '你的冒险在这里结束了' : (currentNode?.title || '结局')}
+          nodeDescription={isDead ? '角色已经死亡，冒险到此为止。' : currentNode?.description}
           storyText={storyText}
           onClose={() => setShowEnding(false)}
           character={character ? {
@@ -239,7 +259,7 @@ export default function PlayerStoryPage() {
             eventsTriggered: character.eventsTriggered,
             currentTitle: character.currentTitle,
           } : null}
-          onRestart={async () => { setShowEnding(false); await restartSession(); setStoryText(''); }}
+          onRestart={async () => { setShowEnding(false); setIsDead(false); await restartSession(); setStoryText(''); }}
           onBackToHome={() => navigate('/player')}
         />
       )}
