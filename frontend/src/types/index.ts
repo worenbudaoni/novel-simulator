@@ -31,12 +31,14 @@ export interface ChoiceOption {
   riskLevel: 'safe' | 'risky' | 'daring';
   attrHint?: string;
   expectedOutcome?: string;
+  checkAttr?: string;
 }
 
 export interface ResolutionResult {
   actionType: string;
   targetNodeId: number;
   riskLevel: string;
+  choiceLabel?: string;
   checkAttr?: string;
   attrValue?: number;
   diceRoll?: number;
@@ -48,5 +50,4 @@ export interface ResolutionResult {
   isDead: boolean;
   eventTitle?: string;
   eventContent?: string;
-  sector?: number;           // 0=奇遇 1=宝箱 2=战斗 3=诅咒 4=命运 5=邂逅
 }
