@@ -15,6 +15,7 @@ public class AsyncTaskService {
 
     private static final Logger log = LoggerFactory.getLogger(AsyncTaskService.class);
     private static final String TASK_KEY_PREFIX = "task:import:";
+    private static final long TASK_TTL_HOURS = 12;
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -27,7 +28,7 @@ public class AsyncTaskService {
     public String createTask() {
         String taskId = UUID.randomUUID().toString().replace("-", "");
         String key = TASK_KEY_PREFIX + taskId;
-        redisTemplate.opsForValue().set(key, "{\"status\":\"pending\"}", 10, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(key, "{\"status\":\"pending\"}", TASK_TTL_HOURS, TimeUnit.HOURS);
         return taskId;
     }
 
@@ -39,13 +40,13 @@ public class AsyncTaskService {
             value.append(",\"result\":").append(resultJson);
         }
         value.append("}");
-        redisTemplate.opsForValue().set(key, value.toString(), 10, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(key, value.toString(), TASK_TTL_HOURS, TimeUnit.HOURS);
     }
 
     public void failTask(String taskId, String error) {
         String key = TASK_KEY_PREFIX + taskId;
         String value = "{\"status\":\"error\",\"error\":\"" + error.replace("\"", "\\\"") + "\"}";
-        redisTemplate.opsForValue().set(key, value, 10, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(key, value, TASK_TTL_HOURS, TimeUnit.HOURS);
     }
 
     public String getTaskStatus(String taskId) {
