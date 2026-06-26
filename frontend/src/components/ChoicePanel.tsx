@@ -16,6 +16,10 @@ const riskStyle: Record<string, { label: string; tagCls: string; borderCls: stri
   daring:  { label: '高危', tagCls: 'bg-red-100 text-red-700', borderCls: 'border-red-300' },
 };
 
+const ATTR_ICONS: Record<string, string> = {
+  intelligence: '🧠', charm: '✨', attack: '⚔️', defense: '🛡️', luck: '🍀',
+};
+
 export default function ChoicePanel({ options, disabled, loading, resolving, onChoose }: ChoicePanelProps) {
   // 生成选项中
   if (loading) {
@@ -71,6 +75,11 @@ export default function ChoicePanel({ options, disabled, loading, resolving, onC
               )}
               {opt.attrHint && opt.riskLevel !== 'safe' && (
                 <span className="text-[11px] text-amber-600 ml-1">{opt.attrHint}</span>
+              )}
+              {opt.checkAttr && opt.riskLevel !== 'safe' && ATTR_ICONS[opt.checkAttr] && (
+                <span className="text-xs text-muted-foreground ml-1">
+                  {ATTR_ICONS[opt.checkAttr]}
+                </span>
               )}
             </div>
           </Button>
