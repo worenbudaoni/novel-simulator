@@ -60,8 +60,17 @@ export default function AdminNovelsPage() {
   const [nodeCount, setNodeCount] = useState(12);
   const [eventCount, setEventCount] = useState(8);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [genTasks, setGenTasks] = useState<GenTask[]>([]);
+  const [genTasks, setGenTasks] = useState<GenTask[]>(() => {
+    try {
+      const saved = sessionStorage.getItem('novel_gen_tasks');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const pollTimersRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+
+  useEffect(() => {
+    sessionStorage.setItem('novel_gen_tasks', JSON.stringify(genTasks));
+  }, [genTasks]);
   // Confirm dialog state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmType, setConfirmType] = useState<'llm' | 'txt'>('llm');
@@ -186,6 +195,7 @@ export default function AdminNovelsPage() {
         const data = res.data.data;
         const count = (data.parseResult?.nodes as any[])?.length || 0;
         toast.success(`「${data.novel.title}」创建成功，${count} 个节点`);
+        setGenTasks(prev => prev.filter(t => t.name !== createTitle.trim() || t.status !== 'done'));
         resetCreate();
         fetchNovels();
       }
