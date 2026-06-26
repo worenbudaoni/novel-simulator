@@ -7,6 +7,7 @@ public class OptionVO {
     private String riskLevel;        // "safe" | "risky" | "daring"
     private String attrHint;         // "需要一定洞察力"
     private String expectedOutcome;  // "可能发现宝藏，但也有危险"
+    private String checkAttr;        // "intelligence"|"charm"|"attack"|"defense"|"luck"
 
     public OptionVO() {}
 
@@ -30,4 +31,6 @@ public class OptionVO {
     public void setAttrHint(String attrHint) { this.attrHint = attrHint; }
     public String getExpectedOutcome() { return expectedOutcome; }
     public void setExpectedOutcome(String expectedOutcome) { this.expectedOutcome = expectedOutcome; }
+    public String getCheckAttr() { return checkAttr; }
+    public void setCheckAttr(String checkAttr) { this.checkAttr = checkAttr; }
 }
