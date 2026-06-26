@@ -95,9 +95,47 @@ export default function AdminNovelsPage() {
 
   useEffect(() => {
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      pollTimersRef.current.forEach(t => clearInterval(t));
+      pollTimersRef.current.clear();
     };
   }, []);
+
+  const addTask = (name: string, taskId: string) => {
+    const task: GenTask = { taskId, name, status: 'processing' };
+    setGenTasks(prev => [task, ...prev]);
+  };
+
+  const updateTaskStatus = (taskId: string, status: GenTask['status'], result?: any, error?: string) => {
+    setGenTasks(prev => prev.map(t => t.taskId === taskId ? { ...t, status, result, error } : t));
+  };
+
+  const removeTask = (taskId: string) => {
+    const timer = pollTimersRef.current.get(taskId);
+    if (timer) { clearInterval(timer); pollTimersRef.current.delete(taskId); }
+    setGenTasks(prev => prev.filter(t => t.taskId !== taskId));
+  };
+
+  const startPolling = (taskId: string) => {
+    const timer = setInterval(async () => {
+      try {
+        const sr = await api.get(`/admin/novel/import/status/${taskId}`);
+        if (sr.data.code === 200) {
+          const data = sr.data.data;
+          if (data.status === 'done') {
+            const t = pollTimersRef.current.get(taskId);
+            if (t) { clearInterval(t); pollTimersRef.current.delete(taskId); }
+            updateTaskStatus(taskId, 'done', data.result);
+          } else if (data.status === 'error') {
+            const t = pollTimersRef.current.get(taskId);
+            if (t) { clearInterval(t); pollTimersRef.current.delete(taskId); }
+            updateTaskStatus(taskId, 'error', null, data.error || '生成失败');
+            toast.error('生成失败: ' + (data.error || '未知错误'));
+          }
+        }
+      } catch { /* ignore polling errors */ }
+    }, 3000);
+    pollTimersRef.current.set(taskId, timer);
+  };
 
   const resetCreate = () => {
     setShowCreate(false);
