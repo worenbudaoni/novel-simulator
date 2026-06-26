@@ -5,8 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.novel.simulator.dto.OptionVO;
 import com.novel.simulator.entity.*;
 import com.novel.simulator.mapper.*;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.output.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,33 +59,25 @@ public class OptionChain {
         this.redisTemplate = redisTemplate;
     }
 
-    private static class LlmResult {
-        String text;
-        String error;
-
-        static LlmResult success(String text) { LlmResult r = new LlmResult(); r.text = text; return r; }
-        static LlmResult error(String msg) { LlmResult r = new LlmResult(); r.error = msg; return r; }
-    }
-
-    private LlmResult callLlm(String prompt) {
+    private String callLlm(String prompt) {
         if (llmApiKey == null || llmApiKey.isEmpty()) {
-            return LlmResult.error("LLM API Key 未配置");
+            throw new RuntimeException("LLM API Key 未配置");
         }
-        try {
-            ChatLanguageModel model = OpenAiChatModel.builder()
-                .apiKey(llmApiKey)
-                .modelName(llmModelName)
-                .baseUrl(llmApiUrl)
-                .temperature(0.7)
-                .maxTokens(1024)
-                .timeout(Duration.ofSeconds(60))
-                .build();
-            String response = model.generate(prompt);
-            return LlmResult.success(response);
-        } catch (Exception e) {
-            log.warn("LLM call failed: {}", e.getMessage());
-            return LlmResult.error(e.getMessage());
+        ChatLanguageModel model = OpenAiChatModel.builder()
+            .apiKey(llmApiKey)
+            .modelName(llmModelName)
+            .baseUrl(llmApiUrl)
+            .temperature(0.7)
+            .maxTokens(1024)
+            .timeout(Duration.ofSeconds(60))
+            .build();
+        List<ChatMessage> messages = Collections.singletonList(new UserMessage(prompt));
+        Response<AiMessage> response = model.generate(messages);
+        String text = response.content().text();
+        if (text == null || text.trim().isEmpty()) {
+            throw new RuntimeException("LLM 返回内容为空");
         }
+        return text;
     }
 
     private String extractJson(String text) {
@@ -216,15 +212,17 @@ public class OptionChain {
         String prompt = buildPrompt(novel, worldView, currentNode, hp, atk, def, inte, cha, luk, connSb, recentContext);
 
         // 9. 调用 LLM
-        LlmResult llmResult = callLlm(prompt);
-        if (llmResult.error != null) {
-            throw new RuntimeException("选项生成失败: " + llmResult.error);
+        String llmText;
+        try {
+            llmText = callLlm(prompt);
+        } catch (Exception e) {
+            throw new RuntimeException("选项生成失败: " + e.getMessage());
         }
 
         // 10. 解析 JSON
         List<OptionVO> options;
         try {
-            String json = extractJson(llmResult.text);
+            String json = extractJson(llmText);
             options = objectMapper.readValue(json, new TypeReference<List<OptionVO>>() {});
         } catch (Exception e) {
             throw new RuntimeException("解析 LLM 返回失败: " + e.getMessage());
