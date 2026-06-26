@@ -232,7 +232,7 @@ public class PlayerController {
 
     @PostMapping("/action/choose")
     public Result<ActionResult> choose(@RequestBody ChooseActionRequest request) {
-        ActionResult result = actionEngine.choose(request.getSessionId(), request.getOptionId());
+        ActionResult result = actionEngine.choose(request.getSessionId(), request.getTargetNodeId(), request.getLabel());
         return Result.success(result);
     }
 

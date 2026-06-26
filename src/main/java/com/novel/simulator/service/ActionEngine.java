@@ -16,20 +16,18 @@ import java.util.concurrent.TimeUnit;
 public class ActionEngine {
 
     private final NodeMapper nodeMapper;
-    private final NodeOptionMapper nodeOptionMapper;
     private final UserSessionMapper userSessionMapper;
     private final UserCharacterMapper userCharacterMapper;
     private final EventChain eventChain;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
 
-    public ActionEngine(NodeMapper nodeMapper, NodeOptionMapper nodeOptionMapper,
+    public ActionEngine(NodeMapper nodeMapper,
                         UserSessionMapper userSessionMapper, UserCharacterMapper userCharacterMapper,
                         EventChain eventChain,
                         ObjectMapper objectMapper,
                         StringRedisTemplate redisTemplate) {
         this.nodeMapper = nodeMapper;
-        this.nodeOptionMapper = nodeOptionMapper;
         this.userSessionMapper = userSessionMapper;
         this.userCharacterMapper = userCharacterMapper;
         this.eventChain = eventChain;
@@ -38,11 +36,8 @@ public class ActionEngine {
     }
 
     @Transactional
-    public ActionResult choose(String sessionId, Long optionId) {
+    public ActionResult choose(String sessionId, Long targetNodeId, String optionLabel) {
         UserSession session = getSession(sessionId);
-        NodeOption option = nodeOptionMapper.selectById(optionId);
-        if (option == null) throw new RuntimeException("选项不存在");
-
         UserCharacter character = getCharacter(sessionId);
         character.setChoicesMade(character.getChoicesMade() != null ? character.getChoicesMade() + 1 : 1);
         // 每次选择微增属性
@@ -51,11 +46,15 @@ public class ActionEngine {
         character.setCharm(character.getCharm() + (rnd.nextBoolean() ? 1 : 0));
         character.setLuck(character.getLuck() + (rnd.nextBoolean() ? 1 : 0));
         if (character.getHp() < 100) character.setHp(character.getHp() + 1);
-        updateHistory(session, option.getNodeId());
+
+        // 记录当前节点到历史（当前节点是玩家做出选择时所在的节点）
+        if (session.getCurrentNodeId() != null) {
+            updateHistory(session, session.getCurrentNodeId());
+        }
 
         Node targetNode = null;
-        if (option.getTargetNodeId() != null) {
-            targetNode = nodeMapper.selectById(option.getTargetNodeId());
+        if (targetNodeId != null) {
+            targetNode = nodeMapper.selectById(targetNodeId);
         }
         if (targetNode != null) {
             session.setCurrentNodeId(targetNode.getId());
@@ -68,7 +67,7 @@ public class ActionEngine {
 
         ActionResult result = new ActionResult();
         result.setActionType("choose");
-        result.setChosenOption(option);
+        result.setChosenOptionLabel(optionLabel != null ? optionLabel : "做出了选择");
         result.setTargetNode(targetNode);
         result.setCharacter(character);
         return result;

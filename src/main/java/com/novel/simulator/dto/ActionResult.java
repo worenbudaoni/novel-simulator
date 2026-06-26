@@ -6,7 +6,7 @@ import java.util.Map;
 public class ActionResult {
     private String actionType;
     private Node targetNode;
-    private NodeOption chosenOption;
+    private String chosenOptionLabel;
     private RandomEvent triggeredEvent;
     private UserCharacter character;
     private String eventTitle;
@@ -17,8 +17,8 @@ public class ActionResult {
     public void setActionType(String actionType) { this.actionType = actionType; }
     public Node getTargetNode() { return targetNode; }
     public void setTargetNode(Node targetNode) { this.targetNode = targetNode; }
-    public NodeOption getChosenOption() { return chosenOption; }
-    public void setChosenOption(NodeOption chosenOption) { this.chosenOption = chosenOption; }
+    public String getChosenOptionLabel() { return chosenOptionLabel; }
+    public void setChosenOptionLabel(String chosenOptionLabel) { this.chosenOptionLabel = chosenOptionLabel; }
     public RandomEvent getTriggeredEvent() { return triggeredEvent; }
     public void setTriggeredEvent(RandomEvent triggeredEvent) { this.triggeredEvent = triggeredEvent; }
     public UserCharacter getCharacter() { return character; }
