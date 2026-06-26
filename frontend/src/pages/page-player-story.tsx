@@ -73,9 +73,10 @@ export default function PlayerStoryPage() {
       ? res.eventTitle + '！' + (res.eventContent || '')
       : '';
 
-    if (displayDesc) {
-      setStoryText(prev => prev + '\n\n---\n\n' + displayDesc + '\n\n');
-    }
+    // 新内容起始分隔标记
+    const sep = '\n\n---\n\n📖 **故事继续**\n\n';
+    const desc = displayDesc ? displayDesc + '\n\n' : '';
+    setStoryText(prev => prev + sep + desc);
 
     setPendingSessionId(sid);
     connect(sid, {
