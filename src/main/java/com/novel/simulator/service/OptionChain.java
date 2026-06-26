@@ -71,8 +71,6 @@ public class OptionChain {
             .temperature(0.7)
             .maxTokens(1024)
             .timeout(Duration.ofSeconds(60))
-            .logRequests(true)
-            .logResponses(true)
             .build();
         List<ChatMessage> messages = new ArrayList<>();
         messages.add(new SystemMessage("你是一个互动叙事游戏的设计师，严格按用户要求输出 JSON 格式的选项。"));
