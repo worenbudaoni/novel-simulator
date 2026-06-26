@@ -245,7 +245,7 @@ public class StoryChain {
 
         // 3. 构建完整消息列表
         List<ChatMessage> messages = historyToChatMessages(history);
-        ChatLanguageModel model = buildModel(0.8, 2048);
+        ChatLanguageModel model = buildModel(0.8, 4096);
         Response<AiMessage> llmResponse = model.generate(messages);
         String storyText = llmResponse.content().text();
         log.info("LLM generated {} chars for session {}", storyText.length(), session.getSessionId());
@@ -298,7 +298,7 @@ public class StoryChain {
         history.add(userMsg);
 
         List<ChatMessage> messages = historyToChatMessages(history);
-        ChatLanguageModel model = buildModel(0.8, 1024);
+        ChatLanguageModel model = buildModel(0.8, 2048);
         Response<AiMessage> llmResponse = model.generate(messages);
         String endingText = llmResponse.content().text();
 
