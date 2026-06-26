@@ -24,10 +24,11 @@ interface EndingModalProps {
   onRestart: () => void;
   onBackToHome: () => void;
   onClose?: () => void;
+  isDeath?: boolean;
 }
 
 export default function EndingModal({
-  nodeTitle, nodeDescription, storyText, character, onRestart, onBackToHome, onClose,
+  nodeTitle, nodeDescription, storyText, character, onRestart, onBackToHome, onClose, isDeath,
 }: EndingModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => onClose?.()}>
@@ -36,11 +37,15 @@ export default function EndingModal({
           {/* 结局标题 */}
           <div className="text-center space-y-2">
             <div className="flex justify-center">
-              <div className="p-3 rounded-full bg-primary/10">
-                <SparklesIcon className="size-8 text-primary" />
+              <div className={`p-3 rounded-full ${isDeath ? 'bg-destructive/10' : 'bg-primary/10'}`}>
+                {isDeath ? (
+                  <span className="text-3xl">💀</span>
+                ) : (
+                  <SparklesIcon className="size-8 text-primary" />
+                )}
               </div>
             </div>
-            <h2 className="text-xl font-bold">🎉 故事结局</h2>
+            <h2 className="text-xl font-bold">{isDeath ? '💀 陨落' : '🎉 故事结局'}</h2>
             <p className="text-lg font-semibold text-primary">{nodeTitle}</p>
             {nodeDescription && (
               <p className="text-sm text-muted-foreground">{nodeDescription}</p>
