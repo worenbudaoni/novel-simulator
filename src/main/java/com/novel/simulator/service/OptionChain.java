@@ -112,14 +112,15 @@ public class OptionChain {
         try {
             List<Map<String, String>> history = objectMapper.readValue(historyJson,
                 new TypeReference<List<Map<String, String>>>() {});
-            int start = Math.max(0, history.size() - 4);
+            // 取最近 6 条消息，保留更多上下文
+            int start = Math.max(0, history.size() - 6);
             StringBuilder ctx = new StringBuilder();
             for (int i = start; i < history.size(); i++) {
                 Map<String, String> msg = history.get(i);
                 String role = msg.getOrDefault("role", "");
                 String content = msg.getOrDefault("content", "");
-                if ("user".equals(role) && content.length() > 100) content = content.substring(0, 100) + "…";
-                if ("assistant".equals(role) && content.length() > 200) content = content.substring(0, 200) + "…";
+                if ("user".equals(role) && content.length() > 200) content = content.substring(0, 200) + "…";
+                if ("assistant".equals(role) && content.length() > 500) content = content.substring(0, 500) + "…";
                 ctx.append("[").append(role).append("] ").append(content).append("\n");
             }
             return ctx.toString();
@@ -141,7 +142,7 @@ public class OptionChain {
             + "气血：" + hp + "/100　攻击：" + atk + "　防御：" + def + "\n"
             + "悟性：" + inte + "　魅力：" + cha + "　气运：" + luk + "\n\n"
             + "【可去的方向】\n" + connSb.toString() + "\n"
-            + "【故事上下文（最近一段）】\n" + (recentContext.isEmpty() ? "（无）" : recentContext) + "\n\n"
+            + "【最近的故事进展】\n" + (recentContext.isEmpty() ? "（冒险刚刚开始）" : recentContext) + "\n\n"
             + "请生成 3-4 个选项，每个选项指向一个可去的方向。\n"
             + "严格返回 JSON 数组格式（不要 markdown 代码块标记）：\n"
             + "[\n"
@@ -151,9 +152,10 @@ public class OptionChain {
             + "要求：\n"
             + "- 每个 targetNodeId 必须在「可去的方向」列表中\n"
             + "- 不同选项应指向不同节点，形成有意义的分支\n"
-            + "- 选项文案要有吸引力，让玩家感到每个选择都有分量\n"
+            + "- **选项文案必须紧密贴合最近的故事进展**，让玩家感觉选择是当前剧情的自然延续\n"
+            + "- 选项要体现从当前场景到目标节点的过渡过程，例如当前在「城门」要去「客栈」，选项可以是「穿过热闹的街市，朝城中的客栈走去」\n"
             + "- 角色属性影响选项内容（高智力看到洞察选项，高魅力看到社交选项）\n"
-            + "- 结合故事上下文，让选项贴合当前叙事\n"
+            + "- 结合最近的故事和角色当前的处境，让每个选择都有叙事分量\n"
             + "- 不要出现「继续前进」「下一步」这种无意义标题";
     }
 
