@@ -94,6 +94,9 @@ export default function CharacterPanel({ character, loading, attrChanges }: Char
               <div className="text-xs text-amber-600 font-medium mb-1">🏆 {character.currentTitle}</div>
             )}
             <AttrRow label="❤️ HP" value={character.hp} delta={attrChanges?.hp} />
+            {character.hp < 30 && (
+              <div className="text-xs text-red-500 animate-pulse">⚠ 生命值危险！</div>
+            )}
             <AttrRow label="⚔️ 攻击" value={character.attack} delta={attrChanges?.attack} />
             <AttrRow label="🛡 防御" value={character.defense} delta={attrChanges?.defense} />
             <AttrRow label="🧠 智力" value={character.intelligence} delta={attrChanges?.intelligence} />
