@@ -52,6 +52,8 @@ export default function AdminNovelsPage() {
   const [nodeCount, setNodeCount] = useState(12);
   const [eventCount, setEventCount] = useState(8);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [asyncPreviewLoading, setAsyncPreviewLoading] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // Confirm dialog state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmType, setConfirmType] = useState<'llm' | 'txt'>('llm');
@@ -83,6 +85,12 @@ export default function AdminNovelsPage() {
 
   useEffect(() => { fetchNovels(); }, [fetchNovels]);
 
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
+
   const resetCreate = () => {
     setShowCreate(false);
     setCreateTitle('');
@@ -97,34 +105,48 @@ export default function AdminNovelsPage() {
     setTxtParsedNovelId(null);
     setNodeCount(12);
     setEventCount(8);
+    setAsyncPreviewLoading(false);
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
   };
 
   const handlePreviewLlm = async () => {
     if (!createTitle.trim()) { toast.error('请输入作品名称'); return; }
-    setPreviewLoading(true);
+    setAsyncPreviewLoading(true);
     setActionError('');
     try {
-      const res = await api.post('/admin/novel/import/preview', {
+      const res = await api.post('/admin/novel/import/preview-async', {
         name: createTitle.trim(),
+        author: createAuthor.trim() || undefined,
         contentType: Number(createType),
         nodeCount,
         eventCount,
       });
       if (res.data.code === 200) {
-        const data = res.data.data;
-        if (!data.found) {
-          setActionError(data.message || '未找到作品信息');
-          setPreviewLoading(false);
-          return;
-        }
-        setPreviewResult(data.result);
-        setConfirmType('llm');
-        setConfirmOpen(true);
+        const taskId = res.data.data.taskId;
+        pollRef.current = setInterval(async () => {
+          try {
+            const sr = await api.get(`/admin/novel/import/status/${taskId}`);
+            if (sr.data.code === 200) {
+              const data = sr.data.data;
+              if (data.status === 'done') {
+                if (pollRef.current) clearInterval(pollRef.current);
+                pollRef.current = null;
+                setAsyncPreviewLoading(false);
+                setPreviewResult(data.result);
+                setConfirmType('llm');
+                setConfirmOpen(true);
+              } else if (data.status === 'error') {
+                if (pollRef.current) clearInterval(pollRef.current);
+                pollRef.current = null;
+                setAsyncPreviewLoading(false);
+                setActionError(data.error || '生成失败');
+                toast.error('生成失败: ' + (data.error || '未知错误'));
+              }
+            }
+          } catch { /* ignore */ }
+        }, 3000);
       }
-      setPreviewLoading(false);
-    } catch { /* handled */
-      setPreviewLoading(false);
-    }
+    } catch { setAsyncPreviewLoading(false); }
   };
 
   const handleConfirmLlm = async () => {
@@ -491,18 +513,18 @@ export default function AdminNovelsPage() {
                 <button
                   type="button"
                   onClick={handlePreviewLlm}
-                  disabled={previewLoading || !createTitle.trim()}
+                  disabled={asyncPreviewLoading || !createTitle.trim()}
                   className="w-full flex items-center gap-3 rounded-lg border border-input bg-background px-4 py-3 text-left text-sm hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:pointer-events-none transition-colors"
                 >
-                  {previewLoading ? (
+                  {asyncPreviewLoading ? (
                     <Loader2Icon className="size-5 animate-spin shrink-0" />
                   ) : (
                     <SparklesIcon className="size-5 shrink-0 text-primary" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium">{previewLoading ? 'AI 查询中...' : 'AI 智能生成'}</div>
+                    <div className="font-medium">{asyncPreviewLoading ? 'AI 生成中...' : 'AI 智能生成'}</div>
                     <div className="text-xs text-muted-foreground">
-                      {isNovel ? '输入名称，AI 生成故事框架' : 'AI 根据知识生成故事框架，查不到则提示未找到'}
+                      {asyncPreviewLoading ? '正在生成故事框架，请稍候...' : (isNovel ? '输入名称，AI 生成故事框架' : 'AI 根据知识生成故事框架，查不到则提示未找到')}
                     </div>
                   </div>
                 </button>
