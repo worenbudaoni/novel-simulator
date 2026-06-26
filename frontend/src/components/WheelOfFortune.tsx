@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 
 interface WheelOfFortuneProps {
-  riskLevel: 'risky' | 'daring';
-  rollResult?: number;
+  landSector?: number;     // 后端返回的扇区索引 (0-5)，由父组件传入
   success?: boolean;
   autoPlay: boolean;
   onComplete?: () => void;
@@ -15,31 +14,20 @@ const SECTORS = [
 ];
 const N = 6;
 
-export default function WheelOfFortune({ riskLevel, rollResult, success, autoPlay, onComplete }: WheelOfFortuneProps) {
+export default function WheelOfFortune({ landSector, success, autoPlay, onComplete }: WheelOfFortuneProps) {
   const [pointerRot, setPointerRot] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [landedSector, setLandedSector] = useState(-1);
 
   useEffect(() => {
-    if (!autoPlay) return;
+    if (!autoPlay || landSector == null) return;
 
-    let targetAngle = 0;
-    if (riskLevel === 'risky' && rollResult != null) {
-      const sector = Math.max(0, Math.min(5, Math.floor((rollResult - 1) / 3.33)));
-      targetAngle = sector * 60 + 30;
-    } else {
-      const sector = Math.floor(Math.random() * N);
-      targetAngle = sector * 60 + 30;
-    }
-
-    const sector = riskLevel === 'risky' && rollResult != null
-      ? Math.max(0, Math.min(5, Math.floor((rollResult - 1) / 3.33)))
-      : Math.floor(Math.random() * N);
-
+    const sector = Math.max(0, Math.min(5, landSector));
     setLandedSector(sector);
-    const extraRotations = (3 + Math.floor(Math.random() * 3)) * 360;
-    const totalRotation = pointerRot + extraRotations + sector * 60 + 30;
 
+    const extraRotations = (3 + Math.floor(Math.random() * 3)) * 360;
+    // 当前指针位置 + N圈旋转 + 目标扇区中心角度
+    const totalRotation = pointerRot + extraRotations + sector * 60 + 30;
     setPointerRot(totalRotation);
 
     const timer = setTimeout(() => {
@@ -48,7 +36,7 @@ export default function WheelOfFortune({ riskLevel, rollResult, success, autoPla
     }, 1200);
 
     return () => clearTimeout(timer);
-  }, [autoPlay]);
+  }, [autoPlay, landSector]);
 
   return (
     <div className="flex flex-col items-center gap-3">

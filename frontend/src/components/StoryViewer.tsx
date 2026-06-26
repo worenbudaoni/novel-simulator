@@ -11,9 +11,11 @@ interface StoryViewerProps {
   placeholder?: string;
   /** 新内容起始的字符位置。streaming=true 时自动滚动到此。 */
   contentStart?: number;
+  /** CSS 隐藏（保持挂载以保留滚动位置） */
+  hidden?: boolean;
 }
 
-export default function StoryViewer({ text, streaming, placeholder, contentStart }: StoryViewerProps) {
+export default function StoryViewer({ text, streaming, placeholder, contentStart, hidden: isHidden }: StoryViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const boundaryRef = useRef<HTMLDivElement>(null);
   const prevStreaming = useRef(false);
@@ -47,7 +49,7 @@ export default function StoryViewer({ text, streaming, placeholder, contentStart
   const empty = !text || text.trim().length === 0;
 
   return (
-    <Card>
+    <Card className={isHidden ? 'hidden' : ''}>
       <CardContent className="pt-4 relative">
         {!empty ? (
           <div ref={containerRef} className="h-96 overflow-y-auto p-2 prose prose-sm max-w-none dark:prose-invert">

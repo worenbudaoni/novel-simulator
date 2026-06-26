@@ -77,8 +77,7 @@ export default function ResolutionDisplay({ result, onContinue }: ResolutionDisp
             {/* daring: 轮盘 */}
             {result.riskLevel === 'daring' && (
               <WheelOfFortune
-                riskLevel="daring"
-                rollResult={result.attrValue}
+                landSector={result.sector}
                 success={result.success}
                 autoPlay
                 onComplete={() => {}}

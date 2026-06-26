@@ -48,4 +48,5 @@ export interface ResolutionResult {
   isDead: boolean;
   eventTitle?: string;
   eventContent?: string;
+  sector?: number;           // 0=奇遇 1=宝箱 2=战斗 3=诅咒 4=命运 5=邂逅
 }

@@ -33,6 +33,10 @@ export default function PlayerStoryPage() {
   const [resolving, setResolving] = useState(false);
   const [optionsLoading, setOptionsLoading] = useState(false);
   const storyInitRef = useRef(false);
+  // 用于 triggerStory 中获取最新 storyText.length（避免 useCallback 闭包捕获旧值）
+  const storyLenRef = useRef(0);
+  // 每次 storyText 变化时更新 ref
+  useEffect(() => { storyLenRef.current = storyText.length; }, [storyText]);
 
   useEffect(() => {
     if (sessionId) loadSession(sessionId);
@@ -70,8 +74,8 @@ export default function PlayerStoryPage() {
       pendingDeathRef.current = true;
     }
 
-    // 先记录旧内容的末尾位置 — 这就是新旧分界点
-    setContentStart(storyText.length);
+    // 从 ref 拿最新长度（避免 useCallback 闭包捕获旧值）
+    setContentStart(storyLenRef.current);
 
     // 事件描述先追加到 storyText（作为新内容的一部分）
     if (res?.eventTitle) {
@@ -186,27 +190,29 @@ export default function PlayerStoryPage() {
             </div>
           )}
 
-          {showResolution && resolution ? (
-            <ResolutionDisplay result={resolution} onContinue={handleContinue} />
-          ) : (
-            <>
-              <StoryViewer
-                text={storyText}
-                streaming={streaming}
-                contentStart={contentStart}
-                placeholder={storyText ? '继续你的冒险...' : '故事即将开始...'}
-              />
+          {/* StoryViewer 始终挂载（hidden 时 CSS 隐藏），保留滚动位置 */}
+          <StoryViewer
+            text={storyText}
+            streaming={streaming}
+            contentStart={contentStart}
+            hidden={showResolution}
+            placeholder={storyText ? '继续你的冒险...' : '故事即将开始...'}
+          />
 
-              {!streaming && (
-                <ChoicePanel
-                  options={currentOptions}
-                  disabled={actionDisabled}
-                  loading={optionsLoading}
-                  resolving={resolving}
-                  onChoose={handleResolve}
-                />
-              )}
-            </>
+          {/* 检定结果覆盖层 */}
+          {showResolution && resolution && (
+            <ResolutionDisplay result={resolution} onContinue={handleContinue} />
+          )}
+
+          {/* 选项面板 */}
+          {!streaming && !showResolution && (
+            <ChoicePanel
+              options={currentOptions}
+              disabled={actionDisabled}
+              loading={optionsLoading}
+              resolving={resolving}
+              onChoose={handleResolve}
+            />
           )}
         </div>
 
