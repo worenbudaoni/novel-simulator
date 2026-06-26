@@ -4,12 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.novel.simulator.common.Result;
 import com.novel.simulator.entity.Node;
 import com.novel.simulator.entity.NodeEdge;
-import com.novel.simulator.entity.NodeOption;
 import com.novel.simulator.entity.Novel;
 import com.novel.simulator.entity.RandomEvent;
 import com.novel.simulator.mapper.NodeEdgeMapper;
 import com.novel.simulator.mapper.NodeMapper;
-import com.novel.simulator.mapper.NodeOptionMapper;
 import com.novel.simulator.mapper.RandomEventMapper;
 import com.novel.simulator.service.NovelService;
 import com.novel.simulator.service.ParseChain;
@@ -34,19 +32,17 @@ public class NovelImportController {
     private final ParseChain parseChain;
     private final NodeMapper nodeMapper;
     private final NodeEdgeMapper nodeEdgeMapper;
-    private final NodeOptionMapper nodeOptionMapper;
     private final RandomEventMapper randomEventMapper;
     private final ObjectMapper objectMapper;
 
     public NovelImportController(NovelService novelService, ParseChain parseChain,
                                   NodeMapper nodeMapper, NodeEdgeMapper nodeEdgeMapper,
-                                  NodeOptionMapper nodeOptionMapper, RandomEventMapper randomEventMapper,
+                                  RandomEventMapper randomEventMapper,
                                   ObjectMapper objectMapper) {
         this.novelService = novelService;
         this.parseChain = parseChain;
         this.nodeMapper = nodeMapper;
         this.nodeEdgeMapper = nodeEdgeMapper;
-        this.nodeOptionMapper = nodeOptionMapper;
         this.randomEventMapper = randomEventMapper;
         this.objectMapper = objectMapper;
     }
@@ -191,9 +187,8 @@ public class NovelImportController {
             + "1. worldView: 世界观设定文本\n"
             + "2. nodes: 节点数组，每个节点有 title, description, isStart(boolean), isEnd(boolean), sortOrder\n"
             + "3. edges: 节点连接数组，每个连接有 sourceNodeIndex(int), targetNodeIndex(int), conditionDesc, edgeType(0=固定)\n"
-            + "4. options: 节点选项数组，每个选项有 nodeIndex(int), label, targetNodeIndex(int), triggerEvent(boolean), riskHint\n"
-            + "5. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
-            + "6. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n\n"
+            + "4. events: 随机事件数组，每个事件有 nodeIndex(int或-1表示全局), title, content, eventType(0=正面 1=负面 2=中立), deathProbability(0-100), weight\n"
+            + "5. attrTemplate: 属性模板对象，含 hp, attack, defense, intelligence, charm, luck 的默认值\n\n"
             + "请确保生成" + nodeCount + "个核心节点"
             + (eventCount > 0 ? "和" + eventCount + "个随机事件" : "") + "。\n\n"
             + "小说内容：\n" + (content.length() > 30000 ? content.substring(0, 30000) + "\n... [截断]" : content);
@@ -301,26 +296,6 @@ public class NovelImportController {
                 edge.setConditionDesc((String) e.get("conditionDesc"));
                 edge.setEdgeType(e.get("edgeType") != null ? ((Number) e.get("edgeType")).intValue() : 0);
                 nodeEdgeMapper.insert(edge);
-            }
-        }
-
-        List<Map<String, Object>> options = (List<Map<String, Object>>) parseResult.get("options");
-        if (options != null && nodes != null) {
-            for (Map<String, Object> o : options) {
-                NodeOption option = new NodeOption();
-                int nodeIdx = o.get("nodeIndex") != null ? ((Number) o.get("nodeIndex")).intValue() : 0;
-                if (nodeIdx < nodes.size()) {
-                    option.setNodeId((Long) nodes.get(nodeIdx).get("_newId"));
-                }
-                option.setLabel((String) o.getOrDefault("label", "继续"));
-                int tgtIdx = o.get("targetNodeIndex") != null ? ((Number) o.get("targetNodeIndex")).intValue() : -1;
-                if (tgtIdx >= 0 && tgtIdx < nodes.size()) {
-                    option.setTargetNodeId((Long) nodes.get(tgtIdx).get("_newId"));
-                }
-                option.setTriggerEvent(Boolean.TRUE.equals(o.get("triggerEvent")));
-                option.setRiskHint((String) o.get("riskHint"));
-                option.setCreatedAt(LocalDateTime.now());
-                nodeOptionMapper.insert(option);
             }
         }
 
