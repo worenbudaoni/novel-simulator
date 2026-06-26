@@ -53,12 +53,13 @@ public class AsyncTaskService {
         return redisTemplate.opsForValue().get(key);
     }
 
-    @Async
+    @Async("asyncTaskExecutor")
     public void executeImportTask(String taskId, String name, String author, int contentType,
                                    int nodeCount, int eventCount, ParseChain parseChain) {
         try {
             updateTask(taskId, "processing", null);
-            log.info("Async task {}: starting LLM generation for '{}'", taskId, name);
+            log.info("Async task {}: starting LLM generation for '{}' on thread '{}'",
+                taskId, name, Thread.currentThread().getName());
 
             java.util.Map<String, Object> result = parseChain.previewGenerate(name, author, contentType, nodeCount, eventCount);
 
