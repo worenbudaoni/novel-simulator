@@ -86,8 +86,11 @@ public class EventChain {
         return text;
     }
 
+    /**
+     * @param riskLevel "risky_success" | "risky_fail" | "daring" | null（旧调用兼容）
+     */
     public Map<String, Object> generateEvent(UserSession session, Node currentNode,
-                                              UserCharacter character, String eventType) {
+                                              UserCharacter character, String riskLevel) {
         // 1. 先试 LLM
         if (llmApiKey != null && !llmApiKey.isEmpty()) {
             try {
@@ -174,6 +177,10 @@ public class EventChain {
             + "HP=" + hp + ", 攻击=" + atk + ", 防御=" + def + "\n"
             + "悟性=" + inte + ", 魅力=" + cha + ", 气运=" + luk + "\n\n"
             + "【扇区类型】\n" + sectorName + "\n\n"
+            + (!"daring".equals(eventType) ? "" :
+                "【当前行动风险等级】daring（高风险）\n"
+                + "角色运气值: " + luk + "/100\n"
+                + "运气高→结果偏向正面，运气低→结果偏向负面\n\n")
             + (!storyContext.isEmpty()
                 ? "【最近的故事进展（以此为基础继续，不要脱离当前叙事）】\n" + storyContext + "\n\n"
                 : "")
@@ -207,6 +214,8 @@ public class EventChain {
             + "- HP 变化范围 -30 到 +30，其他属性 -5 到 +5\n"
             + "- 正面扇区属性变化多为正，负面多为负\n"
             + "- 当前 HP 低时伤害相应减小（避免秒杀）\n"
+            + "- 运气高(" + luk + ")时正面概率提升，内容偏向幸运\n"
+            + "- 运气低时负面概率提升，内容偏向不幸\n"
             + "- 数值合理，符合该作品的逻辑";
 
         LlmResult llmResult = callLlm(prompt);
