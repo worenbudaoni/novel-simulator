@@ -17,6 +17,7 @@ public class Node {
     private Integer minCharm;
     private String requiredTitle;
     private Integer sortOrder;
+    private Integer dangerLevel;
     private LocalDateTime createdAt;
 
     public Long getId() { return id; }
@@ -41,6 +42,8 @@ public class Node {
     public void setRequiredTitle(String requiredTitle) { this.requiredTitle = requiredTitle; }
     public Integer getSortOrder() { return sortOrder; }
     public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
+    public Integer getDangerLevel() { return dangerLevel; }
+    public void setDangerLevel(Integer dangerLevel) { this.dangerLevel = dangerLevel; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

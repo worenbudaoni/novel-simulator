@@ -98,6 +98,7 @@ CREATE TABLE node (
     min_charm   INT DEFAULT 0 COMMENT '最小魅力要求（0=不限制）',
     required_title VARCHAR(100) COMMENT '需要称号解锁',
     sort_order  INT,
+    danger_level TINYINT DEFAULT 3 COMMENT '节点危险度 1-5',
     created_at  DATETIME
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
