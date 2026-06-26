@@ -326,6 +326,62 @@ export default function AdminNovelsPage() {
         </div>
       </div>
 
+      {/* Async generation task list (outside create sheet) */}
+      {genTasks.length > 0 && (
+        <div className="mb-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">生成任务</span>
+            <span className="text-[10px] text-muted-foreground">({genTasks.filter(t => t.status === 'processing').length} 进行中)</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {genTasks.map(task => (
+              <div
+                key={task.taskId}
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer transition-colors ${
+                  task.status === 'done' ? 'border-green-200 bg-green-50/50 hover:bg-green-50' :
+                  task.status === 'error' ? 'border-destructive/20 bg-destructive/5' :
+                  'border-muted bg-muted/20'
+                }`}
+                onClick={() => {
+                  if (task.status === 'done') {
+                    setCreateTitle(task.name);
+                    setPreviewResult(task.result);
+                    setConfirmType('llm');
+                    setShowCreate(false);
+                    setConfirmOpen(true);
+                  } else if (task.status === 'error') {
+                    removeTask(task.taskId);
+                  }
+                }}
+              >
+                {task.status === 'processing' ? (
+                  <Loader2Icon className="size-4 animate-spin shrink-0 text-primary" />
+                ) : task.status === 'done' ? (
+                  <CheckCircleIcon className="size-4 shrink-0 text-green-600" />
+                ) : (
+                  <XCircleIcon className="size-4 shrink-0 text-destructive" />
+                )}
+                <span className="text-sm font-medium">{task.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  {task.status === 'processing' ? '生成中...' :
+                   task.status === 'done' ? '✅ 点击预览' :
+                   '⚠️ 失败'}
+                </span>
+                {task.status !== 'processing' && (
+                  <button
+                    type="button"
+                    className="ml-1 text-muted-foreground hover:text-foreground text-xs"
+                    onClick={(e) => { e.stopPropagation(); removeTask(task.taskId); }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -547,57 +603,6 @@ export default function AdminNovelsPage() {
                     </div>
                   </div>
                 </button>
-
-                {/* Async generation task list */}
-                {genTasks.length > 0 && (
-                  <div className="space-y-2 pt-1">
-                    <p className="text-xs font-medium text-muted-foreground">生成任务</p>
-                    {genTasks.map(task => (
-                      <div
-                        key={task.taskId}
-                        className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm cursor-pointer transition-colors ${
-                          task.status === 'done' ? 'border-green-200 bg-green-50/50 hover:bg-green-50' :
-                          task.status === 'error' ? 'border-destructive/20 bg-destructive/5' :
-                          'border-muted bg-muted/20'
-                        }`}
-                        onClick={() => {
-                          if (task.status === 'done') {
-                            setPreviewResult(task.result);
-                            setConfirmType('llm');
-                            setConfirmOpen(true);
-                          } else if (task.status === 'error') {
-                            removeTask(task.taskId);
-                          }
-                        }}
-                      >
-                        {task.status === 'processing' ? (
-                          <Loader2Icon className="size-4 animate-spin shrink-0 text-primary" />
-                        ) : task.status === 'done' ? (
-                          <CheckCircleIcon className="size-4 shrink-0 text-green-600" />
-                        ) : (
-                          <XCircleIcon className="size-4 shrink-0 text-destructive" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm truncate font-medium">{task.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {task.status === 'processing' ? '生成中...' :
-                             task.status === 'done' ? '点击预览' :
-                             task.error || '生成失败（点击关闭）'}
-                          </div>
-                        </div>
-                        {task.status !== 'processing' && (
-                          <button
-                            type="button"
-                            className="shrink-0 text-muted-foreground hover:text-foreground p-0.5"
-                            onClick={(e) => { e.stopPropagation(); removeTask(task.taskId); }}
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
 
                 {isNovel && (
                   <div
