@@ -9,7 +9,7 @@ import StoryViewer from 'src/components/StoryViewer';
 import ResolutionDisplay from 'src/components/ResolutionDisplay';
 import CharacterPanel from 'src/components/CharacterPanel';
 import type { ChoiceOption, ResolutionResult } from '@/types';
-import { ArrowLeftIcon, SaveIcon, RotateCcwIcon } from 'lucide-react';
+import { ArrowLeftIcon, SaveIcon, RotateCcwIcon, Loader2Icon } from 'lucide-react';
 import { toast } from 'sonner';
 import EndingModal from 'src/components/EndingModal';
 import SaveLoadModal from 'src/components/SaveLoadModal';
